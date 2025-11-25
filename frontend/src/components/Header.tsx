@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) =
             </button>
           )}
 
-          <button className="btn" onClick={onLogout} style={{ fontSize: '0.9rem', background: 'white', color: '#333333', fontWeight: 600 }}>
+          <button className="btn" onClick={onLogout} style={{ fontSize: '0.9rem' }}>
             🚪 Logout
           </button>
         </div>

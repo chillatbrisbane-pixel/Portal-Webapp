@@ -185,19 +185,6 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
                     placeholder="+1 (555) 123-4567"
                   />
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="status">Project Status</label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                  >
-                    <option value="in progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
               </div>
             )}
 
