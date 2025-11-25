@@ -14,8 +14,7 @@ const BRANDING_CONFIG = {
   backgroundGradient: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
   showDemoCredentials: false,
   footerText: '© 2025 Electronic Living',
-  companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
-};
+  companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/Electronic-Living-Logo-Rev.png',
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
