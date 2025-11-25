@@ -5,8 +5,6 @@ interface LoginScreenProps {
   onLoginSuccess: (user: any) => void;
 }
 
-// ============ CUSTOMIZATION CONFIG ============
-// Edit these values to customize the login screen
 const BRANDING_CONFIG = {
   logo: '🏠',
   primaryColor: '#333333',
@@ -15,6 +13,7 @@ const BRANDING_CONFIG = {
   showDemoCredentials: false,
   footerText: '© 2025 Electronic Living',
   companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/Electronic-Living-Logo-Rev.png',
+};
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -25,7 +24,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [checkingBackend, setCheckingBackend] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Check if backend is running
   useEffect(() => {
     const checkBackend = async () => {
       try {
@@ -38,7 +36,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         setCheckingBackend(false);
       }
     };
-
     checkBackend();
   }, []);
 
@@ -68,7 +65,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  // Load remembered username
   useEffect(() => {
     const remembered = localStorage.getItem('rememberedUsername');
     if (remembered) {
@@ -80,13 +76,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   return (
     <div className="login-container" style={{ background: BRANDING_CONFIG.backgroundGradient }}>
       <div className="login-box">
-        {/* Logo Section */}
         <div className="login-logo">
           {BRANDING_CONFIG.companyLogoUrl ? (
             <img 
               src={BRANDING_CONFIG.companyLogoUrl} 
               alt="Company Logo" 
-              style={{ maxWidth: '120px', marginBottom: '2rem' }}
+              style={{ maxWidth: '250px', marginBottom: '2rem' }}
             />
           ) : (
             <div className="logo-emoji" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>
@@ -95,7 +90,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           )}
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin}>
           <div className="form-group">
             <label htmlFor="username">Username</label>
@@ -137,7 +131,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
 
-        {/* Footer */}
         <div className="login-footer">
           <p style={{ fontSize: '0.8rem', color: '#999', margin: 0 }}>
             {BRANDING_CONFIG.footerText}
@@ -146,22 +139,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       </div>
 
       <style>{`
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         .login-container {
           display: flex;
           justify-content: center;
           align-items: center;
           min-height: 100vh;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-            'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
           padding: 1rem;
         }
-
         .login-box {
           background: white;
           border-radius: 12px;
@@ -171,40 +157,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           max-width: 420px;
           animation: slideUp 0.5s ease-out;
         }
-
         @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
         }
-
-        .login-logo {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .logo-emoji {
-          animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        .form-group {
-          margin-bottom: 1.5rem;
-        }
-
+        .login-logo { text-align: center; margin-bottom: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
         .form-group label {
           display: block;
           margin-bottom: 0.6rem;
@@ -212,7 +170,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           color: #333;
           font-size: 0.95rem;
         }
-
         .form-group input[type="text"],
         .form-group input[type="password"] {
           width: 100%;
@@ -221,23 +178,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           border-radius: 6px;
           font-size: 1rem;
           font-family: inherit;
-          box-sizing: border-box;
           transition: all 0.3s;
         }
-
-        .form-group input[type="text"]:focus,
-        .form-group input[type="password"]:focus {
+        .form-group input:focus {
           outline: none;
           border-color: ${BRANDING_CONFIG.primaryColor};
           box-shadow: 0 0 0 3px ${BRANDING_CONFIG.primaryColor}20;
         }
-
         .form-group input:disabled {
           background: #f5f5f5;
           cursor: not-allowed;
           color: #999;
         }
-
         .error-message {
           background: #fee2e2;
           color: #991b1b;
@@ -247,7 +199,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           font-size: 0.9rem;
           border: 1px solid #fecaca;
         }
-
         .btn-login {
           width: 100%;
           padding: 0.85rem;
@@ -260,28 +211,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           transition: all 0.3s;
           margin-bottom: 1rem;
         }
-
         .btn-login:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 16px ${BRANDING_CONFIG.primaryColor}40;
         }
-
         .btn-login:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
-
         .login-footer {
           text-align: center;
           margin-top: 2rem;
           padding-top: 1.5rem;
           border-top: 1px solid #eee;
-        }
-
-        @media (max-width: 480px) {
-          .login-box {
-            padding: 2rem 1.5rem;
-          }
         }
       `}</style>
     </div>

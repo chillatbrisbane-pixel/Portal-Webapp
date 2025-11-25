@@ -1,6 +1,6 @@
 // API Service - Connects to backend at http://localhost:5000
 
-const API_BASE_URL = 'http://192.168.2.199:5000/api';
+const API_BASE_URL = '/api';
 
 // Store token in localStorage
 const getToken = () => localStorage.getItem('token');
