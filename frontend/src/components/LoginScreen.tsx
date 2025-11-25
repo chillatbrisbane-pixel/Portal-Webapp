@@ -8,7 +8,7 @@ interface LoginScreenProps {
 // ============ CUSTOMIZATION CONFIG ============
 // Edit these values to customize the login screen
 const BRANDING_CONFIG = {
-  //appName: 'Electronic Living',
+  appName: 'Electronic Living',
  // appTagline: 'Smart Technology for Home, Business & Marine',
   logo: '🏠',
   primaryColor: '#333333',
