@@ -1,6 +1,4 @@
-
-
-  import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { Project } from '../types'
 import { projectsAPI } from '../services/apiService'
 

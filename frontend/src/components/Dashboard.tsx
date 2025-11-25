@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { User, Project } from '../types'
 import { projectsAPI } from '../services/apiService'
-import { CreateProjectModal } from './CreateProjectModal'
+import { SetupWizardModal } from './SetupWizardModal'
 import { ProjectDetail } from './ProjectDetail'
 
 interface DashboardProps {
@@ -12,7 +12,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showWizard, setShowWizard] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
 
   useEffect(() => {
@@ -33,35 +33,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleProjectCreated = (newProject: Project) => {
     setProjects([newProject, ...projects])
-    setShowCreateModal(false)
+    setShowWizard(false)
   }
 
   const handleProjectDeleted = (projectId: string) => {
     setProjects(projects.filter(p => p._id !== projectId))
     setSelectedProject(null)
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'active':
-        return 'status-active'
-      case 'pending':
-        return 'status-pending'
-      case 'completed':
-        return 'status-completed'
-      case 'on hold':
-        return 'status-on-hold'
-      default:
-        return 'status-pending'
-    }
-  }
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
   }
 
   if (selectedProject) {
@@ -78,51 +55,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   }
 
   return (
-    <div className="container">
+    <div className="container" style={{ paddingTop: '2rem' }}>
       {/* Page Header */}
-      <div className="page-header">
-        <div>
-          <h2>📋 Projects</h2>
-          <p style={{ color: '#6b7280', margin: '0.5rem 0 0 0' }}>
-            Manage and track your AV installation projects
-          </p>
-        </div>
-        <div className="page-header-actions">
-          {user.role !== 'technician' && (
-            <button className="btn btn-primary" onClick={() => setShowCreateModal(true)}>
-              ➕ New Project
-            </button>
-          )}
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '2rem', color: '#333333', margin: 0 }}>My Projects</h2>
+        {user.role !== 'technician' && (
+          <button 
+            className="btn btn-primary" 
+            onClick={() => setShowWizard(true)}
+            style={{ fontSize: '1rem' }}
+          >
+            🚀 New Project
+          </button>
+        )}
       </div>
 
       {/* Error Alert */}
       {error && (
-        <div className="alert alert-error">
-          <strong>Error:</strong> {error}
+        <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
+          {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          <span>Loading projects...</span>
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+          <p>Loading projects...</p>
         </div>
       ) : projects.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <div className="empty-state">
-            <div className="empty-state-icon">📦</div>
-            <h3>No Projects Yet</h3>
-            <p className="text-muted">
-              Create your first project to get started with managing AV installations
-            </p>
-            {user.role !== 'technician' && (
-              <button className="btn btn-accent" onClick={() => setShowCreateModal(true)}>
-                ➕ Create Your First Project
-              </button>
-            )}
-          </div>
+        <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
+          <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>No projects yet</p>
+          {user.role !== 'technician' && (
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowWizard(true)}
+            >
+              🚀 Create Your First Project
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid">
@@ -130,49 +100,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div
               key={project._id}
               className="card"
-              style={{ cursor: 'pointer' }}
               onClick={() => setSelectedProject(project)}
+              style={{ cursor: 'pointer' }}
             >
-              {/* Card Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 0.25rem 0' }}>{project.name}</h3>
-                  <p className="text-muted" style={{ margin: 0 }}>
-                    {project.clientName || 'No Client'}
-                  </p>
-                </div>
-                <span className={`status-badge ${getStatusColor(project.status)}`}>
-                  {project.status}
-                </span>
-              </div>
-
-              {/* Card Description */}
+              <h3 style={{ marginBottom: '0.5rem' }}>{project.name}</h3>
               {project.description && (
-                <p className="text-muted" style={{ marginBottom: '1rem', lineHeight: 1.5 }}>
+                <p className="text-muted" style={{ marginBottom: '1rem' }}>
                   {project.description}
                 </p>
               )}
-
-              {/* Card Details */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
-                <div>
-                  <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>Created</p>
-                  <p style={{ fontWeight: 600, color: '#333333', margin: '0.25rem 0 0 0' }}>
-                    {formatDate(project.createdAt)}
+              <div style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
+                {project.clientName && (
+                  <p style={{ margin: '0.5rem 0' }}>
+                    <strong>Client:</strong> {project.clientName}
                   </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.85rem', color: '#6b7280', margin: 0 }}>Devices</p>
-                  <p style={{ fontWeight: 600, color: '#333333', margin: '0.25rem 0 0 0' }}>
-                    {project.devices?.length || 0} devices
-                  </p>
-                </div>
-              </div>
-
-              {/* Card Footer Action */}
-              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
-                <p style={{ fontSize: '0.85rem', color: '#0066cc', margin: 0, fontWeight: 600 }}>
-                  Click to view details →
+                )}
+                <p style={{ margin: '0.5rem 0' }}>
+                  <strong>Status:</strong> {project.status}
+                </p>
+                <p style={{ margin: '0.5rem 0' }}>
+                  <strong>Created:</strong> {new Date(project.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
@@ -180,10 +127,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* Create Project Modal */}
-      {showCreateModal && (
-        <CreateProjectModal
-          onClose={() => setShowCreateModal(false)}
+      {/* Setup Wizard Modal */}
+      {showWizard && (
+        <SetupWizardModal
+          onClose={() => setShowWizard(false)}
           onProjectCreated={handleProjectCreated}
         />
       )}
