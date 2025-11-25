@@ -15,39 +15,21 @@ const BRANDING_CONFIG = {
   secondaryColor: '#555555',
   backgroundGradient: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
   showDemoCredentials: false,
-  welcomeMessage: 'Documentation Portal',
+  // welcomeMessage: 'Documentation Portal',
   // subMessage: 'Project Management System',
   footerText: '© 2025 Electronic Living',
-  companyLogoUrl: '/logo.png',
+  companyLogoUrl: ''https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
 };
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
   const [checkingBackend, setCheckingBackend] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Check if backend is running
-  useEffect(() => {
-    const checkBackend = async () => {
-      try {
-        const connected = await healthCheck();
-        setBackendConnected(connected);
-        if (!connected) {
-          setError('⚠️ Backend not running. Start backend with: npm run dev (in backend folder)');
-        }
-      } catch (err) {
-        setBackendConnected(false);
-        setError('⚠️ Cannot connect to backend. Make sure it\'s running on http://localhost:5000');
-      } finally {
-        setCheckingBackend(false);
-      }
-    };
 
-    checkBackend();
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +105,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         </div>
 
         {/* Backend Status */}
-        {checkingBackend && (
+        {!checkingBackend && (
           <div className="backend-check">
             <p>🔍 Checking connection...</p>
           </div>
@@ -135,7 +117,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {!checkingBackend && !backendConnected && (
+        !checkingBackend && !backendConnected && (
           <div className="backend-status error">
             <span>❌ Connection error</span>
           </div>
