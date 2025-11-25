@@ -1,51 +1,55 @@
-import { useState } from 'react'
+import React from 'react'
 import { User } from '../types'
-import { UserManagementModal } from './UserManagementModal'
 
 interface HeaderProps {
   user: User
   onLogout: () => void
+  onShowUsers?: () => void
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
-  const [showUserMgmt, setShowUserMgmt] = useState(false)
-
+export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) => {
   return (
-    <>
-      <header className="header">
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1>🏠 Electronic Living Docs</h1>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--gray-500)' }}>AV Project Manager</p>
-          </div>
+    <header className="header">
+      <div className="header-content">
+        {/* Left side - Logo and Title */}
+        <div className="header-left">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <img
+              src="https://www.electronicliving.com.au/wp-content/uploads/Electronic-Living-Logo-Rev.png"
+              alt="Electronic Living Logo"
+              style={{ height: '40px', width: 'auto' }}
+            />
             <div>
-              <p style={{ margin: 0, fontWeight: 600 }}>👤 {user.name}</p>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              <h1 style={{ color: '#00a8ff', fontSize: '1.5rem', margin: 0, fontWeight: 700 }}>
+                AV Project Manager
+              </h1>
+              <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>
+                Electronic Living
               </p>
             </div>
-            
-            {/* Admin-only buttons */}
-            {user.role === 'admin' && (
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowUserMgmt(true)}
-              >
-                👥 Users
-              </button>
-            )}
-            
-            <button className="btn btn-secondary btn-sm" onClick={onLogout}>
-              Logout
-            </button>
           </div>
         </div>
-      </header>
 
-      {showUserMgmt && (
-        <UserManagementModal onClose={() => setShowUserMgmt(false)} />
-      )}
-    </>
+        {/* Right side - User Info and Actions */}
+        <div className="header-right">
+          <div className="user-info">
+            <span>👤 {user.name}</span>
+            <span className="user-role">{user.role}</span>
+          </div>
+
+          {user.role === 'admin' && onShowUsers && (
+            <button className="btn" onClick={onShowUsers} style={{ fontSize: '0.9rem' }}>
+              👥 Users
+            </button>
+          )}
+
+          <button className="btn" onClick={onLogout} style={{ fontSize: '0.9rem' }}>
+            🚪 Logout
+          </button>
+        </div>
+      </div>
+    </header>
   )
 }
+
+export default Header
