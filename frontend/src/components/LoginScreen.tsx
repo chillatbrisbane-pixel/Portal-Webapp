@@ -8,7 +8,7 @@ interface LoginScreenProps {
 // ============ CUSTOMIZATION CONFIG ============
 // Edit these values to customize the login screen
 const BRANDING_CONFIG = {
-  appName: 'Electronic Living',
+  //appName: 'Electronic Living',
  // appTagline: 'Smart Technology for Home, Business & Marine',
   logo: '🏠',
   primaryColor: '#333333',
@@ -18,17 +18,17 @@ const BRANDING_CONFIG = {
   // welcomeMessage: 'Documentation Portal',
   // subMessage: 'Project Management System',
   footerText: '© 2025 Electronic Living',
-  companyLogoUrl: '/logo.png',
+  companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
 };
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [backendConnected, setBackendConnected] = useState(false);
   const [checkingBackend, setCheckingBackend] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
-/*
+
   // Check if backend is running
   useEffect(() => {
     const checkBackend = async () => {
@@ -74,7 +74,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       setLoading(false);
     }
   };
-  */
 
   // Load remembered username
   useEffect(() => {
@@ -136,7 +135,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {!checkingBackend && !backendConnected && (
+       // !checkingBackend && !backendConnected && (
           <div className="backend-status error">
             <span>❌ Connection error</span>
           </div>
