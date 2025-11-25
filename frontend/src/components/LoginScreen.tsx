@@ -21,7 +21,7 @@ const BRANDING_CONFIG = {
   companyLogoUrl: ''https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
 };
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState('user');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
