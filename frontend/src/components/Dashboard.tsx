@@ -116,7 +116,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   </p>
                 )}
                 <p style={{ margin: '0.5rem 0' }}>
-                  <strong>Status:</strong> {project.status}
+                  <strong>Status:</strong> 
+                  <span style={{
+                    marginLeft: '0.5rem',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '12px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    display: 'inline-block',
+                    background: project.status === 'completed' ? '#dcfce7' : '#fef3c7',
+                    color: project.status === 'completed' ? '#166534' : '#92400e',
+                  }}>
+                    {project.status}
+                  </span>
                 </p>
                 <p style={{ margin: '0.5rem 0' }}>
                   <strong>Created:</strong> {new Date(project.createdAt).toLocaleDateString()}

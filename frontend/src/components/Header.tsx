@@ -21,11 +21,8 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) =
             />
             <div>
               <h1 style={{ color: '#00a8ff', fontSize: '1.5rem', margin: 0, fontWeight: 700 }}>
-                AV Project Manager
+                Project Documentation
               </h1>
-              <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.9 }}>
-                Electronic Living
-              </p>
             </div>
           </div>
         </div>
@@ -43,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) =
             </button>
           )}
 
-          <button className="btn" onClick={onLogout} style={{ fontSize: '0.9rem' }}>
+          <button className="btn" onClick={onLogout} style={{ fontSize: '0.9rem', background: 'white', color: '#333333', fontWeight: 600 }}>
             🚪 Logout
           </button>
         </div>
