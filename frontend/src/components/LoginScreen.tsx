@@ -18,10 +18,10 @@ const BRANDING_CONFIG = {
   // welcomeMessage: 'Documentation Portal',
   // subMessage: 'Project Management System',
   footerText: '© 2025 Electronic Living',
-  companyLogoUrl: ''https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
+  companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
 };
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('user');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
