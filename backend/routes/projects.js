@@ -3,15 +3,10 @@ const router = express.Router();
 const Project = require('../models/Project');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 
-// Get all projects for current user (created by or team member)
+// Get all projects (all users see all projects)
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const projects = await Project.find({
-      $or: [
-        { createdBy: req.userId },
-        { 'teamMembers.userId': req.userId },
-      ],
-    })
+    const projects = await Project.find({})
       .populate('createdBy', 'name email')
       .populate('teamMembers.userId', 'name email')
       .sort({ createdAt: -1 });
@@ -81,24 +76,13 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Update project
+// Update project (all users can edit)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
-    }
-
-    // Check if user is owner or editor
-    const userTeamMember = project.teamMembers.find(
-      (m) => m.userId.toString() === req.userId.toString()
-    );
-    const isOwner = project.createdBy.toString() === req.userId.toString();
-    const canEdit = isOwner || userTeamMember?.role === 'editor';
-
-    if (!canEdit) {
-      return res.status(403).json({ error: 'You do not have permission to edit this project' });
     }
 
     // Update only allowed fields
@@ -140,18 +124,18 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Delete project (owner only)
+// Delete project (admin only)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    // Only admins can delete projects
+    if (req.userRole !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can delete projects' });
+    }
+
     const project = await Project.findById(req.params.id);
 
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
-    }
-
-    // Only owner can delete
-    if (project.createdBy.toString() !== req.userId.toString()) {
-      return res.status(403).json({ error: 'Only project owner can delete' });
     }
 
     await Project.findByIdAndDelete(req.params.id);

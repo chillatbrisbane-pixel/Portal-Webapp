@@ -28,9 +28,9 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
       controlSystem: false,
     },
     networkConfig: {
-      vlan1: { name: 'Management', subnet: '192.168.210.0/24', gateway: '192.168.210.1' },
-      vlan20: { name: 'Cameras', subnet: '192.168.220.0/24', gateway: '192.168.220.1' },
-      vlan30: { name: 'Guest Network', subnet: '192.168.230.0/24', gateway: '192.168.230.1' },
+      vlan1: { name: 'Management', subnet: '192.168.1.0/24', gateway: '192.168.1.1' },
+      vlan20: { name: 'Cameras', subnet: '10.0.20.0/24', gateway: '10.0.20.1' },
+      vlan30: { name: 'Guest Network', subnet: '10.0.30.0/24', gateway: '10.0.30.1' },
     },
   })
 
