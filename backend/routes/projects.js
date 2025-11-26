@@ -73,11 +73,13 @@ router.post('/', authenticateToken, async (req, res) => {
     const project = new Project(projectData);
     await project.save();
 
-    const populatedProject = await Project.findById(project._id)
+    // Fetch the saved project to populate
+    const savedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email');
+      .populate('teamMembers.userId', 'name email')
+      .exec();
 
-    res.status(201).json(populatedProject);
+    res.status(201).json(savedProject);
   } catch (error) {
     console.error('Create project error:', error);
     res.status(500).json({ error: error.message });
@@ -136,7 +138,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email');
+      .populate('teamMembers.userId', 'name email')
+      .exec();
 
     res.json(updatedProject);
   } catch (error) {
@@ -197,7 +200,8 @@ router.post('/:id/team', authenticateToken, async (req, res) => {
 
     const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email');
+      .populate('teamMembers.userId', 'name email')
+      .exec();
 
     res.json(updatedProject);
   } catch (error) {
@@ -228,7 +232,8 @@ router.delete('/:id/team/:userId', authenticateToken, async (req, res) => {
 
     const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email');
+      .populate('teamMembers.userId', 'name email')
+      .exec();
 
     res.json(updatedProject);
   } catch (error) {
