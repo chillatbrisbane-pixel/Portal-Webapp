@@ -73,7 +73,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const project = new Project(projectData);
     await project.save();
 
-    const populatedProject = await project
+    const populatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
       .populate('teamMembers.userId', 'name email');
 
@@ -134,7 +134,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     await project.save();
 
-    const updatedProject = await project
+    const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
       .populate('teamMembers.userId', 'name email');
 
@@ -195,7 +195,7 @@ router.post('/:id/team', authenticateToken, async (req, res) => {
 
     await project.save();
 
-    const updatedProject = await project
+    const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
       .populate('teamMembers.userId', 'name email');
 
@@ -226,7 +226,7 @@ router.delete('/:id/team/:userId', authenticateToken, async (req, res) => {
 
     await project.save();
 
-    const updatedProject = await project
+    const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
       .populate('teamMembers.userId', 'name email');
 

@@ -87,7 +87,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <img 
               src={BRANDING_CONFIG.companyLogoUrl} 
               alt="Company Logo" 
-              style={{ maxWidth: '120px', marginBottom: '2rem' }}
+              style={{ maxWidth: '480px', marginBottom: '2rem' }}
             />
           ) : (
             <div className="logo-emoji" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>
