@@ -70,7 +70,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
     try {
       if (passwordMode) {
-        // Change password
         if (!formData.password) {
           setError('Password is required')
           setLoading(false)
@@ -78,14 +77,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         }
         await usersAPI.changePassword(editingUser!._id, formData.password)
       } else if (editingUser) {
-        // Edit existing user
         await usersAPI.update(editingUser._id, {
           name: formData.name,
           email: formData.email,
           role: formData.role,
         })
       } else {
-        // Create new user
         if (!formData.password) {
           setError('Password is required for new users')
           setLoading(false)
@@ -127,13 +124,11 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
-        {/* Header */}
         <div className="modal-header">
           <h2>{currentUser.role === 'admin' ? '👥 Manage Users' : '👤 My Profile'}</h2>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
-        {/* Body */}
         <div className="modal-body">
           {error && <div className="alert alert-error">{error}</div>}
 
@@ -141,7 +136,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             <>
               {currentUser.role === 'admin' ? (
                 <>
-                  {/* Admin: User List */}
                   <button
                     onClick={handleAddUser}
                     className="btn btn-primary"
@@ -215,7 +209,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                 </>
               ) : (
                 <>
-                  {/* User: Profile Management */}
                   <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '6px', marginBottom: '1.5rem' }}>
                     <h3 style={{ color: '#333333', marginTop: 0 }}>Your Profile</h3>
                     <p style={{ margin: '0.5rem 0' }}>
@@ -248,7 +241,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             </>
           ) : (
             <>
-              {/* Form */}
               <h3 style={{ color: '#333333' }}>
                 {passwordMode ? '🔐 Change Password' : editingUser ? '✏️ Edit User' : '➕ Add New User'}
               </h3>
