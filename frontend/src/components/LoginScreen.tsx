@@ -8,18 +8,15 @@ interface LoginScreenProps {
 // ============ CUSTOMIZATION CONFIG ============
 // Edit these values to customize the login screen
 const BRANDING_CONFIG = {
-  //appName: 'Electronic Living',
- // appTagline: 'Smart Technology for Home, Business & Marine',
   logo: '🏠',
   primaryColor: '#333333',
   secondaryColor: '#555555',
   backgroundGradient: 'linear-gradient(135deg, #2c3e50 0%, #34495e 100%)',
   showDemoCredentials: false,
-  // welcomeMessage: 'Documentation Portal',
-  // subMessage: 'Project Management System',
   footerText: '© 2025 Electronic Living',
-  companyLogoUrl: '/logo.png',
+  companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/logo-reversed.svg',
 };
+
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -28,19 +25,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [backendConnected, setBackendConnected] = useState(false);
   const [checkingBackend, setCheckingBackend] = useState(true);
   const [rememberMe, setRememberMe] = useState(false);
-/*
+
   // Check if backend is running
   useEffect(() => {
     const checkBackend = async () => {
       try {
         const connected = await healthCheck();
         setBackendConnected(connected);
-        if (!connected) {
-          setError('⚠️ Backend not running. Start backend with: npm run dev (in backend folder)');
-        }
       } catch (err) {
         setBackendConnected(false);
-        setError('⚠️ Cannot connect to backend. Make sure it\'s running on http://localhost:5000');
+        setError('⚠️ Cannot connect to backend');
       } finally {
         setCheckingBackend(false);
       }
@@ -74,7 +68,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
       setLoading(false);
     }
   };
-  */
 
   // Load remembered username
   useEffect(() => {
@@ -94,7 +87,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <img 
               src={BRANDING_CONFIG.companyLogoUrl} 
               alt="Company Logo" 
-              style={{ maxWidth: '300px', marginBottom: '1rem' }}
+              style={{ maxWidth: '120px', marginBottom: '2rem' }}
             />
           ) : (
             <div className="logo-emoji" style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>
@@ -102,45 +95,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </div>
           )}
         </div>
-
-        {/* Header */}
-        <div className="login-header">
-          <h1 style={{ color: BRANDING_CONFIG.primaryColor }}>
-            {BRANDING_CONFIG.appName}
-          </h1>
-          <p style={{ color: '#666' }}>
-            {BRANDING_CONFIG.appTagline}
-          </p>
-        </div>
-
-        {/* Welcome Message */}
-        <div className="welcome-section">
-          <h2 style={{ color: '#333', marginBottom: '0.5rem' }}>
-            {BRANDING_CONFIG.welcomeMessage}
-          </h2>
-          <p style={{ color: '#666', marginBottom: '2rem' }}>
-            {BRANDING_CONFIG.subMessage}
-          </p>
-        </div>
-
-        {/* Backend Status */}
-        {checkingBackend && (
-          <div className="backend-check">
-            <p>🔍 Checking connection...</p>
-          </div>
-        )}
-
-        {!checkingBackend && backendConnected && (
-          <div className="backend-status connected">
-            <span>✅ Ready to connect</span>
-          </div>
-        )}
-
-        {!checkingBackend && !backendConnected && (
-          <div className="backend-status error">
-            <span>❌ Connection error</span>
-          </div>
-        )}
 
         {/* Login Form */}
         <form onSubmit={handleLogin}>
@@ -169,20 +123,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             />
           </div>
 
-          {/* Remember Me */}
-          <div className="form-group" style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <input
-              id="rememberMe"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{ marginRight: '0.5rem', cursor: 'pointer' }}
-            />
-            <label htmlFor="rememberMe" style={{ margin: 0, cursor: 'pointer' }}>
-              Remember me
-            </label>
-          </div>
-
           {error && <div className="error-message">{error}</div>}
 
           <button
@@ -197,24 +137,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             {loading ? '🔄 Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        {/* Demo Credentials - Conditionally Shown */}
-        {BRANDING_CONFIG.showDemoCredentials && (
-          <div className="login-help">
-            <p className="text-muted">Demo Credentials:</p>
-            <div className="credentials">
-              <div className="credential">
-                <strong>Admin:</strong> admin / admin123
-              </div>
-              <div className="credential">
-                <strong>Manager:</strong> manager / manager123
-              </div>
-              <div className="credential">
-                <strong>Technician:</strong> tech / tech123
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Footer */}
         <div className="login-footer">
@@ -264,7 +186,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
         .login-logo {
           text-align: center;
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
         }
 
         .logo-emoji {
@@ -278,59 +200,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           50% {
             transform: translateY(-10px);
           }
-        }
-
-        .login-header {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .login-header h1 {
-          font-size: 1.8rem;
-          margin: 0 0 0.5rem 0;
-          font-weight: 700;
-        }
-
-        .login-header p {
-          font-size: 0.95rem;
-          margin: 0;
-        }
-
-        .welcome-section {
-          text-align: center;
-          margin-bottom: 1.5rem;
-        }
-
-        .welcome-section h2 {
-          font-size: 1.3rem;
-        }
-
-        .backend-status {
-          padding: 12px;
-          border-radius: 6px;
-          margin-bottom: 1rem;
-          font-size: 0.9rem;
-          font-weight: 500;
-          text-align: center;
-        }
-
-        .backend-status.connected {
-          background: #d4edda;
-          color: #155724;
-          border: 1px solid #c3e6cb;
-        }
-
-        .backend-status.error {
-          background: #f8d7da;
-          color: #721c24;
-          border: 1px solid #f5c6cb;
-        }
-
-        .backend-check {
-          text-align: center;
-          padding: 1rem;
-          color: #666;
-          margin-bottom: 1rem;
         }
 
         .form-group {
@@ -370,12 +239,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           color: #999;
         }
 
-        .form-group input[type="checkbox"] {
-          cursor: pointer;
-          width: 18px;
-          height: 18px;
-        }
-
         .error-message {
           background: #fee2e2;
           color: #991b1b;
@@ -409,36 +272,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
           cursor: not-allowed;
         }
 
-        .login-help {
-          border-top: 1px solid #eee;
-          padding-top: 1.5rem;
-          margin-top: 1.5rem;
-        }
-
-        .login-help .text-muted {
-          color: #666;
-          font-size: 0.85rem;
-          margin: 0 0 0.75rem 0;
-          font-weight: 600;
-        }
-
-        .credentials {
-          background: #f8f9fa;
-          border-radius: 6px;
-          padding: 1rem;
-          font-size: 0.8rem;
-        }
-
-        .credential {
-          padding: 0.35rem 0;
-          color: #555;
-          line-height: 1.6;
-        }
-
-        .credential strong {
-          color: #333;
-        }
-
         .login-footer {
           text-align: center;
           margin-top: 2rem;
@@ -449,14 +282,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         @media (max-width: 480px) {
           .login-box {
             padding: 2rem 1.5rem;
-          }
-
-          .login-header h1 {
-            font-size: 1.4rem;
-          }
-
-          .welcome-section h2 {
-            font-size: 1.1rem;
           }
         }
       `}</style>
