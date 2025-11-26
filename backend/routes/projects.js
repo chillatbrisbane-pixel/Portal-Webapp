@@ -51,7 +51,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create new project
+// Create new project - SIMPLIFIED (no populate)
 router.post('/', authenticateToken, async (req, res) => {
   try {
     // Only managers and admins can create projects
@@ -73,13 +73,8 @@ router.post('/', authenticateToken, async (req, res) => {
     const project = new Project(projectData);
     await project.save();
 
-    // Fetch the saved project to populate
-    const savedProject = await Project.findById(project._id)
-      .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email')
-      .exec();
-
-    res.status(201).json(savedProject);
+    // Just return the saved project without populate for now
+    res.status(201).json(project);
   } catch (error) {
     console.error('Create project error:', error);
     res.status(500).json({ error: error.message });
@@ -126,6 +121,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'switchPorts',
       'notes',
       'handoverDocument',
+      'devices',
     ];
 
     allowedFields.forEach((field) => {
@@ -136,12 +132,8 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     await project.save();
 
-    const updatedProject = await Project.findById(project._id)
-      .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email')
-      .exec();
-
-    res.json(updatedProject);
+    // Return updated project
+    res.json(project);
   } catch (error) {
     console.error('Update project error:', error);
     res.status(500).json({ error: error.message });
@@ -197,13 +189,7 @@ router.post('/:id/team', authenticateToken, async (req, res) => {
     });
 
     await project.save();
-
-    const updatedProject = await Project.findById(project._id)
-      .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email')
-      .exec();
-
-    res.json(updatedProject);
+    res.json(project);
   } catch (error) {
     console.error('Add team member error:', error);
     res.status(500).json({ error: error.message });
@@ -229,16 +215,46 @@ router.delete('/:id/team/:userId', authenticateToken, async (req, res) => {
     );
 
     await project.save();
-
-    const updatedProject = await Project.findById(project._id)
-      .populate('createdBy', 'name email')
-      .populate('teamMembers.userId', 'name email')
-      .exec();
-
-    res.json(updatedProject);
+    res.json(project);
   } catch (error) {
     console.error('Remove team member error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Add device to project
+router.post('/:id/devices', authenticateToken, async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      {
+        $push: {
+          devices: {
+            _id: new mongoose.Types.ObjectId(),
+            ...req.body,
+          },
+        },
+      },
+      { new: true }
+    );
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Remove device from project
+router.delete('/:id/devices/:deviceId', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findByIdAndUpdate(
+      req.params.id,
+      { $pull: { devices: { _id: req.params.deviceId } } },
+      { new: true }
+    );
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
