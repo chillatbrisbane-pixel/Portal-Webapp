@@ -15,6 +15,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [showWizard, setShowWizard] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     loadProjects()
@@ -47,6 +48,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const inProgressCount = projects.filter(p => p.status === 'in progress').length
   const completedCount = projects.filter(p => p.status === 'completed').length
 
+  // Filter projects based on search
+  const filteredProjects = projects.filter(project =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.clientName?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   if (selectedProject) {
     return (
       <ProjectDetail
@@ -64,20 +72,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     <div className="container" style={{ paddingTop: '2rem' }}>
       {/* Statistics Cards */}
       {totalProjects > 0 && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', marginBottom: '2rem' }}>
-          <div className="card" style={{ background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)', border: 'none' }}>
-            <p style={{ color: '#0369a1', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>Total Projects</p>
-            <h3 style={{ color: '#0369a1', margin: 0, fontSize: '2.5rem' }}>{totalProjects}</h3>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: '1.5rem', gap: '1rem' }}>
+          <div className="card" style={{ background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)', border: 'none', padding: '1rem' }}>
+            <p style={{ color: '#0369a1', margin: '0 0 0.25rem 0', fontSize: '0.8rem' }}>Total</p>
+            <h3 style={{ color: '#0369a1', margin: 0, fontSize: '1.75rem' }}>{totalProjects}</h3>
           </div>
 
-          <div className="card" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: 'none' }}>
-            <p style={{ color: '#92400e', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>In Progress</p>
-            <h3 style={{ color: '#92400e', margin: 0, fontSize: '2.5rem' }}>{inProgressCount}</h3>
+          <div className="card" style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', border: 'none', padding: '1rem' }}>
+            <p style={{ color: '#92400e', margin: '0 0 0.25rem 0', fontSize: '0.8rem' }}>In Progress</p>
+            <h3 style={{ color: '#92400e', margin: 0, fontSize: '1.75rem' }}>{inProgressCount}</h3>
           </div>
 
-          <div className="card" style={{ background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)', border: 'none' }}>
-            <p style={{ color: '#166534', margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>Completed</p>
-            <h3 style={{ color: '#166534', margin: 0, fontSize: '2.5rem' }}>{completedCount}</h3>
+          <div className="card" style={{ background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)', border: 'none', padding: '1rem' }}>
+            <p style={{ color: '#166534', margin: '0 0 0.25rem 0', fontSize: '0.8rem' }}>Completed</p>
+            <h3 style={{ color: '#166534', margin: 0, fontSize: '1.75rem' }}>{completedCount}</h3>
           </div>
         </div>
       )}
@@ -136,6 +144,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </div>
 
+      {/* Search Bar */}
+      {projects.length > 0 && (
+        <div style={{ marginBottom: '2rem' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              padding: '0.75rem',
+              border: '2px solid #e5e7eb',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              transition: 'border-color 0.3s',
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = '#0066cc'}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+          />
+          {searchQuery && (
+            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', color: '#6b7280' }}>
+              Found {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Error Alert */}
       {error && (
         <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
@@ -163,7 +199,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       ) : viewMode === 'grid' ? (
         // Grid View
         <div className="grid">
-          {projects.map(project => (
+          {filteredProjects.map(project => (
             <div
               key={project._id}
               className="card"
@@ -209,7 +245,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       ) : (
         // List View
         <div style={{ background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
-          {projects.map((project, index) => (
+          {filteredProjects.map((project, index) => (
             <div
               key={project._id}
               onClick={() => setSelectedProject(project)}

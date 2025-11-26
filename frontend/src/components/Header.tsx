@@ -34,13 +34,43 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) =
             <span className="user-role">{user.role}</span>
           </div>
 
-          {user.role === 'admin' && onShowUsers && (
-            <button className="btn" onClick={onShowUsers} style={{ fontSize: '0.9rem' }}>
-              👥 Users
+          {onShowUsers && (
+            <button
+              onClick={onShowUsers}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                padding: '0.3rem 0.8rem',
+                borderRadius: '20px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+            >
+              {user.role === 'admin' ? '👥 Users' : '👤 Profile'}
             </button>
           )}
 
-          <button className="btn" onClick={onLogout} style={{ fontSize: '0.9rem' }}>
+          <button 
+            onClick={onLogout}
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              padding: '0.3rem 0.8rem',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+          >
             🚪 Logout
           </button>
         </div>

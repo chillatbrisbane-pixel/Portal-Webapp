@@ -1,32 +1,29 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { User } from '../types'
 import { usersAPI } from '../services/apiService'
 
 interface UserManagementModalProps {
+  currentUser: User
   onClose: () => void
+  onUsersUpdated?: () => void
 }
 
-export const UserManagementModal: React.FC<UserManagementModalProps> = ({ onClose }) => {
+export const UserManagementModal: React.FC<UserManagementModalProps> = ({
+  currentUser,
+  onClose,
+  onUsersUpdated,
+}) => {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showForm, setShowForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [showPasswordModal, setShowPasswordModal] = useState(false)
-
-  // Add user form
-  const [newUserForm, setNewUserForm] = useState({
-    username: '',
-    password: '',
+  const [passwordMode, setPasswordMode] = useState(false)
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'technician' as const,
-  })
-
-  // Password change form
-  const [passwordForm, setPasswordForm] = useState({
-    newPassword: '',
-    confirmPassword: '',
+    password: '',
+    role: 'technician',
   })
 
   useEffect(() => {
@@ -45,241 +42,302 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({ onClos
     }
   }
 
-  const handleAddUser = async (e: React.FormEvent) => {
+  const handleAddUser = () => {
+    setEditingUser(null)
+    setFormData({ name: '', email: '', password: '', role: 'technician' })
+    setShowForm(true)
+    setPasswordMode(false)
+  }
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setFormData({ name: user.name, email: user.email, password: '', role: user.role })
+    setShowForm(true)
+    setPasswordMode(false)
+  }
+
+  const handleChangePassword = (user: User) => {
+    setEditingUser(user)
+    setFormData({ name: user.name, email: user.email, password: '', role: user.role })
+    setPasswordMode(true)
+    setShowForm(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    if (newUserForm.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return
-    }
+    setLoading(true)
 
     try {
-      // Backend doesn't have create endpoint from frontend, but we have the API ready
-      // This would require adding a POST endpoint to users routes
-      setError('Note: User creation endpoint still needs to be implemented in backend')
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }
+      if (passwordMode) {
+        // Change password
+        if (!formData.password) {
+          setError('Password is required')
+          setLoading(false)
+          return
+        }
+        await usersAPI.changePassword(editingUser!._id, formData.password)
+      } else if (editingUser) {
+        // Edit existing user
+        await usersAPI.update(editingUser._id, {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+        })
+      } else {
+        // Create new user
+        if (!formData.password) {
+          setError('Password is required for new users')
+          setLoading(false)
+          return
+        }
+        await usersAPI.create({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        })
+      }
 
-  const handleResetPassword = async (userId: string) => {
-    if (!window.confirm('Reset password for this user?')) return
-
-    try {
-      const newPassword = Math.random().toString(36).slice(-8)
-      await usersAPI.resetPassword(userId, newPassword)
-      alert(`Password reset to: ${newPassword}\n\nShare this with the user.`)
+      setShowForm(false)
       loadUsers()
+      onUsersUpdated?.()
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'Failed to save user')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleDeleteUser = async (userId: string, username: string) => {
-    if (!window.confirm(`Delete user "${username}"? This cannot be undone.`)) return
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Delete this user? This cannot be undone.')) return
 
+    setLoading(true)
     try {
       await usersAPI.delete(userId)
-      setUsers(users.filter(u => u._id !== userId))
+      loadUsers()
+      onUsersUpdated?.()
     } catch (err: any) {
-      setError(err.message)
-    }
-  }
-
-  const handleToggleActive = async (user: User) => {
-    try {
-      const updated = await usersAPI.update(user._id, {
-        isActive: !user.isActive,
-      })
-      setUsers(users.map(u => u._id === user._id ? updated : u))
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }
-
-  const handleChangeUserRole = async (userId: string, newRole: string) => {
-    try {
-      const updated = await usersAPI.update(userId, {
-        role: newRole,
-      })
-      setUsers(users.map(u => u._id === userId ? updated : u))
-    } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'Failed to delete user')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+        {/* Header */}
         <div className="modal-header">
-          <h2>👥 User Management</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>{currentUser.role === 'admin' ? '👥 Manage Users' : '👤 My Profile'}</h2>
+          <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
+        {/* Body */}
         <div className="modal-body">
           {error && <div className="alert alert-error">{error}</div>}
 
-          {/* Add User Section */}
-          <div style={{ marginBottom: '2rem', paddingBottom: '2rem', borderBottom: '1px solid var(--gray-200)' }}>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => setShowAddForm(!showAddForm)}
-              style={{ marginBottom: '1rem' }}
-            >
-              {showAddForm ? '✕ Cancel' : '➕ Add New User'}
-            </button>
-
-            {showAddForm && (
-              <form onSubmit={handleAddUser} style={{ background: 'var(--gray-50)', padding: '1rem', borderRadius: '6px' }}>
-                <div className="form-group">
-                  <label>Username *</label>
-                  <input
-                    type="text"
-                    value={newUserForm.username}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Full Name *</label>
-                  <input
-                    type="text"
-                    value={newUserForm.name}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    value={newUserForm.email}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Password *</label>
-                  <input
-                    type="password"
-                    value={newUserForm.password}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
-                    placeholder="Min 6 characters"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Role</label>
-                  <select
-                    value={newUserForm.role}
-                    onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as any })}
+          {!showForm ? (
+            <>
+              {currentUser.role === 'admin' ? (
+                <>
+                  {/* Admin: User List */}
+                  <button
+                    onClick={handleAddUser}
+                    className="btn btn-primary"
+                    style={{ marginBottom: '1.5rem' }}
                   >
-                    <option value="technician">Technician</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
+                    ➕ Add New User
+                  </button>
 
-                <button type="submit" className="btn btn-success">
-                  Create User
-                </button>
-              </form>
-            )}
-          </div>
-
-          {/* Users List */}
-          {loading ? (
-            <p>Loading users...</p>
-          ) : users.length === 0 ? (
-            <p className="text-muted">No users found.</p>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--gray-200)', background: 'var(--gray-50)' }}>
-                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Name</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Username</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Email</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Role</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Status</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(user => (
-                    <tr key={user._id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                      <td style={{ padding: '0.75rem' }}>{user.name}</td>
-                      <td style={{ padding: '0.75rem' }}>{user.username}</td>
-                      <td style={{ padding: '0.75rem' }}>{user.email}</td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <select
-                          value={user.role}
-                          onChange={(e) => handleChangeUserRole(user._id, e.target.value)}
+                  {loading ? (
+                    <p>Loading users...</p>
+                  ) : (
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      {users.map(user => (
+                        <div
+                          key={user._id}
                           style={{
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '3px',
-                            border: '1px solid var(--gray-300)',
-                            fontSize: '0.85rem',
+                            padding: '1rem',
+                            background: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
                           }}
+                        >
+                          <div>
+                            <h4 style={{ margin: '0 0 0.25rem 0' }}>{user.name}</h4>
+                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
+                              {user.email}
+                            </p>
+                            <span
+                              style={{
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '12px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                              }}
+                            >
+                              {user.role}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              onClick={() => handleEditUser(user)}
+                              className="btn btn-sm"
+                              style={{
+                                background: '#0066cc',
+                                color: 'white',
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(user._id)}
+                              className="btn btn-sm"
+                              style={{
+                                background: '#ef4444',
+                                color: 'white',
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* User: Profile Management */}
+                  <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '6px', marginBottom: '1.5rem' }}>
+                    <h3 style={{ color: '#333333', marginTop: 0 }}>Your Profile</h3>
+                    <p style={{ margin: '0.5rem 0' }}>
+                      <strong>Name:</strong> {currentUser.name}
+                    </p>
+                    <p style={{ margin: '0.5rem 0' }}>
+                      <strong>Email:</strong> {currentUser.email}
+                    </p>
+                    <p style={{ margin: '0.5rem 0' }}>
+                      <strong>Role:</strong> {currentUser.role}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => handleEditUser(currentUser)}
+                    className="btn btn-primary"
+                    style={{ marginRight: '0.5rem' }}
+                  >
+                    ✏️ Edit Profile
+                  </button>
+
+                  <button
+                    onClick={() => handleChangePassword(currentUser)}
+                    className="btn btn-secondary"
+                  >
+                    🔐 Change Password
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Form */}
+              <h3 style={{ color: '#333333' }}>
+                {passwordMode ? '🔐 Change Password' : editingUser ? '✏️ Edit User' : '➕ Add New User'}
+              </h3>
+
+              <form onSubmit={handleSubmit}>
+                {!passwordMode && (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="name">Name</label>
+                      <input
+                        id="name"
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Full name"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="email">Email</label>
+                      <input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        placeholder="email@example.com"
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+
+                    {currentUser.role === 'admin' && !editingUser && (
+                      <div className="form-group">
+                        <label htmlFor="role">Role</label>
+                        <select
+                          id="role"
+                          value={formData.role}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          disabled={loading}
                         >
                           <option value="technician">Technician</option>
                           <option value="manager">Manager</option>
                           <option value="admin">Admin</option>
                         </select>
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => handleToggleActive(user)}
-                          style={{
-                            background: user.isActive ? 'var(--success-color)' : 'var(--danger-color)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.8rem',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {user.isActive ? '✅ Active' : '❌ Inactive'}
-                        </button>
-                      </td>
-                      <td style={{ padding: '0.75rem' }}>
-                        <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => handleResetPassword(user._id)}
-                            title="Generate new random password"
-                          >
-                            🔑
-                          </button>
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteUser(user._id, user.username)}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                      </div>
+                    )}
+                  </>
+                )}
 
-        <div className="modal-footer">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Close
-          </button>
+                <div className="form-group">
+                  <label htmlFor="password">
+                    {passwordMode ? 'New Password' : 'Password'}
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder={passwordMode ? 'Enter new password' : 'Enter password'}
+                    required={!editingUser || passwordMode}
+                    disabled={loading}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary"
+                  >
+                    {loading ? '⏳ Saving...' : '💾 Save'}
+                  </button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>
   )
 }
+
+export default UserManagementModal
