@@ -30,7 +30,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState(project)
-  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'notes'>('devices')
+  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes'>('devices')
   
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -41,13 +41,22 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [cloneName, setCloneName] = useState('')
   const [cloneDevices, setCloneDevices] = useState(true)
   
-  // WiFi networks (standalone, not from devices)
+  // WiFi networks
   const [wifiNetworks, setWifiNetworks] = useState<WiFiNetwork[]>(project.wifiNetworks || [])
   const [showAddWifi, setShowAddWifi] = useState(false)
   const [newWifi, setNewWifi] = useState<WiFiNetwork>({ name: '', password: '', vlan: 1, band: '5GHz' })
+  const [showNewWifiPassword, setShowNewWifiPassword] = useState(false)
+  const [editingWifiIndex, setEditingWifiIndex] = useState<number | null>(null)
+  const [editingWifi, setEditingWifi] = useState<WiFiNetwork | null>(null)
+  const [showEditWifiPassword, setShowEditWifiPassword] = useState(false)
+  const [wifiPasswordWarning, setWifiPasswordWarning] = useState(false)
   
-  // Devices for WiFi display
+  // Devices
   const [devices, setDevices] = useState<Device[]>([])
+  
+  // Ports tab
+  const [selectedSwitchId, setSelectedSwitchId] = useState<string>('')
+  const [portAssignments, setPortAssignments] = useState<Record<number, string>>({})
 
   useEffect(() => {
     loadDevices()
@@ -57,17 +66,32 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     try {
       const data = await devicesAPI.getByProject(project._id)
       setDevices(data)
+      
+      // Set first switch as default
+      const switches = data.filter((d: Device) => d.deviceType === 'switch')
+      if (switches.length > 0 && !selectedSwitchId) {
+        setSelectedSwitchId(switches[0]._id)
+      }
     } catch (err) {
       console.error('Failed to load devices:', err)
     }
   }
 
-  // Get WiFi networks from access points
+  // Get switches for port management
+  const switches = devices.filter(d => d.deviceType === 'switch')
+  const selectedSwitch = switches.find(s => s._id === selectedSwitchId)
+  
+  // Get non-switch devices for port assignment
+  const assignableDevices = devices.filter(d => d.deviceType !== 'switch')
+
+  // Get WiFi from access points
   const getWifiFromDevices = () => {
     return devices
       .filter(d => d.deviceType === 'access-point' && d.ssids && d.ssids.length > 0)
       .flatMap(d => d.ssids || [])
   }
+
+  const allWifiNetworks = [...wifiNetworks, ...getWifiFromDevices()]
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,7 +134,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
     setLoading(true)
     try {
-      // Create new project with same data
       const newProjectData = {
         name: cloneName,
         description: project.description,
@@ -125,7 +148,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       const newProject = await projectsAPI.create(newProjectData)
 
-      // Clone devices if selected
       if (cloneDevices && devices.length > 0) {
         const deviceClones = devices.map(d => ({
           name: d.name,
@@ -155,31 +177,132 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     }
   }
 
-  const handleAddWifi = () => {
+  // WiFi handlers
+  const generatePassword = async () => {
+    try {
+      const { password } = await devicesAPI.generatePassword()
+      return password
+    } catch (err) {
+      console.error('Failed to generate password:', err)
+      return ''
+    }
+  }
+
+  const handleAddWifi = async () => {
     if (!newWifi.name.trim()) {
       setError('WiFi name is required')
       return
     }
-    setWifiNetworks([...wifiNetworks, { ...newWifi, _id: Date.now().toString() }])
+    const updatedNetworks = [...wifiNetworks, { ...newWifi, _id: Date.now().toString() }]
+    setWifiNetworks(updatedNetworks)
+    
+    // Auto-save
+    try {
+      await projectsAPI.update(project._id, { wifiNetworks: updatedNetworks })
+    } catch (err) {
+      console.error('Failed to save WiFi:', err)
+    }
+    
     setNewWifi({ name: '', password: '', vlan: 1, band: '5GHz' })
     setShowAddWifi(false)
+    setShowNewWifiPassword(false)
   }
 
-  const handleRemoveWifi = (index: number) => {
-    setWifiNetworks(wifiNetworks.filter((_, i) => i !== index))
+  const handleEditWifi = (index: number) => {
+    setEditingWifiIndex(index)
+    setEditingWifi({ ...wifiNetworks[index] })
+    setShowEditWifiPassword(false)
+    setWifiPasswordWarning(false)
   }
 
-  const handleExportPDF = () => {
-    reportsAPI.downloadPDF(project._id)
+  const handleSaveEditWifi = async () => {
+    if (editingWifiIndex === null || !editingWifi) return
+    
+    const updatedNetworks = [...wifiNetworks]
+    updatedNetworks[editingWifiIndex] = editingWifi
+    setWifiNetworks(updatedNetworks)
+    
+    // Auto-save
+    try {
+      await projectsAPI.update(project._id, { wifiNetworks: updatedNetworks })
+    } catch (err) {
+      console.error('Failed to save WiFi:', err)
+    }
+    
+    setEditingWifiIndex(null)
+    setEditingWifi(null)
+    setWifiPasswordWarning(false)
   }
 
-  const handleExportJSON = () => {
-    reportsAPI.downloadJSON(project._id)
+  const handleRemoveWifi = async (index: number) => {
+    if (!window.confirm('Remove this WiFi network?')) return
+    const updatedNetworks = wifiNetworks.filter((_, i) => i !== index)
+    setWifiNetworks(updatedNetworks)
+    
+    // Auto-save
+    try {
+      await projectsAPI.update(project._id, { wifiNetworks: updatedNetworks })
+    } catch (err) {
+      console.error('Failed to save WiFi:', err)
+    }
   }
 
-  const handleExportCSV = () => {
-    reportsAPI.downloadCSV(project._id)
+  // Port assignment handlers
+  const handlePortAssignment = async (portNumber: number, deviceId: string) => {
+    if (!selectedSwitch) return
+    
+    try {
+      // If unassigning (empty deviceId), clear the device's binding
+      const currentDevice = getDeviceOnPort(portNumber)
+      if (currentDevice && !deviceId) {
+        await devicesAPI.update(currentDevice._id, { 
+          boundToSwitch: null, 
+          switchPort: null 
+        })
+      }
+      
+      // If assigning a device
+      if (deviceId) {
+        // First, clear any existing port assignment for this device
+        const deviceToAssign = devices.find(d => d._id === deviceId)
+        if (deviceToAssign) {
+          const oldSwitchId = typeof deviceToAssign.boundToSwitch === 'string' 
+            ? deviceToAssign.boundToSwitch 
+            : deviceToAssign.boundToSwitch?._id
+          
+          // Clear from old switch if different
+          if (oldSwitchId && oldSwitchId !== selectedSwitchId && deviceToAssign.switchPort) {
+            // Device was on a different switch, no need to update that switch's managedPorts
+          }
+        }
+        
+        // Update the device's binding to this switch/port
+        await devicesAPI.update(deviceId, { 
+          boundToSwitch: selectedSwitch._id, 
+          switchPort: portNumber 
+        })
+      }
+      
+      // Reload devices to reflect changes
+      loadDevices()
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
+
+  const getDeviceOnPort = (portNumber: number): Device | undefined => {
+    return devices.find(d => {
+      const switchId = typeof d.boundToSwitch === 'string' 
+        ? d.boundToSwitch 
+        : d.boundToSwitch?._id
+      return switchId === selectedSwitchId && d.switchPort === portNumber
+    })
+  }
+
+  // Export handlers
+  const handleExportPDF = () => reportsAPI.downloadPDF(project._id)
+  const handleExportJSON = () => reportsAPI.downloadJSON(project._id)
+  const handleExportCSV = () => reportsAPI.downloadCSV(project._id)
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
@@ -207,8 +330,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
   }
-
-  const allWifiNetworks = [...wifiNetworks, ...getWifiFromDevices()]
 
   return (
     <div className="container">
@@ -267,7 +388,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {/* Project Info Card */}
+      {/* Project Info Card with WiFi */}
       <div className="card" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1.5rem' }}>
           <div>
@@ -354,15 +475,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
             </div>
 
-            <div className="form-group" style={{ marginTop: '1rem' }}>
-              <label>Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
                 Cancel
@@ -373,71 +485,79 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             </div>
           </form>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>Client</p>
-              <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName || 'N/A'}</p>
+          <>
+            {/* Client Info Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👤 Client</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName || 'N/A'}</p>
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>
+                  {project.clientEmail ? (
+                    <a href={`mailto:${project.clientEmail}`}>{project.clientEmail}</a>
+                  ) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>
+                  {project.clientPhone ? (
+                    <a href={`tel:${project.clientPhone}`}>{project.clientPhone}</a>
+                  ) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>{project.address || 'N/A'}</p>
+              </div>
             </div>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
-              <p style={{ fontWeight: 600, margin: 0 }}>
-                {project.clientEmail ? (
-                  <a href={`mailto:${project.clientEmail}`}>{project.clientEmail}</a>
-                ) : 'N/A'}
-              </p>
-            </div>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
-              <p style={{ fontWeight: 600, margin: 0 }}>
-                {project.clientPhone ? (
-                  <a href={`tel:${project.clientPhone}`}>{project.clientPhone}</a>
-                ) : 'N/A'}
-              </p>
-            </div>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
-              <p style={{ fontWeight: 600, margin: 0 }}>{project.address || 'N/A'}</p>
-            </div>
-          </div>
+
+            {/* WiFi Networks in Header */}
+            {allWifiNetworks.length > 0 && (
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.75rem' }}>📶 WiFi Networks</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  {allWifiNetworks.map((wifi, i) => (
+                    <div key={i} style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      background: '#f0f9ff', 
+                      padding: '0.5rem 0.75rem', 
+                      borderRadius: '6px',
+                      border: '1px solid #bae6fd'
+                    }}>
+                      <strong style={{ fontSize: '0.9rem' }}>{wifi.name}:</strong>
+                      <code style={{ background: '#e0f2fe', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>
+                        {wifi.password || '(open)'}
+                      </code>
+                      {wifi.password && (
+                        <button
+                          onClick={() => copyToClipboard(wifi.password)}
+                          style={{ padding: '0.15rem 0.35rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
+                          title="Copy password"
+                        >
+                          📋
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {/* WiFi Quick Display */}
-      {allWifiNetworks.length > 0 && (
-        <div className="card" style={{ marginBottom: '1.5rem', background: 'linear-gradient(135deg, #667eea15, #764ba215)' }}>
-          <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            📶 WiFi Networks
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-            {allWifiNetworks.map((wifi, i) => (
-              <div key={i} style={{ background: 'white', padding: '1rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{wifi.name}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <code style={{ background: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '4px', flex: 1 }}>
-                    {wifi.password || '(no password)'}
-                  </code>
-                  {wifi.password && (
-                    <button
-                      onClick={() => copyToClipboard(wifi.password)}
-                      style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                      📋
-                    </button>
-                  )}
-                </div>
-                {wifi.band && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.25rem' }}>{wifi.band}</div>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Tabs */}
       <div style={{ borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '0' }}>
           {[
             { id: 'devices', label: '🎛️ Devices' },
-            { id: 'wifi', label: '📶 WiFi Networks' },
+            { id: 'wifi', label: '📶 WiFi' },
+            { id: 'ports', label: '🔌 Ports' },
             { id: 'notes', label: '📝 Notes' },
           ].map(tab => (
             <button
@@ -474,8 +594,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             </button>
           </div>
 
+          {/* Add WiFi Form */}
           {showAddWifi && (
             <div style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px', marginBottom: '1rem' }}>
+              <h4 style={{ margin: '0 0 1rem' }}>Add New WiFi Network</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>Network Name (SSID)</label>
@@ -488,11 +610,33 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>Password</label>
-                  <input
-                    type="text"
-                    value={newWifi.password}
-                    onChange={(e) => setNewWifi({ ...newWifi, password: e.target.value })}
-                  />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type={showNewWifiPassword ? 'text' : 'password'}
+                      value={newWifi.password}
+                      onChange={(e) => setNewWifi({ ...newWifi, password: e.target.value })}
+                      style={{ flex: 1 }}
+                    />
+                    <button type="button" onClick={() => setShowNewWifiPassword(!showNewWifiPassword)}
+                      style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
+                      {showNewWifiPassword ? '🙈' : '👁️'}
+                    </button>
+                    <button type="button" onClick={async () => {
+                      const pw = await generatePassword()
+                      setNewWifi({ ...newWifi, password: pw })
+                      setShowNewWifiPassword(true)
+                    }}
+                      style={{ padding: '0.5rem', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      title="Generate Password">
+                      🎲
+                    </button>
+                    {newWifi.password && (
+                      <button type="button" onClick={() => copyToClipboard(newWifi.password)}
+                        style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
+                        📋
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>VLAN</label>
@@ -513,55 +657,245 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => setShowAddWifi(false)}>Cancel</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setShowAddWifi(false); setShowNewWifiPassword(false) }}>Cancel</button>
                 <button className="btn btn-primary btn-sm" onClick={handleAddWifi}>Add Network</button>
               </div>
             </div>
           )}
 
+          {/* WiFi List */}
           {wifiNetworks.length === 0 && getWifiFromDevices().length === 0 ? (
             <p style={{ color: '#6b7280' }}>No WiFi networks configured.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {wifiNetworks.map((wifi, i) => (
-                <div key={wifi._id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                  <div>
-                    <strong>{wifi.name}</strong>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
-                      Password: <code>{wifi.password || '(none)'}</code> • VLAN {wifi.vlan} • {wifi.band}
+                <div key={wifi._id || i} style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
+                  {editingWifiIndex === i && editingWifi ? (
+                    // Edit mode
+                    <div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Network Name</label>
+                          <input
+                            type="text"
+                            value={editingWifi.name}
+                            onChange={(e) => setEditingWifi({ ...editingWifi, name: e.target.value })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Password</label>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                              type={showEditWifiPassword ? 'text' : 'password'}
+                              value={editingWifi.password}
+                              onChange={(e) => {
+                                setEditingWifi({ ...editingWifi, password: e.target.value })
+                                if (e.target.value !== wifi.password) {
+                                  setWifiPasswordWarning(true)
+                                }
+                              }}
+                              style={{ flex: 1 }}
+                            />
+                            <button type="button" onClick={() => setShowEditWifiPassword(!showEditWifiPassword)}
+                              style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
+                              {showEditWifiPassword ? '🙈' : '👁️'}
+                            </button>
+                            <button type="button" onClick={async () => {
+                              if (editingWifi.password && !window.confirm('Generate new password? This will replace the existing password.')) return
+                              const pw = await generatePassword()
+                              setEditingWifi({ ...editingWifi, password: pw })
+                              setShowEditWifiPassword(true)
+                              setWifiPasswordWarning(true)
+                            }}
+                              style={{ padding: '0.5rem', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                              title="Generate Password">
+                              🎲
+                            </button>
+                            {editingWifi.password && (
+                              <button type="button" onClick={() => copyToClipboard(editingWifi.password)}
+                                style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
+                                📋
+                              </button>
+                            )}
+                          </div>
+                          {wifiPasswordWarning && (
+                            <small style={{ color: '#f59e0b', marginTop: '0.25rem', display: 'block' }}>
+                              ⚠️ Password changed - update any connected devices!
+                            </small>
+                          )}
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>VLAN</label>
+                          <input
+                            type="number"
+                            value={editingWifi.vlan}
+                            onChange={(e) => setEditingWifi({ ...editingWifi, vlan: parseInt(e.target.value) || 1 })}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Band</label>
+                          <select value={editingWifi.band} onChange={(e) => setEditingWifi({ ...editingWifi, band: e.target.value })}>
+                            <option value="2.4GHz">2.4GHz</option>
+                            <option value="5GHz">5GHz</option>
+                            <option value="6GHz">6GHz</option>
+                            <option value="Dual">Dual Band</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => { setEditingWifiIndex(null); setEditingWifi(null); setWifiPasswordWarning(false) }}>Cancel</button>
+                        <button className="btn btn-primary btn-sm" onClick={handleSaveEditWifi}>Save</button>
+                      </div>
                     </div>
-                  </div>
-                  <button className="btn btn-danger btn-sm" onClick={() => handleRemoveWifi(i)}>✕</button>
+                  ) : (
+                    // View mode
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong>{wifi.name}</strong>
+                        <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                          Password: <code style={{ background: '#e5e7eb', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>{wifi.password || '(none)'}</code>
+                          {wifi.password && (
+                            <button onClick={() => copyToClipboard(wifi.password)}
+                              style={{ marginLeft: '0.5rem', padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                              📋
+                            </button>
+                          )}
+                          <span style={{ marginLeft: '0.75rem' }}>VLAN {wifi.vlan}</span>
+                          <span style={{ marginLeft: '0.75rem' }}>{wifi.band}</span>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleEditWifi(i)}>✏️</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleRemoveWifi(i)}>✕</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
+              
+              {/* WiFi from devices */}
               {getWifiFromDevices().map((wifi, i) => (
-                <div key={`device-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: '#eff6ff', borderRadius: '8px' }}>
-                  <div>
-                    <strong>{wifi.name}</strong>
-                    <span style={{ fontSize: '0.75rem', color: '#3b82f6', marginLeft: '0.5rem' }}>(from WAP)</span>
-                    <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>
-                      Password: <code>{wifi.password || '(none)'}</code> • {wifi.band || 'Dual'}
+                <div key={`device-${i}`} style={{ padding: '1rem', background: '#eff6ff', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>{wifi.name}</strong>
+                      <span style={{ fontSize: '0.75rem', color: '#3b82f6', marginLeft: '0.5rem' }}>(from WAP)</span>
+                      <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                        Password: <code style={{ background: '#dbeafe', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>{wifi.password || '(none)'}</code>
+                        {wifi.password && (
+                          <button onClick={() => copyToClipboard(wifi.password)}
+                            style={{ marginLeft: '0.5rem', padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                            📋
+                          </button>
+                        )}
+                        <span style={{ marginLeft: '0.75rem' }}>{wifi.band || 'Dual'}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
 
-          <button
-            className="btn btn-primary"
-            onClick={async () => {
-              try {
-                await projectsAPI.update(project._id, { wifiNetworks })
-                alert('WiFi networks saved!')
-              } catch (err: any) {
-                setError(err.message)
-              }
-            }}
-            style={{ marginTop: '1rem' }}
-          >
-            💾 Save WiFi Networks
-          </button>
+      {activeTab === 'ports' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: 0 }}>🔌 Switch Port Management</h3>
+            
+            {switches.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ fontWeight: 500 }}>Switch:</label>
+                <select 
+                  value={selectedSwitchId} 
+                  onChange={(e) => setSelectedSwitchId(e.target.value)}
+                  style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                >
+                  {switches.map(sw => (
+                    <option key={sw._id} value={sw._id}>{sw.name} ({sw.portCount || 24} ports)</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {switches.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+              <p>No switches in this project.</p>
+              <p>Add a switch device to manage port assignments.</p>
+            </div>
+          ) : selectedSwitch ? (
+            <div>
+              <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f3f4f6', borderRadius: '6px' }}>
+                <strong>{selectedSwitch.name}</strong> • {selectedSwitch.manufacturer} {selectedSwitch.model}
+                {selectedSwitch.ipAddress && <span> • IP: {selectedSwitch.ipAddress}</span>}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
+                {Array.from({ length: selectedSwitch.portCount || 24 }, (_, i) => i + 1).map(portNum => {
+                  const assignedDevice = getDeviceOnPort(portNum)
+                  
+                  return (
+                    <div 
+                      key={portNum}
+                      style={{
+                        padding: '0.75rem',
+                        border: '1px solid',
+                        borderColor: assignedDevice ? '#10b981' : '#e5e7eb',
+                        borderRadius: '6px',
+                        background: assignedDevice ? '#ecfdf5' : 'white',
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <strong style={{ color: assignedDevice ? '#059669' : '#6b7280' }}>
+                          Port {portNum}
+                        </strong>
+                        {assignedDevice && (
+                          <span style={{ fontSize: '0.75rem', color: '#059669' }}>● In Use</span>
+                        )}
+                      </div>
+                      
+                      <select
+                        value={assignedDevice?._id || ''}
+                        onChange={(e) => handlePortAssignment(portNum, e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          borderRadius: '4px',
+                          border: '1px solid #d1d5db',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        <option value="">-- Unassigned --</option>
+                        {assignableDevices.map(device => {
+                          const deviceSwitchId = typeof device.boundToSwitch === 'string' 
+                            ? device.boundToSwitch 
+                            : device.boundToSwitch?._id
+                          return (
+                            <option 
+                              key={device._id} 
+                              value={device._id}
+                              disabled={deviceSwitchId === selectedSwitchId && device.switchPort !== portNum}
+                            >
+                              {device.name} ({device.ipAddress || 'No IP'})
+                            </option>
+                          )
+                        })}
+                      </select>
+                      
+                      {assignedDevice && (
+                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                          {assignedDevice.manufacturer} {assignedDevice.model}
+                          {assignedDevice.ipAddress && ` • ${assignedDevice.ipAddress}`}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
 

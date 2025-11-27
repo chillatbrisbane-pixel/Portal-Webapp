@@ -17,6 +17,19 @@ const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color
   other: { icon: '📦', label: 'Other Devices', color: '#6b7280' },
 }
 
+// Helper to parse IP address for sorting
+const parseIP = (ip: string): number => {
+  if (!ip) return Infinity
+  const parts = ip.split('.').map(Number)
+  if (parts.length !== 4 || parts.some(isNaN)) return Infinity
+  return parts[0] * 16777216 + parts[1] * 65536 + parts[2] * 256 + parts[3]
+}
+
+// Sort devices by IP address
+const sortByIP = (devices: Device[]): Device[] => {
+  return [...devices].sort((a, b) => parseIP(a.ipAddress || '') - parseIP(b.ipAddress || ''))
+}
+
 export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,18 +75,25 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
     navigator.clipboard.writeText(text)
   }
 
-  // Group devices by category
+  // Group devices by category and sort by IP within each group
   const devicesByCategory = devices.reduce((acc, device) => {
     const cat = device.category || 'other'
     if (!acc[cat]) acc[cat] = []
     acc[cat].push(device)
     return acc
   }, {} as Record<string, Device[]>)
+  
+  // Sort each category by IP
+  Object.keys(devicesByCategory).forEach(cat => {
+    devicesByCategory[cat] = sortByIP(devicesByCategory[cat])
+  })
 
-  // Filter devices
-  const filteredDevices = filterCategory === 'all' 
-    ? devices 
-    : devices.filter(d => d.category === filterCategory)
+  // Filter devices and sort by IP
+  const filteredDevices = sortByIP(
+    filterCategory === 'all' 
+      ? devices 
+      : devices.filter(d => d.category === filterCategory)
+  )
 
   // Category counts
   const categoryCounts = Object.entries(devicesByCategory).map(([cat, devs]) => ({

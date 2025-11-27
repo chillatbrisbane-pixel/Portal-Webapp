@@ -249,11 +249,11 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     setLoading(true)
 
     try {
-      // Add switch binding info
+      // Add switch binding info - use null to clear, not undefined
       const deviceData = {
         ...formData,
-        boundToSwitch: selectedSwitch || undefined,
-        switchPort: selectedPort || undefined,
+        boundToSwitch: selectedSwitch || null,
+        switchPort: selectedPort || null,
       }
 
       if (device) {
