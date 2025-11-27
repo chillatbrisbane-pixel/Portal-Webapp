@@ -275,16 +275,22 @@ export const BRAND_OPTIONS = {
     'alarm-panel': ['Inner Range (Inception)', 'Paradox', 'Bosch', 'Honeywell', 'Custom'],
   },
   'control-system': {
-    'control-processor': ['Control4', 'Crestron', 'Savant', 'Elan', 'Custom'],
-    'touch-panel': ['Control4', 'Crestron', 'Savant', 'Custom'],
+    'control-processor': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
+    'touch-panel': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
+    'secondary-processor': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
+    'door-station': ['Control4', 'Crestron Home', '2N', 'Doorbird', 'Custom'],
+    'remote': ['Control4', 'RTI', 'Custom'],
   },
   lighting: {
     'lighting-gateway': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
+    'dimmer': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
+    'relay-pack': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
   },
   av: {
-    receiver: ['Denon', 'Marantz', 'Yamaha', 'Sony', 'Anthem', 'Custom'],
+    receiver: ['Denon', 'Marantz', 'Yamaha', 'Integra', 'Anthem', 'Trinnov', 'Sony', 'Custom'],
     tv: ['Samsung', 'LG', 'Sony', 'TCL', 'Custom'],
     'audio-matrix': ['Sonance', 'Sonos', 'Control4', 'Russound', 'Custom'],
+    amplifier: ['Sonance', 'Origin Acoustics', 'Control4', 'Rotel', 'Custom'],
   },
   other: {
     fan: ['Haiku', 'Hunter', 'Custom'],
