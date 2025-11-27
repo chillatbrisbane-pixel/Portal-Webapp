@@ -19,6 +19,14 @@ interface WiFiNetwork {
   band: string
 }
 
+// Helper to parse IP for sorting
+const parseIP = (ip: string): number => {
+  if (!ip) return Infinity
+  const parts = ip.split('.').map(Number)
+  if (parts.length !== 4 || parts.some(isNaN)) return Infinity
+  return parts[0] * 16777216 + parts[1] * 65536 + parts[2] * 256 + parts[3]
+}
+
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
   onBack,
@@ -41,7 +49,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [cloneName, setCloneName] = useState('')
   const [cloneDevices, setCloneDevices] = useState(true)
   
-  // WiFi networks
+  // WiFi networks - sync with project
   const [wifiNetworks, setWifiNetworks] = useState<WiFiNetwork[]>(project.wifiNetworks || [])
   const [showAddWifi, setShowAddWifi] = useState(false)
   const [newWifi, setNewWifi] = useState<WiFiNetwork>({ name: '', password: '', vlan: 1, band: '5GHz' })
@@ -56,7 +64,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   
   // Ports tab
   const [selectedSwitchId, setSelectedSwitchId] = useState<string>('')
-  const [portAssignments, setPortAssignments] = useState<Record<number, string>>({})
+
+  // Sync wifiNetworks when project changes
+  useEffect(() => {
+    setWifiNetworks(project.wifiNetworks || [])
+    setFormData(project)
+  }, [project])
 
   useEffect(() => {
     loadDevices()
@@ -67,7 +80,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       const data = await devicesAPI.getByProject(project._id)
       setDevices(data)
       
-      // Set first switch as default
       const switches = data.filter((d: Device) => d.deviceType === 'switch')
       if (switches.length > 0 && !selectedSwitchId) {
         setSelectedSwitchId(switches[0]._id)
@@ -81,8 +93,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const switches = devices.filter(d => d.deviceType === 'switch')
   const selectedSwitch = switches.find(s => s._id === selectedSwitchId)
   
-  // Get non-switch devices for port assignment
-  const assignableDevices = devices.filter(d => d.deviceType !== 'switch')
+  // Get non-switch devices for port assignment, sorted by IP
+  const assignableDevices = devices
+    .filter(d => d.deviceType !== 'switch')
+    .sort((a, b) => parseIP(a.ipAddress || '') - parseIP(b.ipAddress || ''))
 
   // Get WiFi from access points
   const getWifiFromDevices = () => {
@@ -99,11 +113,22 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     setLoading(true)
 
     try {
-      const updated = await projectsAPI.update(project._id, { ...formData, wifiNetworks })
-      onProjectUpdated(updated)
+      // Only update form fields, not wifiNetworks (they're saved separately)
+      const updateData = {
+        name: formData.name,
+        description: formData.description,
+        clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
+        clientPhone: formData.clientPhone,
+        address: formData.address,
+        status: formData.status,
+        notes: formData.notes,
+      }
+      const updated = await projectsAPI.update(project._id, updateData)
+      onProjectUpdated({ ...updated, wifiNetworks })
       setEditing(false)
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || 'Failed to update project')
     } finally {
       setLoading(false)
     }
@@ -143,7 +168,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         address: project.address,
         status: 'planning' as const,
         technologies: project.technologies,
-        wifiNetworks: project.wifiNetworks,
+        wifiNetworks: wifiNetworks,
       }
 
       const newProject = await projectsAPI.create(newProjectData)
@@ -188,24 +213,33 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     }
   }
 
+  const saveWifiNetworks = async (networks: WiFiNetwork[]) => {
+    try {
+      await projectsAPI.update(project._id, { wifiNetworks: networks })
+      // Update local project state
+      onProjectUpdated({ ...project, wifiNetworks: networks })
+    } catch (err) {
+      console.error('Failed to save WiFi:', err)
+      throw err
+    }
+  }
+
   const handleAddWifi = async () => {
     if (!newWifi.name.trim()) {
       setError('WiFi name is required')
       return
     }
     const updatedNetworks = [...wifiNetworks, { ...newWifi, _id: Date.now().toString() }]
-    setWifiNetworks(updatedNetworks)
     
-    // Auto-save
     try {
-      await projectsAPI.update(project._id, { wifiNetworks: updatedNetworks })
-    } catch (err) {
-      console.error('Failed to save WiFi:', err)
+      await saveWifiNetworks(updatedNetworks)
+      setWifiNetworks(updatedNetworks)
+      setNewWifi({ name: '', password: '', vlan: 1, band: '5GHz' })
+      setShowAddWifi(false)
+      setShowNewWifiPassword(false)
+    } catch (err: any) {
+      setError('Failed to save WiFi network')
     }
-    
-    setNewWifi({ name: '', password: '', vlan: 1, band: '5GHz' })
-    setShowAddWifi(false)
-    setShowNewWifiPassword(false)
   }
 
   const handleEditWifi = (index: number) => {
@@ -220,76 +254,31 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     
     const updatedNetworks = [...wifiNetworks]
     updatedNetworks[editingWifiIndex] = editingWifi
-    setWifiNetworks(updatedNetworks)
     
-    // Auto-save
     try {
-      await projectsAPI.update(project._id, { wifiNetworks: updatedNetworks })
-    } catch (err) {
-      console.error('Failed to save WiFi:', err)
+      await saveWifiNetworks(updatedNetworks)
+      setWifiNetworks(updatedNetworks)
+      setEditingWifiIndex(null)
+      setEditingWifi(null)
+      setWifiPasswordWarning(false)
+    } catch (err: any) {
+      setError('Failed to save WiFi network')
     }
-    
-    setEditingWifiIndex(null)
-    setEditingWifi(null)
-    setWifiPasswordWarning(false)
   }
 
   const handleRemoveWifi = async (index: number) => {
     if (!window.confirm('Remove this WiFi network?')) return
     const updatedNetworks = wifiNetworks.filter((_, i) => i !== index)
-    setWifiNetworks(updatedNetworks)
     
-    // Auto-save
     try {
-      await projectsAPI.update(project._id, { wifiNetworks: updatedNetworks })
-    } catch (err) {
-      console.error('Failed to save WiFi:', err)
+      await saveWifiNetworks(updatedNetworks)
+      setWifiNetworks(updatedNetworks)
+    } catch (err: any) {
+      setError('Failed to remove WiFi network')
     }
   }
 
   // Port assignment handlers
-  const handlePortAssignment = async (portNumber: number, deviceId: string) => {
-    if (!selectedSwitch) return
-    
-    try {
-      // If unassigning (empty deviceId), clear the device's binding
-      const currentDevice = getDeviceOnPort(portNumber)
-      if (currentDevice && !deviceId) {
-        await devicesAPI.update(currentDevice._id, { 
-          boundToSwitch: null, 
-          switchPort: null 
-        })
-      }
-      
-      // If assigning a device
-      if (deviceId) {
-        // First, clear any existing port assignment for this device
-        const deviceToAssign = devices.find(d => d._id === deviceId)
-        if (deviceToAssign) {
-          const oldSwitchId = typeof deviceToAssign.boundToSwitch === 'string' 
-            ? deviceToAssign.boundToSwitch 
-            : deviceToAssign.boundToSwitch?._id
-          
-          // Clear from old switch if different
-          if (oldSwitchId && oldSwitchId !== selectedSwitchId && deviceToAssign.switchPort) {
-            // Device was on a different switch, no need to update that switch's managedPorts
-          }
-        }
-        
-        // Update the device's binding to this switch/port
-        await devicesAPI.update(deviceId, { 
-          boundToSwitch: selectedSwitch._id, 
-          switchPort: portNumber 
-        })
-      }
-      
-      // Reload devices to reflect changes
-      loadDevices()
-    } catch (err: any) {
-      setError(err.message)
-    }
-  }
-
   const getDeviceOnPort = (portNumber: number): Device | undefined => {
     return devices.find(d => {
       const switchId = typeof d.boundToSwitch === 'string' 
@@ -297,6 +286,67 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         : d.boundToSwitch?._id
       return switchId === selectedSwitchId && d.switchPort === portNumber
     })
+  }
+
+  const handlePortAssignment = async (portNumber: number, deviceId: string) => {
+    if (!selectedSwitch) return
+    
+    // Check if trying to assign to an already-used port
+    const currentDeviceOnPort = getDeviceOnPort(portNumber)
+    if (currentDeviceOnPort && deviceId && currentDeviceOnPort._id !== deviceId) {
+      if (!window.confirm(`⚠️ Port ${portNumber} is currently assigned to "${currentDeviceOnPort.name}". Do you want to replace it?`)) {
+        return
+      }
+      // Clear the old device's binding
+      try {
+        await devicesAPI.update(currentDeviceOnPort._id, { 
+          boundToSwitch: null, 
+          switchPort: null 
+        })
+      } catch (err) {
+        console.error('Failed to clear old binding:', err)
+      }
+    }
+    
+    try {
+      // If unassigning (empty deviceId), clear the device's binding
+      if (currentDeviceOnPort && !deviceId) {
+        await devicesAPI.update(currentDeviceOnPort._id, { 
+          boundToSwitch: null, 
+          switchPort: null 
+        })
+      }
+      
+      // If assigning a device
+      if (deviceId) {
+        const deviceToAssign = devices.find(d => d._id === deviceId)
+        if (deviceToAssign) {
+          const oldSwitchId = typeof deviceToAssign.boundToSwitch === 'string' 
+            ? deviceToAssign.boundToSwitch 
+            : deviceToAssign.boundToSwitch?._id
+          
+          // Warn if device is already assigned to another port
+          if (oldSwitchId && deviceToAssign.switchPort) {
+            const oldSwitch = switches.find(s => s._id === oldSwitchId)
+            const switchName = oldSwitch ? oldSwitch.name : 'another switch'
+            if (oldSwitchId !== selectedSwitchId || deviceToAssign.switchPort !== portNumber) {
+              if (!window.confirm(`⚠️ "${deviceToAssign.name}" is currently assigned to ${switchName} Port ${deviceToAssign.switchPort}. Move it to Port ${portNumber}?`)) {
+                return
+              }
+            }
+          }
+        }
+        
+        await devicesAPI.update(deviceId, { 
+          boundToSwitch: selectedSwitch._id, 
+          switchPort: portNumber 
+        })
+      }
+      
+      loadDevices()
+    } catch (err: any) {
+      setError(err.message)
+    }
   }
 
   // Export handlers
@@ -476,7 +526,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
+              <button type="button" className="btn btn-secondary" onClick={() => { setEditing(false); setFormData(project) }}>
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary" disabled={loading}>
@@ -671,7 +721,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               {wifiNetworks.map((wifi, i) => (
                 <div key={wifi._id || i} style={{ padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
                   {editingWifiIndex === i && editingWifi ? (
-                    // Edit mode
                     <div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div className="form-group" style={{ margin: 0 }}>
@@ -748,7 +797,6 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       </div>
                     </div>
                   ) : (
-                    // View mode
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <strong>{wifi.name}</strong>
@@ -868,20 +916,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         }}
                       >
                         <option value="">-- Unassigned --</option>
-                        {assignableDevices.map(device => {
-                          const deviceSwitchId = typeof device.boundToSwitch === 'string' 
-                            ? device.boundToSwitch 
-                            : device.boundToSwitch?._id
-                          return (
-                            <option 
-                              key={device._id} 
-                              value={device._id}
-                              disabled={deviceSwitchId === selectedSwitchId && device.switchPort !== portNum}
-                            >
-                              {device.name} ({device.ipAddress || 'No IP'})
-                            </option>
-                          )
-                        })}
+                        {assignableDevices.map(device => (
+                          <option key={device._id} value={device._id}>
+                            {device.name} ({device.ipAddress || 'No IP'})
+                          </option>
+                        ))}
                       </select>
                       
                       {assignedDevice && (

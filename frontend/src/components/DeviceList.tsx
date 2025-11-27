@@ -38,6 +38,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped')
+  const [viewOnlyMode, setViewOnlyMode] = useState(false)
 
   useEffect(() => {
     loadDevices()
@@ -222,8 +223,8 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
               <tr style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
                 <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Name</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Type</th>
-                <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Manufacturer</th>
-                <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>IP Address</th>
+                <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>IP / MAC</th>
+                <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Credentials</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>VLAN</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Status</th>
                 <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>Actions</th>
@@ -237,16 +238,55 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                     <td style={{ padding: '0.75rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span>{catInfo.icon}</span>
-                        <strong>{device.name}</strong>
+                        <div>
+                          <strong>{device.name}</strong>
+                          {device.manufacturer && (
+                            <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                              {device.manufacturer} {device.model}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '0.75rem', color: '#6b7280' }}>{device.deviceType || device.category}</td>
-                    <td style={{ padding: '0.75rem' }}>{device.manufacturer || '-'}</td>
                     <td style={{ padding: '0.75rem' }}>
                       {device.ipAddress ? (
-                        <code style={{ background: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>
-                          {device.ipAddress}
-                        </code>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <a 
+                            href={`http://${device.ipAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ textDecoration: 'none', color: 'inherit' }}
+                          >
+                            <code style={{ background: '#f3f4f6', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                              {device.ipAddress}
+                            </code>
+                          </a>
+                          <button onClick={() => copyToClipboard(device.ipAddress)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}>📋</button>
+                        </div>
+                      ) : '-'}
+                      {device.macAddress && (
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                          {device.macAddress}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '0.75rem' }}>
+                      {!device.hideCredentials && (device.username || device.password) ? (
+                        <div style={{ fontSize: '0.85rem' }}>
+                          {device.username && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <code style={{ background: '#fef3c7', padding: '0.1rem 0.3rem', borderRadius: '3px' }}>{device.username}</code>
+                              <button onClick={() => copyToClipboard(device.username)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>📋</button>
+                            </div>
+                          )}
+                          {device.password && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.125rem' }}>
+                              <code style={{ background: '#fef3c7', padding: '0.1rem 0.3rem', borderRadius: '3px' }}>{device.password}</code>
+                              <button onClick={() => copyToClipboard(device.password)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>📋</button>
+                            </div>
+                          )}
+                        </div>
                       ) : '-'}
                     </td>
                     <td style={{ padding: '0.75rem' }}>{device.vlan || '-'}</td>
@@ -262,15 +302,29 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                       {device.status}
                     </td>
                     <td style={{ padding: '0.75rem' }}>
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setSelectedDevice(device)
-                          setShowModal(true)
-                        }}
-                      >
-                        Edit
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setSelectedDevice(device)
+                            setViewOnlyMode(true)
+                            setShowModal(true)
+                          }}
+                          title="View"
+                        >
+                          👁️
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setSelectedDevice(device)
+                            setViewOnlyMode(false)
+                            setShowModal(true)
+                          }}
+                        >
+                          ✏️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -335,15 +389,23 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                                 background: getStatusColor(device.status),
                               }} />
                             </div>
-                            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.9rem', color: '#6b7280', flexWrap: 'wrap', alignItems: 'center' }}>
                               {device.manufacturer && (
                                 <span>{device.manufacturer} {device.model}</span>
                               )}
                               {device.ipAddress && (
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                  <code style={{ background: '#e5e7eb', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
-                                    {device.ipAddress}
-                                  </code>
+                                  <a 
+                                    href={`http://${device.ipAddress}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ textDecoration: 'none', color: 'inherit' }}
+                                  >
+                                    <code style={{ background: '#e5e7eb', padding: '0.125rem 0.375rem', borderRadius: '4px', cursor: 'pointer' }}>
+                                      {device.ipAddress}
+                                    </code>
+                                  </a>
                                   <button
                                     onClick={() => copyToClipboard(device.ipAddress)}
                                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem' }}
@@ -353,31 +415,71 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                                   </button>
                                 </span>
                               )}
+                              {device.macAddress && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <span style={{ color: '#9ca3af' }}>MAC:</span>
+                                  <code style={{ background: '#f3f4f6', padding: '0.125rem 0.375rem', borderRadius: '4px', fontSize: '0.8rem' }}>
+                                    {device.macAddress}
+                                  </code>
+                                </span>
+                              )}
                               {device.vlan && <span>VLAN {device.vlan}</span>}
                               {device.location && <span>📍 {device.location}</span>}
                             </div>
+                            {/* Credentials row */}
+                            {(device.username || device.password) && !device.hideCredentials && (
+                              <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem', alignItems: 'center' }}>
+                                {device.username && (
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <span style={{ color: '#9ca3af' }}>User:</span>
+                                    <code style={{ background: '#fef3c7', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                                      {device.username}
+                                    </code>
+                                    <button
+                                      onClick={() => copyToClipboard(device.username)}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', fontSize: '0.75rem' }}
+                                      title="Copy Username"
+                                    >
+                                      📋
+                                    </button>
+                                  </span>
+                                )}
+                                {device.password && (
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    <span style={{ color: '#9ca3af' }}>Pass:</span>
+                                    <code style={{ background: '#fef3c7', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                                      {device.password}
+                                    </code>
+                                    <button
+                                      onClick={() => copyToClipboard(device.password)}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', fontSize: '0.75rem' }}
+                                      title="Copy Password"
+                                    >
+                                      📋
+                                    </button>
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            {device.password && !device.hideCredentials && (
-                              <button
-                                onClick={() => copyToClipboard(device.password)}
-                                style={{
-                                  padding: '0.5rem',
-                                  background: '#f3f4f6',
-                                  border: '1px solid #d1d5db',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                }}
-                                title="Copy Password"
-                              >
-                                🔑
-                              </button>
-                            )}
                             <button
                               className="btn btn-secondary btn-sm"
                               onClick={() => {
                                 setSelectedDevice(device)
+                                setViewOnlyMode(true)
+                                setShowModal(true)
+                              }}
+                              title="View Details"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => {
+                                setSelectedDevice(device)
+                                setViewOnlyMode(false)
                                 setShowModal(true)
                               }}
                             >
@@ -399,9 +501,11 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
           projectId={projectId}
           device={selectedDevice}
           existingDevices={devices}
+          viewOnly={viewOnlyMode}
           onClose={() => {
             setShowModal(false)
             setSelectedDevice(null)
+            setViewOnlyMode(false)
           }}
           onDeviceCreated={handleDeviceCreated}
           onDeviceDeleted={handleDeviceDeleted}

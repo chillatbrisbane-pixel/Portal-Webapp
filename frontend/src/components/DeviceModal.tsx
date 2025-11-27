@@ -9,6 +9,7 @@ interface DeviceModalProps {
   onDeviceCreated: (device: Device) => void
   onDeviceDeleted: (deviceId: string) => void
   existingDevices?: Device[]
+  viewOnly?: boolean
 }
 
 interface SwitchInfo {
@@ -92,6 +93,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   onDeviceCreated,
   onDeviceDeleted,
   existingDevices = [],
+  viewOnly = false,
 }) => {
   const [formData, setFormData] = useState<Partial<Device>>(device || { ...INITIAL_FORM_DATA, projectId })
   const [loading, setLoading] = useState(false)
@@ -340,7 +342,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflow: 'auto' }}>
         <div className="modal-header">
-          <h2>{device ? '✏️ Edit Device' : '➕ Add Device'}</h2>
+          <h2>{viewOnly ? '👁️ View Device' : device ? '✏️ Edit Device' : '➕ Add Device'}</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
@@ -808,22 +810,25 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 rows={3}
                 placeholder="Any additional notes..."
                 style={{ fontFamily: 'inherit' }}
+                disabled={viewOnly}
               />
             </div>
           </div>
 
           <div className="modal-footer" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
+              {viewOnly ? 'Close' : 'Cancel'}
             </button>
-            {device && (
+            {!viewOnly && device && (
               <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={loading}>
                 🗑️ Delete
               </button>
             )}
-            <button type="submit" className="btn btn-primary" disabled={loading || (!!ipConflict && !bulkMode)}>
-              {loading ? '⏳ Saving...' : bulkMode && quantity > 1 ? `💾 Add ${quantity} Devices` : '💾 Save Device'}
-            </button>
+            {!viewOnly && (
+              <button type="submit" className="btn btn-primary" disabled={loading || (!!ipConflict && !bulkMode)}>
+                {loading ? '⏳ Saving...' : bulkMode && quantity > 1 ? `💾 Add ${quantity} Devices` : '💾 Save Device'}
+              </button>
+            )}
           </div>
         </form>
       </div>
