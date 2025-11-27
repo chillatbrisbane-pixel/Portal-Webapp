@@ -1,4 +1,5 @@
-// API Service - Connects to backend at http://localhost:5000
+// API Service - Connects to backend
+import { Device, Project, User } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -50,7 +51,7 @@ export const authAPI = {
 // ============ PROJECTS ============
 
 export const projectsAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<Project[]> => {
     const response = await fetch(`${API_BASE_URL}/projects`, {
       headers: getHeaders(),
     });
@@ -58,7 +59,7 @@ export const projectsAPI = {
     return response.json();
   },
 
-  getById: async (projectId: string) => {
+  getById: async (projectId: string): Promise<Project> => {
     const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
       headers: getHeaders(),
     });
@@ -66,7 +67,7 @@ export const projectsAPI = {
     return response.json();
   },
 
-  create: async (projectData: any) => {
+  create: async (projectData: Partial<Project>): Promise<Project> => {
     const response = await fetch(`${API_BASE_URL}/projects`, {
       method: 'POST',
       headers: getHeaders(),
@@ -79,7 +80,7 @@ export const projectsAPI = {
     return response.json();
   },
 
-  update: async (projectId: string, projectData: any) => {
+  update: async (projectId: string, projectData: Partial<Project>): Promise<Project> => {
     const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
       method: 'PUT',
       headers: getHeaders(),
@@ -116,12 +117,25 @@ export const projectsAPI = {
     if (!response.ok) throw new Error('Failed to remove team member');
     return response.json();
   },
+
+  clone: async (projectId: string, name: string, cloneDevices: boolean = true): Promise<Project> => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/clone`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ name, cloneDevices }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to clone project');
+    }
+    return response.json();
+  },
 };
 
 // ============ DEVICES ============
 
 export const devicesAPI = {
-  getByProject: async (projectId: string) => {
+  getByProject: async (projectId: string): Promise<Device[]> => {
     const response = await fetch(`${API_BASE_URL}/devices/project/${projectId}`, {
       headers: getHeaders(),
     });
@@ -129,7 +143,15 @@ export const devicesAPI = {
     return response.json();
   },
 
-  getById: async (deviceId: string) => {
+  getByCategory: async (projectId: string, category: string): Promise<Device[]> => {
+    const response = await fetch(`${API_BASE_URL}/devices/project/${projectId}/category/${category}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch devices');
+    return response.json();
+  },
+
+  getById: async (deviceId: string): Promise<Device> => {
     const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
       headers: getHeaders(),
     });
@@ -137,23 +159,29 @@ export const devicesAPI = {
     return response.json();
   },
 
-  create: async (deviceData: any) => {
+  create: async (deviceData: Partial<Device> & { autoAssignIP?: boolean }): Promise<Device> => {
     const response = await fetch(`${API_BASE_URL}/devices`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(deviceData),
     });
-    if (!response.ok) throw new Error('Failed to create device');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create device');
+    }
     return response.json();
   },
 
-  update: async (deviceId: string, deviceData: any) => {
+  update: async (deviceId: string, deviceData: Partial<Device>): Promise<Device> => {
     const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
       method: 'PUT',
       headers: getHeaders(),
       body: JSON.stringify(deviceData),
     });
-    if (!response.ok) throw new Error('Failed to update device');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update device');
+    }
     return response.json();
   },
 
@@ -165,12 +193,85 @@ export const devicesAPI = {
     if (!response.ok) throw new Error('Failed to delete device');
     return response.json();
   },
+
+  bulkCreate: async (projectId: string, devices: Partial<Device>[]) => {
+    const response = await fetch(`${API_BASE_URL}/devices/bulk`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ projectId, devices }),
+    });
+    if (!response.ok) throw new Error('Failed to bulk create devices');
+    return response.json();
+  },
+
+  // Utility endpoints
+  generatePassword: async (): Promise<{ password: string }> => {
+    const response = await fetch(`${API_BASE_URL}/devices/generate-password`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to generate password');
+    return response.json();
+  },
+
+  getNextIP: async (projectId: string, deviceType: string, category?: string): Promise<{ ip: string; vlan: number; warning?: string }> => {
+    const params = category ? `?category=${category}` : '';
+    const response = await fetch(`${API_BASE_URL}/devices/next-ip/${projectId}/${deviceType}${params}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to get next IP');
+    return response.json();
+  },
+
+  checkIPConflict: async (projectId: string, ipAddress: string, excludeDeviceId?: string): Promise<{ hasConflict: boolean; conflictingDevice?: { id: string; name: string; category: string } }> => {
+    const response = await fetch(`${API_BASE_URL}/devices/check-ip-conflict`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ projectId, ipAddress, excludeDeviceId }),
+    });
+    if (!response.ok) throw new Error('Failed to check IP conflict');
+    return response.json();
+  },
+
+  getIPConfig: async () => {
+    const response = await fetch(`${API_BASE_URL}/devices/ip-config`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to get IP config');
+    return response.json();
+  },
+
+  getAvailableSwitchPorts: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/devices/available-switch-ports/${projectId}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to get switch ports');
+    return response.json();
+  },
+};
+
+// ============ REPORTS ============
+
+export const reportsAPI = {
+  downloadPDF: (projectId: string) => {
+    const token = getToken();
+    window.open(`${API_BASE_URL}/reports/project/${projectId}?token=${token}`, '_blank');
+  },
+
+  downloadJSON: (projectId: string) => {
+    const token = getToken();
+    window.open(`${API_BASE_URL}/reports/project/${projectId}/json?token=${token}`, '_blank');
+  },
+
+  downloadCSV: (projectId: string) => {
+    const token = getToken();
+    window.open(`${API_BASE_URL}/reports/project/${projectId}/csv?token=${token}`, '_blank');
+  },
 };
 
 // ============ USERS ============
 
 export const usersAPI = {
-  getAll: async () => {
+  getAll: async (): Promise<User[]> => {
     const response = await fetch(`${API_BASE_URL}/users`, {
       headers: getHeaders(),
     });
@@ -178,7 +279,7 @@ export const usersAPI = {
     return response.json();
   },
 
-  getById: async (userId: string) => {
+  getById: async (userId: string): Promise<User> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       headers: getHeaders(),
     });
@@ -186,7 +287,20 @@ export const usersAPI = {
     return response.json();
   },
 
-  update: async (userId: string, userData: any) => {
+  create: async (userData: Partial<User> & { password: string }): Promise<User> => {
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(userData),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create user');
+    }
+    return response.json();
+  },
+
+  update: async (userId: string, userData: Partial<User>): Promise<User> => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: 'PUT',
       headers: getHeaders(),
@@ -271,6 +385,7 @@ export default {
   authAPI,
   projectsAPI,
   devicesAPI,
+  reportsAPI,
   usersAPI,
   manufacturersAPI,
   deviceTemplatesAPI,

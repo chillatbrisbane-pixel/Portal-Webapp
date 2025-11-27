@@ -125,16 +125,77 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
           {error && <div className="error-message">{error}</div>}
 
+          {/* Backend Connection Status */}
+          {!checkingBackend && !backendConnected && (
+            <div style={{
+              background: '#fef3c7',
+              color: '#92400e',
+              padding: '0.85rem',
+              borderRadius: '6px',
+              marginBottom: '1rem',
+              fontSize: '0.9rem',
+              border: '1px solid #fcd34d',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span>⚠️ Cannot connect to backend server</span>
+              <button
+                type="button"
+                onClick={async () => {
+                  setCheckingBackend(true);
+                  setError('');
+                  try {
+                    const connected = await healthCheck();
+                    setBackendConnected(connected);
+                    if (!connected) {
+                      setError('Still cannot connect. Is the backend running?');
+                    }
+                  } catch {
+                    setBackendConnected(false);
+                  } finally {
+                    setCheckingBackend(false);
+                  }
+                }}
+                style={{
+                  background: '#92400e',
+                  color: 'white',
+                  border: 'none',
+                  padding: '0.25rem 0.75rem',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {checkingBackend && (
+            <div style={{
+              background: '#dbeafe',
+              color: '#1e40af',
+              padding: '0.85rem',
+              borderRadius: '6px',
+              marginBottom: '1rem',
+              fontSize: '0.9rem',
+              textAlign: 'center',
+            }}>
+              🔄 Checking backend connection...
+            </div>
+          )}
+
           <button
             type="submit"
             className="btn btn-login"
-            disabled={loading || !backendConnected}
+            disabled={loading || checkingBackend || !backendConnected}
             style={{
-              background: BRANDING_CONFIG.primaryColor,
+              background: backendConnected ? BRANDING_CONFIG.primaryColor : '#9ca3af',
               width: '100%',
             }}
           >
-            {loading ? '🔄 Signing in...' : 'Sign In'}
+            {checkingBackend ? '🔄 Connecting...' : loading ? '🔄 Signing in...' : backendConnected ? 'Sign In' : '⚠️ Backend Offline'}
           </button>
         </form>
 

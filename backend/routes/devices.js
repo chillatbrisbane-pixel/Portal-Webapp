@@ -3,11 +3,85 @@ const router = express.Router();
 const Device = require('../models/Device');
 const Project = require('../models/Project');
 const { authenticateToken } = require('../middleware/auth');
+const { generatePassword } = require('../utils/passwordGenerator');
+const { getNextAvailableIP, checkIPConflict, getDefaultVLAN, IP_CONFIG } = require('../utils/ipAssignment');
+
+// ============ UTILITY ENDPOINTS ============
+
+// Generate password
+router.get('/generate-password', authenticateToken, (req, res) => {
+  try {
+    const password = generatePassword();
+    res.json({ password });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get next available IP for a device type
+router.get('/next-ip/:projectId/:deviceType', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, deviceType } = req.params;
+    const category = req.query.category || 'other';
+    
+    const result = await getNextAvailableIP(projectId, deviceType, category, Device);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check IP conflict
+router.post('/check-ip-conflict', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, ipAddress, excludeDeviceId } = req.body;
+    const result = await checkIPConflict(projectId, ipAddress, excludeDeviceId, Device);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get IP configuration reference
+router.get('/ip-config', authenticateToken, (req, res) => {
+  res.json(IP_CONFIG);
+});
+
+// Get available switch ports for a project
+router.get('/available-switch-ports/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const switches = await Device.find({
+      projectId: req.params.projectId,
+      deviceType: 'switch'
+    }).select('name portCount managedPorts');
+    
+    const result = switches.map(sw => {
+      const usedPorts = new Set((sw.managedPorts || []).map(p => p.portNumber));
+      const availablePorts = [];
+      for (let i = 1; i <= (sw.portCount || 24); i++) {
+        if (!usedPorts.has(i)) {
+          availablePorts.push(i);
+        }
+      }
+      return {
+        switchId: sw._id,
+        switchName: sw.name,
+        totalPorts: sw.portCount || 24,
+        availablePorts
+      };
+    });
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ CRUD OPERATIONS ============
 
 // Get all devices for a project
 router.get('/project/:projectId', authenticateToken, async (req, res) => {
   try {
-    // Verify user has access to project
     const project = await Project.findById(req.params.projectId);
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
@@ -21,9 +95,12 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const devices = await Device.find({ projectId: req.params.projectId }).sort({
-      createdAt: -1,
-    });
+    const devices = await Device.find({ projectId: req.params.projectId })
+      .populate('boundToSwitch', 'name')
+      .populate('boundToNVR', 'name')
+      .populate('boundToProcessor', 'name')
+      .sort({ category: 1, createdAt: -1 });
+      
     res.json(devices);
   } catch (error) {
     console.error('Get devices error:', error);
@@ -31,15 +108,35 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
   }
 });
 
+// Get devices by category
+router.get('/project/:projectId/category/:category', authenticateToken, async (req, res) => {
+  try {
+    const devices = await Device.find({
+      projectId: req.params.projectId,
+      category: req.params.category
+    })
+      .populate('boundToSwitch', 'name')
+      .populate('boundToNVR', 'name')
+      .sort({ createdAt: -1 });
+      
+    res.json(devices);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get single device
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
-    const device = await Device.findById(req.params.id);
+    const device = await Device.findById(req.params.id)
+      .populate('boundToSwitch', 'name portCount')
+      .populate('boundToNVR', 'name')
+      .populate('boundToProcessor', 'name');
+      
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // Verify access to project
     const project = await Project.findById(device.projectId);
     const hasAccess =
       project.createdBy.toString() === req.userId.toString() ||
@@ -56,12 +153,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create device
+// Create device with auto-IP assignment
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { projectId } = req.body;
+    const { projectId, autoAssignIP } = req.body;
 
-    // Verify access to project
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
@@ -78,8 +174,43 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to edit this project' });
     }
 
-    const device = new Device(req.body);
+    let deviceData = { ...req.body };
+    
+    // Auto-assign IP if requested and no IP provided
+    if (autoAssignIP && !deviceData.ipAddress) {
+      const ipResult = await getNextAvailableIP(
+        projectId,
+        deviceData.deviceType || deviceData.category,
+        deviceData.category,
+        Device
+      );
+      deviceData.ipAddress = ipResult.ip;
+      deviceData.vlan = ipResult.vlan;
+    }
+    
+    // Set default VLAN if not provided
+    if (!deviceData.vlan) {
+      deviceData.vlan = getDefaultVLAN(deviceData.deviceType, deviceData.category);
+    }
+
+    // Check for IP conflict
+    if (deviceData.ipAddress) {
+      const conflict = await checkIPConflict(projectId, deviceData.ipAddress, null, Device);
+      if (conflict.hasConflict) {
+        return res.status(400).json({
+          error: `IP conflict: ${deviceData.ipAddress} is already assigned to "${conflict.conflictingDevice.name}"`,
+          conflict: conflict.conflictingDevice
+        });
+      }
+    }
+
+    const device = new Device(deviceData);
     await device.save();
+    
+    // Populate references before returning
+    await device.populate('boundToSwitch', 'name');
+    await device.populate('boundToNVR', 'name');
+    
     res.status(201).json(device);
   } catch (error) {
     console.error('Create device error:', error);
@@ -95,7 +226,6 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // Verify access to project
     const project = await Project.findById(device.projectId);
     const userTeamMember = project.teamMembers.find(
       (m) => m.userId.toString() === req.userId.toString()
@@ -108,8 +238,24 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to edit this project' });
     }
 
+    // Check for IP conflict if IP is being changed
+    if (req.body.ipAddress && req.body.ipAddress !== device.ipAddress) {
+      const conflict = await checkIPConflict(device.projectId, req.body.ipAddress, device._id, Device);
+      if (conflict.hasConflict) {
+        return res.status(400).json({
+          error: `IP conflict: ${req.body.ipAddress} is already assigned to "${conflict.conflictingDevice.name}"`,
+          conflict: conflict.conflictingDevice
+        });
+      }
+    }
+
     Object.assign(device, req.body);
     await device.save();
+    
+    await device.populate('boundToSwitch', 'name');
+    await device.populate('boundToNVR', 'name');
+    await device.populate('boundToProcessor', 'name');
+    
     res.json(device);
   } catch (error) {
     console.error('Update device error:', error);
@@ -125,7 +271,6 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // Verify access to project
     const project = await Project.findById(device.projectId);
     const userTeamMember = project.teamMembers.find(
       (m) => m.userId.toString() === req.userId.toString()
@@ -142,6 +287,58 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Device deleted successfully' });
   } catch (error) {
     console.error('Delete device error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk create devices
+router.post('/bulk', authenticateToken, async (req, res) => {
+  try {
+    const { projectId, devices: deviceList } = req.body;
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const userTeamMember = project.teamMembers.find(
+      (m) => m.userId.toString() === req.userId.toString()
+    );
+    const canEdit =
+      project.createdBy.toString() === req.userId.toString() ||
+      userTeamMember?.role === 'editor';
+
+    if (!canEdit) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    const createdDevices = [];
+    const errors = [];
+
+    for (const deviceData of deviceList) {
+      try {
+        // Auto-assign IP if needed
+        if (deviceData.autoAssignIP && !deviceData.ipAddress) {
+          const ipResult = await getNextAvailableIP(
+            projectId,
+            deviceData.deviceType || deviceData.category,
+            deviceData.category,
+            Device
+          );
+          deviceData.ipAddress = ipResult.ip;
+          deviceData.vlan = ipResult.vlan;
+        }
+
+        const device = new Device({ ...deviceData, projectId });
+        await device.save();
+        createdDevices.push(device);
+      } catch (err) {
+        errors.push({ device: deviceData.name, error: err.message });
+      }
+    }
+
+    res.status(201).json({ created: createdDevices, errors });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

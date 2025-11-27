@@ -12,48 +12,238 @@ const deviceSchema = new mongoose.Schema(
       required: [true, 'Device name is required'],
       trim: true,
     },
+    
+    // Category and Type
     category: {
       type: String,
       enum: [
         'network',
-        'security',
         'camera',
-        'av',
-        'lighting',
+        'security',
         'control-system',
-        'audio',
-        'video',
-        'switch',
-        'router',
-        'access-point',
-        'nvr',
-        'other',
+        'lighting',
+        'av',
+        'other'
       ],
       required: true,
     },
+    deviceType: {
+      type: String,
+      enum: [
+        // Network
+        'router', 'switch', 'access-point',
+        // Camera
+        'camera', 'nvr', 'dvr',
+        // Security
+        'alarm-panel', 'keypad', 'door-controller',
+        // Control System
+        'control-processor', 'touch-panel', 'secondary-processor', 'door-station', 'remote',
+        // Lighting
+        'lighting-gateway', 'dimmer', 'relay-pack',
+        // AV
+        'receiver', 'tv', 'projector', 'audio-matrix', 'amplifier', 'soundbar', 'media-player',
+        // Other
+        'fan', 'irrigation', 'hvac', 'relay', 'fireplace', 'shade', 'pool', 'generic'
+      ],
+      default: 'generic'
+    },
+    
+    // Common Fields
     manufacturer: String,
     model: String,
     serialNumber: String,
     macAddress: String,
     ipAddress: String,
-    vlan: Number,
+    vlan: { type: Number, default: 1 },
     
     // Credentials
     username: String,
     password: String,
     apiKey: String,
+    hideCredentials: { type: Boolean, default: false }, // For Unifi devices
     
-    // Location and port info
+    // Location and Installation
     location: String,
+    room: String,
     rackPosition: String,
+    installDate: Date,
+    
+    // Switch/Port Binding
     switchPort: Number,
+    boundToSwitch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Device'
+    },
     
-    // Technical specs
-    specifications: mongoose.Schema.Types.Mixed,
+    // NVR Binding (for cameras)
+    boundToNVR: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Device'
+    },
     
-    // Documentation
+    // Control Processor Binding (for IR devices)
+    boundToProcessor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Device'
+    },
+    irPort: Number,
+    
+    // ============ NETWORK-SPECIFIC FIELDS ============
+    
+    // Router specific
+    lanPorts: { type: Number, min: 1, max: 48 },
+    wanPorts: { type: Number, min: 1, max: 4 },
+    wanProtocol: {
+      type: String,
+      enum: ['pppoe', 'static', 'dhcp', '']
+    },
+    wanIP: String,
+    wanGateway: String,
+    wanDNS: String,
+    
+    // Switch specific
+    portCount: {
+      type: Number,
+      enum: [8, 16, 24, 48]
+    },
+    poeType: {
+      type: String,
+      enum: ['none', 'af', 'at', 'bt', ''] // 802.3af, 802.3at (PoE+), 802.3bt (PoE++)
+    },
+    sfpPorts: Number,
+    managedPorts: [{
+      portNumber: Number,
+      description: String,
+      assignedDevice: { type: mongoose.Schema.Types.ObjectId, ref: 'Device' },
+      vlan: Number,
+      poeEnabled: Boolean
+    }],
+    
+    // WAP specific
+    channel: String,
+    bandwidth: String,
+    ssids: [{
+      name: String,
+      password: String,
+      vlan: Number,
+      band: { type: String, enum: ['2.4GHz', '5GHz', '6GHz', 'dual', ''] }
+    }],
+    
+    // ============ CAMERA-SPECIFIC FIELDS ============
+    
+    resolution: String,
+    cameraType: {
+      type: String,
+      enum: ['dome', 'bullet', 'ptz', 'turret', 'fisheye', '']
+    },
+    inputPorts: Number,
+    outputPorts: Number,
+    storageCapacity: String, // For NVR
+    maxChannels: Number, // For NVR
+    connectedCameras: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Device'
+    }],
+    
+    // ============ SECURITY-SPECIFIC FIELDS ============
+    
+    // Security Panel
+    panelType: {
+      type: String,
+      enum: ['inception', 'paradox', 'bosch', 'honeywell', 'custom', '']
+    },
+    skyTunnelLink: String, // Auto-generated for Inner Range Inception
+    zoneCount: Number,
+    zones: [{
+      number: Number,
+      name: String,
+      type: { type: String, enum: ['entry', 'perimeter', 'interior', 'fire', '24hr', ''] }
+    }],
+    outputCount: Number,
+    outputs: [{
+      number: Number,
+      name: String,
+      type: { type: String }
+    }],
+    doorCount: Number,
+    doors: [{
+      number: Number,
+      name: String
+    }],
+    
+    // ============ CONTROL SYSTEM-SPECIFIC FIELDS ============
+    
+    controlBrand: {
+      type: String,
+      enum: ['control4', 'crestron', 'savant', 'elan', 'custom', '']
+    },
+    irPorts: Number,
+    ioPorts: Number,
+    audioPorts: Number,
+    relayPorts: Number,
+    serialPorts: Number,
+    
+    // ============ LIGHTING-SPECIFIC FIELDS ============
+    
+    lightingBrand: {
+      type: String,
+      enum: ['cbus', 'lutron', 'control4', 'crestron', 'dynalite', 'custom', '']
+    },
+    circuitCount: Number,
+    dimmable: Boolean,
+    
+    // ============ AV-SPECIFIC FIELDS ============
+    
+    controlMethod: {
+      type: String,
+      enum: ['ir', 'ip', 'serial', 'cec', 'rs232', '']
+    },
+    hdmiInputs: Number,
+    hdmiOutputs: Number,
+    audioInputs: Number,
+    audioOutputs: Number,
+    
+    // Multi-Zone Amp specific
+    zoneConfiguration: {
+      type: Number,
+      enum: [4, 6, 8, 16, 32, null]
+    },
+    audioZones: [{
+      number: Number,
+      name: String,
+      sourceInput: String
+    }],
+    
+    // Display specific
+    screenSize: String,
+    displayType: {
+      type: String,
+      enum: ['led', 'oled', 'qled', 'lcd', 'projector', '']
+    },
+    
+    // ============ OTHER DEVICE FIELDS ============
+    
+    // Fan (Haiku)
+    fanBrand: {
+      type: String,
+      enum: ['haiku', 'hunter', 'custom', '']
+    },
+    
+    // HVAC
+    hvacBrand: {
+      type: String,
+      enum: ['coolmaster', 'intesis', 'custom', '']
+    },
+    hvacZones: Number,
+    
+    // Relay
+    relayChannels: Number,
+    
+    // ============ DOCUMENTATION & NOTES ============
+    
     documentationUrl: String,
     configNotes: String,
+    specifications: mongoose.Schema.Types.Mixed,
     
     // Status
     status: {
@@ -70,7 +260,18 @@ const deviceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes
 deviceSchema.index({ projectId: 1 });
 deviceSchema.index({ category: 1 });
+deviceSchema.index({ deviceType: 1 });
+deviceSchema.index({ ipAddress: 1 });
+
+// Pre-save hook for auto-generating skyTunnelLink
+deviceSchema.pre('save', function(next) {
+  if (this.category === 'security' && this.panelType === 'inception' && this.serialNumber) {
+    this.skyTunnelLink = `https://skytunnel.com.au/inception/${this.serialNumber}`;
+  }
+  next();
+});
 
 module.exports = mongoose.model('Device', deviceSchema);

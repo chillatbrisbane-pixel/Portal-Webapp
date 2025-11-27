@@ -242,4 +242,75 @@ router.delete('/:id/devices/:deviceId', authenticateToken, async (req, res) => {
   }
 });
 
+// Clone project
+router.post('/:id/clone', authenticateToken, async (req, res) => {
+  try {
+    const { name, cloneDevices } = req.body;
+    
+    const sourceProject = await Project.findById(req.params.id);
+    if (!sourceProject) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Create new project with cloned data
+    const clonedData = {
+      name: name || `${sourceProject.name} (Copy)`,
+      description: sourceProject.description,
+      clientName: sourceProject.clientName,
+      clientEmail: sourceProject.clientEmail,
+      clientPhone: sourceProject.clientPhone,
+      address: sourceProject.address,
+      status: 'planning',
+      technologies: sourceProject.technologies,
+      networkConfig: sourceProject.networkConfig,
+      wifiNetworks: sourceProject.wifiNetworks,
+      switchPorts: [],
+      createdBy: req.userId,
+      teamMembers: [],
+    };
+
+    const newProject = new Project(clonedData);
+    await newProject.save();
+
+    // Clone devices if requested
+    if (cloneDevices) {
+      const Device = require('../models/Device');
+      const { getNextAvailableIP } = require('../utils/ipAssignment');
+      
+      const sourceDevices = await Device.find({ projectId: req.params.id });
+      
+      for (const device of sourceDevices) {
+        const ipResult = await getNextAvailableIP(
+          newProject._id.toString(),
+          device.deviceType || device.category,
+          device.category,
+          Device
+        );
+        
+        const clonedDevice = new Device({
+          projectId: newProject._id,
+          name: device.name,
+          category: device.category,
+          deviceType: device.deviceType,
+          manufacturer: device.manufacturer,
+          model: device.model,
+          vlan: device.vlan,
+          location: device.location,
+          room: device.room,
+          configNotes: device.configNotes,
+          ipAddress: ipResult.ip,
+          status: 'not-installed',
+        });
+        
+        await clonedDevice.save();
+      }
+    }
+
+    res.status(201).json(newProject);
+  } catch (error) {
+    console.error('Clone project error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

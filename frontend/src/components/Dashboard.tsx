@@ -64,6 +64,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           setProjects(projects.map(p => p._id === updated._id ? updated : p))
         }}
         onProjectDeleted={handleProjectDeleted}
+        onProjectCloned={(newProject) => {
+          setProjects([newProject, ...projects])
+          setSelectedProject(newProject)
+        }}
       />
     )
   }

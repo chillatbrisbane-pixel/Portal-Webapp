@@ -86,7 +86,7 @@ const projectSchema = new mongoose.Schema(
         name: String,
         password: String,
         vlan: Number,
-        band: { type: String, enum: ['2.4GHz', '5GHz', '6GHz'], default: '5GHz' },
+        band: { type: String, enum: ['2.4GHz', '5GHz', '6GHz', 'Dual'], default: '5GHz' },
       },
     ],
 
