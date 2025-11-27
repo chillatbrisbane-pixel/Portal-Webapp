@@ -457,10 +457,41 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                                 </span>
                               )}
                               {device.vlan && <span>VLAN {device.vlan}</span>}
+                              {/* Show credentials inline for routers and cameras */}
+                              {(device.deviceType === 'router' || device.deviceType === 'camera') && !device.hideCredentials && device.username && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <span style={{ color: '#9ca3af' }}>User:</span>
+                                  <code style={{ background: '#fef3c7', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                                    {device.username}
+                                  </code>
+                                  <button
+                                    onClick={(e) => copyToClipboard(device.username, e)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', fontSize: '0.75rem' }}
+                                    title="Copy Username"
+                                  >
+                                    📋
+                                  </button>
+                                </span>
+                              )}
+                              {(device.deviceType === 'router' || device.deviceType === 'camera') && !device.hideCredentials && device.password && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  <span style={{ color: '#9ca3af' }}>Pass:</span>
+                                  <code style={{ background: '#fef3c7', padding: '0.125rem 0.375rem', borderRadius: '4px' }}>
+                                    {device.password}
+                                  </code>
+                                  <button
+                                    onClick={(e) => copyToClipboard(device.password, e)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', fontSize: '0.75rem' }}
+                                    title="Copy Password"
+                                  >
+                                    📋
+                                  </button>
+                                </span>
+                              )}
                               {device.location && <span>📍 {device.location}</span>}
                             </div>
-                            {/* Credentials row */}
-                            {(device.username || device.password) && !device.hideCredentials && (
+                            {/* Credentials row for other devices */}
+                            {device.deviceType !== 'router' && device.deviceType !== 'camera' && (device.username || device.password) && !device.hideCredentials && (
                               <div style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem', alignItems: 'center' }}>
                                 {device.username && (
                                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

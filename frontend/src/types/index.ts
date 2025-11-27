@@ -99,7 +99,7 @@ export type DeviceType =
   // Control System
   | 'control-processor' | 'touch-panel' | 'secondary-processor' | 'door-station' | 'remote'
   // Lighting
-  | 'lighting-gateway' | 'dimmer' | 'relay-pack'
+  | 'lighting-gateway' | 'dali-gateway'
   // AV
   | 'receiver' | 'tv' | 'projector' | 'audio-matrix' | 'amplifier' | 'soundbar' | 'media-player'
   // Other
@@ -283,8 +283,7 @@ export const BRAND_OPTIONS = {
   },
   lighting: {
     'lighting-gateway': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
-    'dimmer': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
-    'relay-pack': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
+    'dali-gateway': ['Helvar', 'Tridonic', 'Philips', 'Osram', 'Custom'],
   },
   av: {
     receiver: ['Denon', 'Marantz', 'Yamaha', 'Integra', 'Anthem', 'Trinnov', 'Sony', 'Custom'],
@@ -325,8 +324,7 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
   ],
   lighting: [
     { value: 'lighting-gateway', label: '💡 Lighting Gateway' },
-    { value: 'dimmer', label: '🔆 Dimmer' },
-    { value: 'relay-pack', label: '⚡ Relay Pack' },
+    { value: 'dali-gateway', label: '🔌 DALI Gateway' },
   ],
   av: [
     { value: 'receiver', label: '🔊 AV Receiver' },

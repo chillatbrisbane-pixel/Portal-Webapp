@@ -64,8 +64,7 @@ const getDefaultDeviceName = (deviceType: string, existingCount: number) => {
     'door-station': 'Door Station',
     'remote': 'Remote',
     'lighting-gateway': 'Lighting Gateway',
-    'dimmer': 'Dimmer',
-    'relay-pack': 'Relay Pack',
+    'dali-gateway': 'DALI Gateway',
     'receiver': 'AV Receiver',
     'tv': 'TV',
     'projector': 'Projector',
@@ -115,19 +114,23 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   // Get device types for selected category
   const deviceTypes = DEVICE_TYPE_OPTIONS[formData.category as DeviceCategory] || []
 
-  // Load switches for port binding
+  // Load switches and routers for port binding
   useEffect(() => {
     const loadSwitches = async () => {
-      const switchDevices = existingDevices.filter(d => d.deviceType === 'switch')
-      setSwitches(switchDevices.map(s => ({
+      // Include both switches and routers, but exclude the current device
+      const bindableDevices = existingDevices.filter(d => 
+        (d.deviceType === 'switch' || d.deviceType === 'router') &&
+        d._id !== device?._id // Can't bind to self
+      )
+      setSwitches(bindableDevices.map(s => ({
         _id: s._id,
         name: s.name,
-        portCount: s.portCount || 24,
+        portCount: s.portCount || (s.deviceType === 'router' ? 8 : 24),
         managedPorts: s.managedPorts || []
       })))
     }
     loadSwitches()
-  }, [existingDevices])
+  }, [existingDevices, device])
 
   // Update device type and name when category changes
   useEffect(() => {
@@ -621,7 +624,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label>Connected to Switch</label>
+                <label>Connected to Switch/Router</label>
                 <select 
                   value={selectedSwitch} 
                   onChange={(e) => {

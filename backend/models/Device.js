@@ -39,7 +39,7 @@ const deviceSchema = new mongoose.Schema(
         // Control System
         'control-processor', 'touch-panel', 'secondary-processor', 'door-station', 'remote',
         // Lighting
-        'lighting-gateway', 'dimmer', 'relay-pack',
+        'lighting-gateway', 'dali-gateway',
         // AV
         'receiver', 'tv', 'projector', 'audio-matrix', 'amplifier', 'soundbar', 'media-player',
         // Other
