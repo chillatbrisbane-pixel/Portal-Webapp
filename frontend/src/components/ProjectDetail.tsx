@@ -1021,27 +1021,116 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 {selectedSwitch.ipAddress && <span> • IP: {selectedSwitch.ipAddress}</span>}
               </div>
 
+              {/* VLAN Legend */}
+              {(() => {
+                const usedVlans = new Set<number>()
+                Array.from({ length: selectedSwitch.portCount || 24 }, (_, i) => i + 1).forEach(portNum => {
+                  const device = getDeviceOnPort(portNum)
+                  if (device?.vlan) usedVlans.add(device.vlan)
+                })
+                if (usedVlans.size > 0) {
+                  const vlanColors: Record<number, { bg: string; border: string; text: string }> = {
+                    1: { bg: '#ecfdf5', border: '#10b981', text: '#059669' },   // Green - Default/Management
+                    10: { bg: '#eff6ff', border: '#3b82f6', text: '#2563eb' },  // Blue
+                    20: { bg: '#fef2f2', border: '#ef4444', text: '#dc2626' },  // Red - Cameras
+                    30: { bg: '#fefce8', border: '#eab308', text: '#ca8a04' },  // Yellow
+                    40: { bg: '#f5f3ff', border: '#8b5cf6', text: '#7c3aed' },  // Purple
+                    50: { bg: '#fdf4ff', border: '#d946ef', text: '#c026d3' },  // Pink
+                    60: { bg: '#fff7ed', border: '#f97316', text: '#ea580c' },  // Orange
+                    100: { bg: '#f0fdfa', border: '#14b8a6', text: '#0d9488' }, // Teal
+                  }
+                  const getVlanColor = (vlan: number) => {
+                    if (vlanColors[vlan]) return vlanColors[vlan]
+                    // Generate color based on vlan number for unlisted VLANs
+                    const hue = (vlan * 137) % 360
+                    return { bg: `hsl(${hue}, 70%, 95%)`, border: `hsl(${hue}, 70%, 50%)`, text: `hsl(${hue}, 70%, 35%)` }
+                  }
+                  return (
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>VLANs:</span>
+                      {Array.from(usedVlans).sort((a, b) => a - b).map(vlan => {
+                        const colors = getVlanColor(vlan)
+                        return (
+                          <span key={vlan} style={{
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            background: colors.bg,
+                            border: `1px solid ${colors.border}`,
+                            color: colors.text,
+                          }}>
+                            VLAN {vlan}
+                          </span>
+                        )
+                      })}
+                      <span style={{
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        background: '#f3f4f6',
+                        border: '1px solid #e5e7eb',
+                        color: '#6b7280',
+                      }}>
+                        Unassigned
+                      </span>
+                    </div>
+                  )
+                }
+                return null
+              })()}
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
                 {Array.from({ length: selectedSwitch.portCount || 24 }, (_, i) => i + 1).map(portNum => {
                   const assignedDevice = getDeviceOnPort(portNum)
+                  
+                  // VLAN color scheme
+                  const vlanColors: Record<number, { bg: string; border: string; text: string }> = {
+                    1: { bg: '#ecfdf5', border: '#10b981', text: '#059669' },   // Green - Default/Management
+                    10: { bg: '#eff6ff', border: '#3b82f6', text: '#2563eb' },  // Blue
+                    20: { bg: '#fef2f2', border: '#ef4444', text: '#dc2626' },  // Red - Cameras
+                    30: { bg: '#fefce8', border: '#eab308', text: '#ca8a04' },  // Yellow
+                    40: { bg: '#f5f3ff', border: '#8b5cf6', text: '#7c3aed' },  // Purple
+                    50: { bg: '#fdf4ff', border: '#d946ef', text: '#c026d3' },  // Pink
+                    60: { bg: '#fff7ed', border: '#f97316', text: '#ea580c' },  // Orange
+                    100: { bg: '#f0fdfa', border: '#14b8a6', text: '#0d9488' }, // Teal
+                  }
+                  const getVlanColor = (vlan: number) => {
+                    if (vlanColors[vlan]) return vlanColors[vlan]
+                    const hue = (vlan * 137) % 360
+                    return { bg: `hsl(${hue}, 70%, 95%)`, border: `hsl(${hue}, 70%, 50%)`, text: `hsl(${hue}, 70%, 35%)` }
+                  }
+                  
+                  const colors = assignedDevice?.vlan 
+                    ? getVlanColor(assignedDevice.vlan)
+                    : { bg: 'white', border: '#e5e7eb', text: '#6b7280' }
                   
                   return (
                     <div 
                       key={portNum}
                       style={{
                         padding: '0.75rem',
-                        border: '1px solid',
-                        borderColor: assignedDevice ? '#10b981' : '#e5e7eb',
+                        border: '2px solid',
+                        borderColor: colors.border,
                         borderRadius: '6px',
-                        background: assignedDevice ? '#ecfdf5' : 'white',
+                        background: colors.bg,
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <strong style={{ color: assignedDevice ? '#059669' : '#6b7280' }}>
+                        <strong style={{ color: colors.text }}>
                           Port {portNum}
                         </strong>
                         {assignedDevice && (
-                          <span style={{ fontSize: '0.75rem', color: '#059669' }}>● In Use</span>
+                          <span style={{ 
+                            fontSize: '0.7rem', 
+                            color: colors.text,
+                            background: `${colors.border}20`,
+                            padding: '0.125rem 0.375rem',
+                            borderRadius: '3px',
+                            fontWeight: 600,
+                          }}>
+                            VLAN {assignedDevice.vlan || 1}
+                          </span>
                         )}
                       </div>
                       
