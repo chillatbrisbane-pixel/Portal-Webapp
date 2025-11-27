@@ -72,8 +72,10 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
     setSelectedDevice(null)
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = (text: string | undefined) => {
+    if (text) {
+      navigator.clipboard.writeText(text)
+    }
   }
 
   // Group devices by category and sort by IP within each group

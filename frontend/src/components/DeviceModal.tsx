@@ -166,15 +166,19 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   // Check port binding when switch/port changes
   useEffect(() => {
     if (selectedSwitch && selectedPort) {
-      const sw = switches.find(s => s._id === selectedSwitch)
-      if (sw) {
-        const existingBinding = sw.managedPorts?.find(p => p.portNumber === selectedPort)
-        if (existingBinding?.assignedDevice && existingBinding.assignedDevice !== device?._id) {
-          const boundDevice = existingDevices.find(d => d._id === existingBinding.assignedDevice)
-          setPortWarning(`⚠️ Port ${selectedPort} is already assigned to "${boundDevice?.name || 'another device'}"`)
-        } else {
-          setPortWarning(null)
-        }
+      // Check if any device is already bound to this switch+port
+      const boundDevice = existingDevices.find(d => {
+        if (d._id === device?._id) return false // Skip current device
+        const switchId = typeof d.boundToSwitch === 'string' 
+          ? d.boundToSwitch 
+          : d.boundToSwitch?._id
+        return switchId === selectedSwitch && d.switchPort === selectedPort
+      })
+      
+      if (boundDevice) {
+        setPortWarning(`⚠️ Port ${selectedPort} is already assigned to "${boundDevice.name}"`)
+      } else {
+        setPortWarning(null)
       }
     } else {
       setPortWarning(null)
@@ -263,12 +267,14 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
         const savedDevice = await devicesAPI.update(device._id, deviceData)
         onDeviceCreated(savedDevice)
       } else if (bulkMode && quantity > 1) {
-        // Bulk create
+        // Bulk create - don't include IP so backend auto-assigns unique IPs
         const devices: Partial<Device>[] = []
         for (let i = 0; i < quantity; i++) {
           const existingCount = existingDevices.filter(d => d.deviceType === formData.deviceType).length + i
+          // Exclude ipAddress so each device gets unique auto-assigned IP
+          const { ipAddress, ...formDataWithoutIP } = formData
           devices.push({
-            ...formData,
+            ...formDataWithoutIP,
             name: getDefaultDeviceName(formData.deviceType as string, existingCount),
             autoAssignIP: true,
           } as any)
@@ -310,8 +316,10 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     }
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = (text: string | undefined) => {
+    if (text) {
+      navigator.clipboard.writeText(text)
+    }
   }
 
   // Get brand options for current category/type

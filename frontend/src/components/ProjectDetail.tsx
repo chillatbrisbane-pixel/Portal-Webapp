@@ -229,7 +229,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       setError('WiFi name is required')
       return
     }
-    const updatedNetworks = [...wifiNetworks, { ...newWifi, _id: Date.now().toString() }]
+    // Don't add _id - let MongoDB handle it
+    const updatedNetworks = [...wifiNetworks, { name: newWifi.name, password: newWifi.password, vlan: newWifi.vlan, band: newWifi.band }]
     
     try {
       await saveWifiNetworks(updatedNetworks)
@@ -237,6 +238,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       setNewWifi({ name: '', password: '', vlan: 1, band: '5GHz' })
       setShowAddWifi(false)
       setShowNewWifiPassword(false)
+      setError('')
     } catch (err: any) {
       setError('Failed to save WiFi network')
     }
@@ -354,6 +356,107 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const handleExportJSON = () => reportsAPI.downloadJSON(project._id)
   const handleExportCSV = () => reportsAPI.downloadCSV(project._id)
 
+  // Port export functions
+  const exportPortsToCSV = () => {
+    if (!selectedSwitch) return
+    
+    const portCount = selectedSwitch.portCount || 24
+    const rows = [['Port', 'Device Name', 'IP Address', 'MAC Address', 'Manufacturer', 'Model', 'VLAN']]
+    
+    for (let portNum = 1; portNum <= portCount; portNum++) {
+      const device = getDeviceOnPort(portNum)
+      rows.push([
+        portNum.toString(),
+        device?.name || '',
+        device?.ipAddress || '',
+        device?.macAddress || '',
+        device?.manufacturer || '',
+        device?.model || '',
+        device?.vlan?.toString() || ''
+      ])
+    }
+    
+    const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${project.name}_${selectedSwitch.name}_ports.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const exportPortsToPDF = () => {
+    if (!selectedSwitch) return
+    
+    const portCount = selectedSwitch.portCount || 24
+    let html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${project.name} - ${selectedSwitch.name} Port Allocation</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          h1 { color: #333; }
+          h2 { color: #666; margin-top: 10px; }
+          table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background: #f5f5f5; font-weight: bold; }
+          tr:nth-child(even) { background: #fafafa; }
+          .empty { color: #999; font-style: italic; }
+          .info { margin-bottom: 20px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <h1>${project.name}</h1>
+        <h2>Switch Port Allocation: ${selectedSwitch.name}</h2>
+        <p class="info">${selectedSwitch.manufacturer || ''} ${selectedSwitch.model || ''} ${selectedSwitch.ipAddress ? '• IP: ' + selectedSwitch.ipAddress : ''}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Port</th>
+              <th>Device Name</th>
+              <th>IP Address</th>
+              <th>MAC Address</th>
+              <th>Manufacturer</th>
+              <th>Model</th>
+              <th>VLAN</th>
+            </tr>
+          </thead>
+          <tbody>
+    `
+    
+    for (let portNum = 1; portNum <= portCount; portNum++) {
+      const device = getDeviceOnPort(portNum)
+      html += `
+        <tr>
+          <td>${portNum}</td>
+          <td>${device?.name || '<span class="empty">Unassigned</span>'}</td>
+          <td>${device?.ipAddress || ''}</td>
+          <td>${device?.macAddress || ''}</td>
+          <td>${device?.manufacturer || ''}</td>
+          <td>${device?.model || ''}</td>
+          <td>${device?.vlan || ''}</td>
+        </tr>
+      `
+    }
+    
+    html += `
+          </tbody>
+        </table>
+        <p style="margin-top: 20px; font-size: 12px; color: #999;">Generated: ${new Date().toLocaleString()}</p>
+      </body>
+      </html>
+    `
+    
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(html)
+      printWindow.document.close()
+      printWindow.print()
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
       'planning': { bg: '#fef3c7', text: '#92400e' },
@@ -377,8 +480,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     )
   }
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  const copyToClipboard = (text: string | undefined) => {
+    if (text) {
+      navigator.clipboard.writeText(text)
+    }
   }
 
   return (
@@ -849,23 +954,44 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {activeTab === 'ports' && (
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
             <h3 style={{ margin: 0 }}>🔌 Switch Port Management</h3>
             
-            {switches.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label style={{ fontWeight: 500 }}>Switch:</label>
-                <select 
-                  value={selectedSwitchId} 
-                  onChange={(e) => setSelectedSwitchId(e.target.value)}
-                  style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                >
-                  {switches.map(sw => (
-                    <option key={sw._id} value={sw._id}>{sw.name} ({sw.portCount || 24} ports)</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {switches.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label style={{ fontWeight: 500 }}>Switch:</label>
+                    <select 
+                      value={selectedSwitchId} 
+                      onChange={(e) => setSelectedSwitchId(e.target.value)}
+                      style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                    >
+                      {switches.map(sw => (
+                        <option key={sw._id} value={sw._id}>{sw.name} ({sw.portCount || 24} ports)</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => exportPortsToCSV()}
+                      title="Export to CSV/Excel"
+                    >
+                      📊 CSV
+                    </button>
+                    <button 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => exportPortsToPDF()}
+                      title="Export to PDF"
+                    >
+                      📄 PDF
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {switches.length === 0 ? (
