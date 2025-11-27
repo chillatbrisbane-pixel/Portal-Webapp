@@ -60,7 +60,7 @@ export interface Project {
   clientEmail: string;
   clientPhone: string;
   address: string;
-  status: 'planning' | 'in-progress' | 'on-hold' | 'completed' | 'archived';
+  status: 'planning' | 'in-progress' | 'completed';
   startDate: string;
   completionDate: string;
   budget: number;

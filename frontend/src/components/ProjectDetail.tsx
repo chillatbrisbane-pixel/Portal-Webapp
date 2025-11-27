@@ -461,9 +461,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     const colors: Record<string, { bg: string; text: string }> = {
       'planning': { bg: '#fef3c7', text: '#92400e' },
       'in-progress': { bg: '#dbeafe', text: '#1e40af' },
-      'on-hold': { bg: '#fee2e2', text: '#991b1b' },
       'completed': { bg: '#d1fae5', text: '#065f46' },
-      'archived': { bg: '#e5e7eb', text: '#374151' },
     }
     const style = colors[status] || colors['planning']
     return (
@@ -606,9 +604,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 >
                   <option value="planning">Planning</option>
                   <option value="in-progress">In Progress</option>
-                  <option value="on-hold">On Hold</option>
                   <option value="completed">Completed</option>
-                  <option value="archived">Archived</option>
                 </select>
               </div>
 
