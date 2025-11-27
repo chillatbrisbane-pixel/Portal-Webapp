@@ -752,7 +752,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {/* Tab Content */}
       {activeTab === 'devices' && (
-        <DeviceList projectId={project._id} />
+        <DeviceList projectId={project._id} onDevicesChanged={loadDevices} />
       )}
 
       {activeTab === 'wifi' && (

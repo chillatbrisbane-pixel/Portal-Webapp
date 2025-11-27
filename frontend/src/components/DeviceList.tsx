@@ -5,6 +5,7 @@ import { DeviceModal } from './DeviceModal'
 
 interface DeviceListProps {
   projectId: string
+  onDevicesChanged?: () => void
 }
 
 const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color: string }> = {
@@ -30,7 +31,7 @@ const sortByIP = (devices: Device[]): Device[] => {
   return [...devices].sort((a, b) => parseIP(a.ipAddress || '') - parseIP(b.ipAddress || ''))
 }
 
-export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
+export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChanged }) => {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -75,11 +76,15 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
     setShowModal(false)
     setSelectedDevice(null)
     setViewOnlyMode(false)
+    // Notify parent that devices changed (for port tab sync)
+    if (onDevicesChanged) onDevicesChanged()
   }
 
   const handleDeviceDeleted = (deviceId: string) => {
     setDevices(devices.filter(d => d._id !== deviceId))
     setSelectedDevice(null)
+    // Notify parent that devices changed
+    if (onDevicesChanged) onDevicesChanged()
   }
 
   const copyToClipboard = async (text: string | undefined, e?: React.MouseEvent) => {
