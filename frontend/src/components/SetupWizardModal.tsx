@@ -22,10 +22,12 @@ const TECH_CONFIGS: TechConfig[] = [
   { key: 'cameras', label: 'Security Cameras', icon: '📹', deviceType: 'camera', defaultBrands: ['Dahua', 'Hikvision', 'Luma'], defaultVlan: 20 },
   { key: 'nvr', label: 'NVR', icon: '💾', deviceType: 'nvr', defaultBrands: ['Dahua', 'Hikvision', 'Luma'], defaultVlan: 20 },
   { key: 'security', label: 'Security Panel', icon: '🔒', deviceType: 'alarm-panel', defaultBrands: ['Inner Range (Inception)', 'Paradox', 'Bosch'], defaultVlan: 1 },
-  { key: 'controlSystem', label: 'Control System', icon: '🎛️', deviceType: 'control-processor', defaultBrands: ['Control4', 'Crestron Home', 'RTI', 'Custom'], defaultVlan: 1 },
+  { key: 'controlSystem', label: 'Control System', icon: '🎛️', deviceType: 'control-processor', defaultBrands: ['Control4', 'Crestron Home', 'RTI'], defaultVlan: 1 },
   { key: 'touchPanels', label: 'Touch Panels', icon: '📱', deviceType: 'touch-panel', defaultBrands: ['Control4', 'Crestron Home', 'RTI'], defaultVlan: 1 },
-  { key: 'lighting', label: 'Lighting Gateway', icon: '💡', deviceType: 'lighting-gateway', defaultBrands: ['C-Bus', 'Lutron', 'Dynalite'], defaultVlan: 1 },
-  { key: 'av', label: 'AV Receivers', icon: '🔊', deviceType: 'receiver', defaultBrands: ['Denon', 'Marantz', 'Yamaha'], defaultVlan: 1 },
+  { key: 'lighting', label: 'Lighting Gateway', icon: '💡', deviceType: 'lighting-gateway', defaultBrands: ['C-Bus', 'Lutron', 'Dynalite', 'Crestron', 'Control4'], defaultVlan: 1 },
+  { key: 'av', label: 'AV Receivers', icon: '🔊', deviceType: 'receiver', defaultBrands: ['Denon', 'Marantz', 'Yamaha', 'Anthem', 'Integra', 'Trinnov'], defaultVlan: 1 },
+  { key: 'multiroom', label: 'Multiroom Audio', icon: '🎵', deviceType: 'audio-matrix', defaultBrands: ['Sonance', 'Sonos', 'Control4', 'Russound'], defaultVlan: 1 },
+  { key: 'videodist', label: 'Video Distribution', icon: '🖥️', deviceType: 'video-matrix', defaultBrands: ['Crestron', 'Atlona', 'Just Add Power', 'Binary'], defaultVlan: 1 },
   { key: 'tvs', label: 'TVs/Displays', icon: '📺', deviceType: 'tv', defaultBrands: ['Samsung', 'LG', 'Sony'], defaultVlan: 1 },
 ]
 

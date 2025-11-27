@@ -41,7 +41,7 @@ const deviceSchema = new mongoose.Schema(
         // Lighting
         'lighting-gateway', 'dali-gateway',
         // AV
-        'receiver', 'tv', 'projector', 'audio-matrix', 'amplifier', 'soundbar', 'media-player',
+        'receiver', 'tv', 'projector', 'audio-matrix', 'video-matrix', 'amplifier', 'soundbar', 'media-player',
         // Other
         'fan', 'irrigation', 'hvac', 'relay', 'fireplace', 'shade', 'pool', 'generic'
       ],

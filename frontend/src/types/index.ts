@@ -101,7 +101,7 @@ export type DeviceType =
   // Lighting
   | 'lighting-gateway' | 'dali-gateway'
   // AV
-  | 'receiver' | 'tv' | 'projector' | 'audio-matrix' | 'amplifier' | 'soundbar' | 'media-player'
+  | 'receiver' | 'tv' | 'projector' | 'audio-matrix' | 'video-matrix' | 'amplifier' | 'soundbar' | 'media-player'
   // Other
   | 'fan' | 'irrigation' | 'hvac' | 'relay' | 'fireplace' | 'shade' | 'pool' | 'generic';
 
@@ -288,8 +288,12 @@ export const BRAND_OPTIONS = {
   av: {
     receiver: ['Denon', 'Marantz', 'Yamaha', 'Integra', 'Anthem', 'Trinnov', 'Sony', 'Custom'],
     tv: ['Samsung', 'LG', 'Sony', 'TCL', 'Custom'],
-    'audio-matrix': ['Sonance', 'Sonos', 'Control4', 'Russound', 'Custom'],
-    amplifier: ['Sonance', 'Origin Acoustics', 'Control4', 'Rotel', 'Custom'],
+    projector: ['Sony', 'JVC', 'Epson', 'BenQ', 'Optoma', 'Custom'],
+    'audio-matrix': ['Sonance', 'Sonos', 'Control4', 'Russound', 'Autonomic', 'Custom'],
+    'video-matrix': ['Crestron', 'Atlona', 'Just Add Power', 'Binary', 'AVPro Edge', 'Custom'],
+    amplifier: ['Sonance', 'Origin Acoustics', 'Control4', 'Rotel', 'Triad', 'Custom'],
+    soundbar: ['Sonos', 'Samsung', 'LG', 'Bose', 'Custom'],
+    'media-player': ['Apple TV', 'Nvidia Shield', 'Roku', 'Amazon Fire', 'Custom'],
   },
   other: {
     fan: ['Haiku', 'Hunter', 'Custom'],
@@ -330,7 +334,8 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
     { value: 'receiver', label: '🔊 AV Receiver' },
     { value: 'tv', label: '📺 TV/Display' },
     { value: 'projector', label: '🎬 Projector' },
-    { value: 'audio-matrix', label: '🎚️ Audio Matrix/Multi-Zone Amp' },
+    { value: 'audio-matrix', label: '🎵 Audio Matrix/Multiroom' },
+    { value: 'video-matrix', label: '🖥️ Video Matrix/Distribution' },
     { value: 'amplifier', label: '🔈 Amplifier' },
     { value: 'soundbar', label: '🔉 Soundbar' },
     { value: 'media-player', label: '▶️ Media Player' },

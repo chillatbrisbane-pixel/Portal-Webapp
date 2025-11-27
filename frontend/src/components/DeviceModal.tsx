@@ -17,6 +17,7 @@ interface SwitchInfo {
   name: string
   portCount: number
   managedPorts: { portNumber: number; assignedDevice?: string; description?: string }[]
+  deviceType?: string
 }
 
 const INITIAL_FORM_DATA: Partial<Device> = {
@@ -69,6 +70,7 @@ const getDefaultDeviceName = (deviceType: string, existingCount: number) => {
     'tv': 'TV',
     'projector': 'Projector',
     'audio-matrix': 'Audio Matrix',
+    'video-matrix': 'Video Matrix',
     'amplifier': 'Amplifier',
     'soundbar': 'Soundbar',
     'media-player': 'Media Player',
@@ -125,8 +127,10 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
       setSwitches(bindableDevices.map(s => ({
         _id: s._id,
         name: s.name,
-        portCount: s.portCount || (s.deviceType === 'router' ? 8 : 24),
-        managedPorts: s.managedPorts || []
+        // Routers typically have 4-8 LAN ports, switches have more
+        portCount: s.portCount || (s.deviceType === 'router' ? 4 : 24),
+        managedPorts: s.managedPorts || [],
+        deviceType: s.deviceType
       })))
     }
     loadSwitches()
@@ -634,7 +638,9 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 >
                   <option value="">-- Not bound --</option>
                   {switches.map(sw => (
-                    <option key={sw._id} value={sw._id}>{sw.name} ({sw.portCount} ports)</option>
+                    <option key={sw._id} value={sw._id}>
+                      {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
+                    </option>
                   ))}
                 </select>
               </div>
