@@ -56,15 +56,25 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
     }
   }
 
-  const handleDeviceCreated = (newDevice: Device) => {
-    const existingIndex = devices.findIndex(d => d._id === newDevice._id)
-    if (existingIndex >= 0) {
-      setDevices(prev => prev.map(d => d._id === newDevice._id ? newDevice : d))
-    } else {
-      setDevices([newDevice, ...devices])
-    }
+  const handleDeviceCreated = (newDevice: Device | Device[]) => {
+    // Handle both single device and array of devices (from bulk add)
+    const devicesToAdd = Array.isArray(newDevice) ? newDevice : [newDevice]
+    
+    setDevices(prev => {
+      const updated = [...prev]
+      for (const dev of devicesToAdd) {
+        const existingIndex = updated.findIndex(d => d._id === dev._id)
+        if (existingIndex >= 0) {
+          updated[existingIndex] = dev
+        } else {
+          updated.unshift(dev)
+        }
+      }
+      return updated
+    })
     setShowModal(false)
     setSelectedDevice(null)
+    setViewOnlyMode(false)
   }
 
   const handleDeviceDeleted = (deviceId: string) => {
@@ -72,9 +82,30 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
     setSelectedDevice(null)
   }
 
-  const copyToClipboard = (text: string | undefined) => {
+  const copyToClipboard = async (text: string | undefined, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (text) {
-      navigator.clipboard.writeText(text)
+      try {
+        await navigator.clipboard.writeText(text)
+        // Visual feedback - briefly change button text
+        const btn = e?.currentTarget as HTMLButtonElement
+        if (btn) {
+          const original = btn.textContent
+          btn.textContent = '✓'
+          setTimeout(() => { btn.textContent = original }, 1000)
+        }
+      } catch (err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
     }
   }
 
@@ -264,7 +295,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                               {device.ipAddress}
                             </code>
                           </a>
-                          <button onClick={() => copyToClipboard(device.ipAddress)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}>📋</button>
+                          <button onClick={(e) => copyToClipboard(device.ipAddress, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}>📋</button>
                         </div>
                       ) : '-'}
                       {device.macAddress && (
@@ -279,13 +310,13 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                           {device.username && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                               <code style={{ background: '#fef3c7', padding: '0.1rem 0.3rem', borderRadius: '3px' }}>{device.username}</code>
-                              <button onClick={() => copyToClipboard(device.username)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>📋</button>
+                              <button onClick={(e) => copyToClipboard(device.username, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>📋</button>
                             </div>
                           )}
                           {device.password && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.125rem' }}>
                               <code style={{ background: '#fef3c7', padding: '0.1rem 0.3rem', borderRadius: '3px' }}>{device.password}</code>
-                              <button onClick={() => copyToClipboard(device.password)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>📋</button>
+                              <button onClick={(e) => copyToClipboard(device.password, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.7rem' }}>📋</button>
                             </div>
                           )}
                         </div>
@@ -409,7 +440,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                                     </code>
                                   </a>
                                   <button
-                                    onClick={() => copyToClipboard(device.ipAddress)}
+                                    onClick={(e) => copyToClipboard(device.ipAddress, e)}
                                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem' }}
                                     title="Copy IP"
                                   >
@@ -438,7 +469,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                                       {device.username}
                                     </code>
                                     <button
-                                      onClick={() => copyToClipboard(device.username)}
+                                      onClick={(e) => copyToClipboard(device.username, e)}
                                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', fontSize: '0.75rem' }}
                                       title="Copy Username"
                                     >
@@ -453,7 +484,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId }) => {
                                       {device.password}
                                     </code>
                                     <button
-                                      onClick={() => copyToClipboard(device.password)}
+                                      onClick={(e) => copyToClipboard(device.password, e)}
                                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem', fontSize: '0.75rem' }}
                                       title="Copy Password"
                                     >

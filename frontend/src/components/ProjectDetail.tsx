@@ -480,9 +480,28 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     )
   }
 
-  const copyToClipboard = (text: string | undefined) => {
+  const copyToClipboard = async (text: string | undefined, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (text) {
-      navigator.clipboard.writeText(text)
+      try {
+        await navigator.clipboard.writeText(text)
+        const btn = e?.currentTarget as HTMLButtonElement
+        if (btn) {
+          const original = btn.textContent
+          btn.textContent = '✓'
+          setTimeout(() => { btn.textContent = original }, 1000)
+        }
+      } catch (err) {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
     }
   }
 
@@ -690,7 +709,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       </code>
                       {wifi.password && (
                         <button
-                          onClick={() => copyToClipboard(wifi.password)}
+                          onClick={(e) => copyToClipboard(wifi.password, e)}
                           style={{ padding: '0.15rem 0.35rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
                           title="Copy password"
                         >
@@ -786,7 +805,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       🎲
                     </button>
                     {newWifi.password && (
-                      <button type="button" onClick={() => copyToClipboard(newWifi.password)}
+                      <button type="button" onClick={(e) => copyToClipboard(newWifi.password, e)}
                         style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
                         📋
                       </button>
@@ -866,7 +885,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                               🎲
                             </button>
                             {editingWifi.password && (
-                              <button type="button" onClick={() => copyToClipboard(editingWifi.password)}
+                              <button type="button" onClick={(e) => copyToClipboard(editingWifi.password, e)}
                                 style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}>
                                 📋
                               </button>
@@ -908,7 +927,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '0.25rem' }}>
                           Password: <code style={{ background: '#e5e7eb', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>{wifi.password || '(none)'}</code>
                           {wifi.password && (
-                            <button onClick={() => copyToClipboard(wifi.password)}
+                            <button onClick={(e) => copyToClipboard(wifi.password, e)}
                               style={{ marginLeft: '0.5rem', padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                               📋
                             </button>
@@ -936,7 +955,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '0.25rem' }}>
                         Password: <code style={{ background: '#dbeafe', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>{wifi.password || '(none)'}</code>
                         {wifi.password && (
-                          <button onClick={() => copyToClipboard(wifi.password)}
+                          <button onClick={(e) => copyToClipboard(wifi.password, e)}
                             style={{ marginLeft: '0.5rem', padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                             📋
                           </button>

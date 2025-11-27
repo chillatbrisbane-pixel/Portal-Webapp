@@ -6,7 +6,7 @@ interface DeviceModalProps {
   projectId: string
   device: Device | null
   onClose: () => void
-  onDeviceCreated: (device: Device) => void
+  onDeviceCreated: (device: Device | Device[]) => void
   onDeviceDeleted: (deviceId: string) => void
   existingDevices?: Device[]
   viewOnly?: boolean
@@ -268,23 +268,24 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
         onDeviceCreated(savedDevice)
       } else if (bulkMode && quantity > 1) {
         // Bulk create - don't include IP so backend auto-assigns unique IPs
-        const devices: Partial<Device>[] = []
+        const devicesToCreate: Partial<Device>[] = []
         for (let i = 0; i < quantity; i++) {
           const existingCount = existingDevices.filter(d => d.deviceType === formData.deviceType).length + i
           // Exclude ipAddress so each device gets unique auto-assigned IP
           const { ipAddress, ...formDataWithoutIP } = formData
-          devices.push({
+          devicesToCreate.push({
             ...formDataWithoutIP,
             name: getDefaultDeviceName(formData.deviceType as string, existingCount),
             autoAssignIP: true,
           } as any)
         }
-        const result = await devicesAPI.bulkCreate(projectId, devices)
+        const result = await devicesAPI.bulkCreate(projectId, devicesToCreate)
         if (result.created && result.created.length > 0) {
-          result.created.forEach((d: Device) => onDeviceCreated(d))
+          // Pass all created devices at once
+          onDeviceCreated(result.created)
         }
         if (result.errors && result.errors.length > 0) {
-          setError(`Created ${result.created.length} devices. ${result.errors.length} failed.`)
+          setError(`Created ${result.created?.length || 0} devices. ${result.errors.length} failed.`)
           setLoading(false)
           return
         }
@@ -316,9 +317,28 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     }
   }
 
-  const copyToClipboard = (text: string | undefined) => {
+  const copyToClipboard = async (text: string | undefined, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     if (text) {
-      navigator.clipboard.writeText(text)
+      try {
+        await navigator.clipboard.writeText(text)
+        const btn = e?.currentTarget as HTMLButtonElement
+        if (btn) {
+          const original = btn.textContent
+          btn.textContent = '✓'
+          setTimeout(() => { btn.textContent = original }, 1000)
+        }
+      } catch (err) {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
     }
   }
 
@@ -569,7 +589,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   {formData.password && (
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(formData.password || '')}
+                      onClick={(e) => copyToClipboard(formData.password || '', e)}
                       style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
                       title="Copy"
                     >
@@ -747,7 +767,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => copyToClipboard(`https://skytunnel.com.au/inception/${formData.serialNumber}`)}
+                        onClick={(e) => copyToClipboard(`https://skytunnel.com.au/inception/${formData.serialNumber}`, e)}
                         style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
                       >
                         📋
