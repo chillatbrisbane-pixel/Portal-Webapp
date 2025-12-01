@@ -241,6 +241,26 @@ export const projectsAPI = {
     }
     return response.json();
   },
+
+  getVersions: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/versions`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch versions');
+    return response.json();
+  },
+
+  rollback: async (projectId: string, versionId: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/rollback/${versionId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to rollback');
+    }
+    return response.json();
+  },
 };
 
 // ============ DEVICES ============

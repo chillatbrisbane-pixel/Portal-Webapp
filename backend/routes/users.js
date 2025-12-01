@@ -127,13 +127,32 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const oldRole = user.role;
 
-    // Users can only update own name
+    // Users can update own name and email
     // Admins can update anything except password
-    const allowedFields = isAdmin ? ['name', 'role', 'isActive'] : ['name'];
+    const allowedFields = isAdmin 
+      ? ['name', 'role', 'isActive'] 
+      : isOwnProfile 
+        ? ['name', 'email'] 
+        : ['name'];
+
+    // Check if email is being changed and validate uniqueness
+    if (req.body.email && req.body.email.toLowerCase() !== user.email) {
+      const existingUser = await User.findOne({ 
+        email: req.body.email.toLowerCase(),
+        _id: { $ne: user._id }
+      });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+    }
 
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        user[field] = req.body[field];
+        if (field === 'email') {
+          user[field] = req.body[field].toLowerCase();
+        } else {
+          user[field] = req.body[field];
+        }
       }
     });
 

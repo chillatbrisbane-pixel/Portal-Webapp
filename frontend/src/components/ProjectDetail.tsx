@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Project, Device } from '../types'
+import { Project, Device, ProjectVersion } from '../types'
 import { projectsAPI, reportsAPI, devicesAPI } from '../services/apiService'
 import { DeviceList } from './DeviceList'
 
@@ -38,7 +38,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState(project)
-  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes'>('devices')
+  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes' | 'history'>('devices')
+  
+  // Version history
+  const [versions, setVersions] = useState<ProjectVersion[]>([])
+  const [loadingVersions, setLoadingVersions] = useState(false)
+  const [rollingBack, setRollingBack] = useState(false)
   
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -88,6 +93,44 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       console.error('Failed to load devices:', err)
     }
   }
+
+  const loadVersions = async () => {
+    setLoadingVersions(true)
+    try {
+      const data = await projectsAPI.getVersions(project._id)
+      setVersions(data)
+    } catch (err) {
+      console.error('Failed to load versions:', err)
+    } finally {
+      setLoadingVersions(false)
+    }
+  }
+
+  const handleRollback = async (versionId: string, versionNumber: number) => {
+    if (!window.confirm(`Are you sure you want to rollback to version ${versionNumber}? This will restore the project and all devices to that point in time.`)) {
+      return
+    }
+
+    setRollingBack(true)
+    try {
+      const result = await projectsAPI.rollback(project._id, versionId)
+      onProjectUpdated(result.project)
+      alert(`Successfully rolled back to version ${versionNumber}`)
+      loadVersions()
+      loadDevices()
+    } catch (err: any) {
+      alert(`Rollback failed: ${err.message}`)
+    } finally {
+      setRollingBack(false)
+    }
+  }
+
+  // Load versions when history tab is selected
+  useEffect(() => {
+    if (activeTab === 'history') {
+      loadVersions()
+    }
+  }, [activeTab, project._id])
 
   // Get switches for port management
   const switches = devices.filter(d => d.deviceType === 'switch')
@@ -729,6 +772,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             { id: 'wifi', label: '📶 WiFi' },
             { id: 'ports', label: '🔌 Ports' },
             { id: 'notes', label: '📝 Notes' },
+            { id: 'history', label: '📜 History' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -1192,6 +1236,82 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           >
             💾 Save Notes
           </button>
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>📜 Version History</h3>
+            <button className="btn btn-secondary btn-sm" onClick={loadVersions} disabled={loadingVersions}>
+              {loadingVersions ? '🔄 Loading...' : '🔄 Refresh'}
+            </button>
+          </div>
+
+          <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+            Showing the last 5 versions. Each project save creates a new version that can be restored.
+          </p>
+
+          {loadingVersions ? (
+            <p>Loading version history...</p>
+          ) : versions.length === 0 ? (
+            <p style={{ color: '#666' }}>No version history yet. Versions are created when the project is updated.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {versions.map((version, index) => (
+                <div
+                  key={version._id}
+                  style={{
+                    padding: '1rem',
+                    background: index === 0 ? '#f0fdf4' : '#f9fafb',
+                    border: `1px solid ${index === 0 ? '#bbf7d0' : '#e5e7eb'}`,
+                    borderRadius: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{
+                          padding: '0.25rem 0.5rem',
+                          background: index === 0 ? '#10b981' : '#6b7280',
+                          color: 'white',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}>
+                          v{version.versionNumber}
+                        </span>
+                        {index === 0 && (
+                          <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 500 }}>
+                            Most Recent
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: '0 0 0.25rem', fontWeight: 500 }}>
+                        {version.changeDescription}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#666' }}>
+                        {new Date(version.createdAt).toLocaleString()} by {version.createdBy?.name || 'Unknown'}
+                      </p>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                        <span>📋 {version.snapshot.devices?.length || 0} devices</span>
+                        <span style={{ marginLeft: '1rem' }}>📶 {version.snapshot.wifiNetworks?.length || 0} WiFi networks</span>
+                        <span style={{ marginLeft: '1rem' }}>Status: {version.snapshot.status}</span>
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleRollback(version._id, version.versionNumber)}
+                      disabled={rollingBack}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {rollingBack ? '⏳ Restoring...' : '⏪ Restore'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

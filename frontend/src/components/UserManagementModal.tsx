@@ -39,10 +39,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [viewingUserHistory, setViewingUserHistory] = useState<User | null>(null)
 
   useEffect(() => {
-    loadUsers()
-  }, [])
+    // Only admins can load all users
+    if (currentUser.role === 'admin') {
+      loadUsers()
+    } else {
+      setLoading(false)
+    }
+  }, [currentUser.role])
 
   const loadUsers = async () => {
+    if (currentUser.role !== 'admin') return
     try {
       setLoading(true)
       const data = await usersAPI.getAll()
@@ -214,10 +220,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         setPasswordMode(false)
         setSelfPasswordMode(false)
       } else if (editingUser) {
-        await usersAPI.update(editingUser._id, {
-          name: formData.name,
-          role: formData.role as any,
-        })
+        // If editing own profile, include email
+        const updateData: any = { name: formData.name }
+        if (editingUser._id === currentUser._id) {
+          updateData.email = formData.email
+        } else if (currentUser.role === 'admin') {
+          updateData.role = formData.role
+        }
+        await usersAPI.update(editingUser._id, updateData)
         setShowForm(false)
         setPasswordMode(false)
         setSelfPasswordMode(false)
@@ -400,19 +410,53 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
             <>
               {currentUser.role === 'admin' && activeTab === 'users' ? (
                 <>
+                  {/* My Profile Quick Section for Admins */}
+                  <div style={{ 
+                    padding: '1rem', 
+                    background: '#eff6ff', 
+                    borderRadius: '8px', 
+                    marginBottom: '1.5rem',
+                    border: '1px solid #bfdbfe',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e40af' }}>👤 My Profile</h4>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#6b7280' }}>
+                          {currentUser.name} • {currentUser.email}
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => handleEditUser(currentUser)}
+                          className="btn btn-sm"
+                          style={{ background: '#3b82f6', color: 'white' }}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={handleChangeOwnPassword}
+                          className="btn btn-sm"
+                          style={{ background: '#6b7280', color: 'white' }}
+                        >
+                          🔐 Password
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     onClick={handleAddUser}
                     className="btn btn-primary"
                     style={{ marginBottom: '1.5rem' }}
                   >
-                    ➕ Add New User
+                    ➕ Invite New User
                   </button>
 
                   {loading ? (
                     <p>Loading users...</p>
                   ) : (
                     <div style={{ display: 'grid', gap: '1rem' }}>
-                      {users.map(user => (
+                      {users.filter(u => u._id !== currentUser._id).map(user => (
                         <div
                           key={user._id}
                           style={{
@@ -726,7 +770,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                       />
                     </div>
 
-                    {!editingUser && (
+                    {(!editingUser || editingUser._id === currentUser._id) && (
                       <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input
@@ -741,7 +785,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                       </div>
                     )}
 
-                    {currentUser.role === 'admin' && (
+                    {currentUser.role === 'admin' && editingUser && editingUser._id !== currentUser._id && (
                       <div className="form-group">
                         <label htmlFor="role">Role</label>
                         <select

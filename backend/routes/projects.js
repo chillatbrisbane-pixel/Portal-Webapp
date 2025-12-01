@@ -1,7 +1,52 @@
 const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
+const ProjectVersion = require('../models/ProjectVersion');
+const Device = require('../models/Device');
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
+
+// Helper to create a version snapshot
+const createVersionSnapshot = async (project, userId, changeDescription = 'Project updated') => {
+  try {
+    // Get all devices for this project
+    const devices = await Device.find({ project: project._id });
+    
+    // Get next version number
+    const lastVersion = await ProjectVersion.findOne({ project: project._id })
+      .sort({ versionNumber: -1 });
+    const versionNumber = lastVersion ? lastVersion.versionNumber + 1 : 1;
+
+    // Create snapshot
+    const snapshot = {
+      name: project.name,
+      status: project.status,
+      notes: project.notes,
+      clientName: project.clientName,
+      clientAddress: project.address,
+      clientPhone: project.clientPhone,
+      clientEmail: project.clientEmail,
+      technology: project.technologies,
+      devices: devices.map(d => ({
+        deviceId: d._id,
+        data: d.toObject(),
+      })),
+      wifiNetworks: project.wifiNetworks || [],
+    };
+
+    await ProjectVersion.create({
+      project: project._id,
+      versionNumber,
+      snapshot,
+      createdBy: userId,
+      changeDescription,
+    });
+
+    // Cleanup old versions (keep last 5)
+    await ProjectVersion.cleanupOldVersions(project._id, 5);
+  } catch (err) {
+    console.error('Failed to create version snapshot:', err);
+  }
+};
 
 // Get all projects (all users see all projects)
 router.get('/', authenticateToken, async (req, res) => {
@@ -84,6 +129,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
     }
+
+    // Create version snapshot BEFORE updating
+    await createVersionSnapshot(project, req.userId, req.body.changeDescription || 'Project updated');
 
     // Update only allowed fields
     const allowedFields = [
@@ -309,6 +357,86 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
     res.status(201).json(newProject);
   } catch (error) {
     console.error('Clone project error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get version history for a project
+router.get('/:id/versions', authenticateToken, async (req, res) => {
+  try {
+    const versions = await ProjectVersion.find({ project: req.params.id })
+      .populate('createdBy', 'name email')
+      .sort({ versionNumber: -1 })
+      .limit(5);
+
+    res.json(versions);
+  } catch (error) {
+    console.error('Get versions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Rollback to a specific version
+router.post('/:id/rollback/:versionId', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const version = await ProjectVersion.findOne({
+      _id: req.params.versionId,
+      project: req.params.id,
+    });
+
+    if (!version) {
+      return res.status(404).json({ error: 'Version not found' });
+    }
+
+    // Create a snapshot of current state before rollback
+    await createVersionSnapshot(project, req.userId, `Rollback from version ${version.versionNumber}`);
+
+    // Restore project data from snapshot
+    const snapshot = version.snapshot;
+    project.name = snapshot.name || project.name;
+    project.status = snapshot.status || project.status;
+    project.notes = snapshot.notes || project.notes;
+    project.clientName = snapshot.clientName;
+    project.address = snapshot.clientAddress;
+    project.clientPhone = snapshot.clientPhone;
+    project.clientEmail = snapshot.clientEmail;
+    project.technologies = snapshot.technology;
+    project.wifiNetworks = snapshot.wifiNetworks || [];
+
+    await project.save();
+
+    // Restore devices
+    if (snapshot.devices && snapshot.devices.length > 0) {
+      // Delete current devices
+      await Device.deleteMany({ project: project._id });
+
+      // Recreate devices from snapshot
+      for (const deviceSnapshot of snapshot.devices) {
+        const deviceData = { ...deviceSnapshot.data };
+        delete deviceData._id;
+        delete deviceData.__v;
+        deviceData.project = project._id;
+        
+        await Device.create(deviceData);
+      }
+    }
+
+    // Fetch updated project with devices
+    const updatedProject = await Project.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('teamMembers.userId', 'name email');
+
+    res.json({
+      message: `Rolled back to version ${version.versionNumber}`,
+      project: updatedProject,
+    });
+  } catch (error) {
+    console.error('Rollback error:', error);
     res.status(500).json({ error: error.message });
   }
 });

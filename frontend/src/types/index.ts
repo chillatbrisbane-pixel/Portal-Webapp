@@ -33,6 +33,27 @@ export interface ActivityLog {
   createdAt: string;
 }
 
+export interface ProjectVersion {
+  _id: string;
+  project: string;
+  versionNumber: number;
+  snapshot: {
+    name: string;
+    status: string;
+    notes?: string;
+    clientName?: string;
+    clientAddress?: string;
+    clientPhone?: string;
+    clientEmail?: string;
+    technology?: Record<string, boolean>;
+    devices?: Array<{ deviceId: string; data: any }>;
+    wifiNetworks?: Array<any>;
+  };
+  createdBy: { _id: string; name: string; email: string };
+  changeDescription: string;
+  createdAt: string;
+}
+
 export interface Technology {
   network: boolean;
   security: boolean;

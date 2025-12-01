@@ -129,7 +129,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
       {/* Page Header with View Toggle */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h2 style={{ fontSize: '2rem', color: '#333333', margin: 0 }}>My Projects</h2>
+        <h2 style={{ fontSize: '2rem', color: '#333333', margin: 0 }}>EL Projects</h2>
         
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {/* View Toggle Buttons */}
