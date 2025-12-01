@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Device, DeviceCategory, DeviceType, DEVICE_TYPE_OPTIONS, BRAND_OPTIONS } from '../types'
+import { Device, DeviceCategory, DeviceType, DEVICE_TYPE_OPTIONS, BRAND_OPTIONS, getDeviceConnectionConfig } from '../types'
 import { devicesAPI } from '../services/apiService'
 
 interface DeviceModalProps {
@@ -45,6 +45,7 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   controlBrand: '',
   lightingBrand: '',
   controlMethod: 'ip',
+  connectionType: 'wired',
 }
 
 // Default device names by type
@@ -143,23 +144,37 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
       if (types && types.length > 0) {
         const newType = types[0].value
         const existingCount = existingDevices.filter(d => d.deviceType === newType).length
+        const connectionConfig = getDeviceConnectionConfig(newType)
         setFormData(prev => ({ 
           ...prev, 
           deviceType: newType,
-          name: getDefaultDeviceName(newType, existingCount)
+          name: getDefaultDeviceName(newType, existingCount),
+          connectionType: connectionConfig.default,
         }))
+        // Clear switch binding if connection type doesn't require it
+        if (!connectionConfig.requiresSwitch || connectionConfig.default === 'wifi' || connectionConfig.default === 'none') {
+          setSelectedSwitch('')
+          setSelectedPort('')
+        }
       }
     }
   }, [formData.category, device, existingDevices])
 
-  // Update name when device type changes
+  // Update name and connection type when device type changes
   useEffect(() => {
     if (!device && formData.deviceType) {
       const existingCount = existingDevices.filter(d => d.deviceType === formData.deviceType).length
+      const connectionConfig = getDeviceConnectionConfig(formData.deviceType as string)
       setFormData(prev => ({ 
         ...prev, 
-        name: getDefaultDeviceName(formData.deviceType as string, existingCount)
+        name: getDefaultDeviceName(formData.deviceType as string, existingCount),
+        connectionType: connectionConfig.default,
       }))
+      // Clear switch binding if connection type doesn't require it
+      if (!connectionConfig.requiresSwitch || connectionConfig.default === 'wifi' || connectionConfig.default === 'none') {
+        setSelectedSwitch('')
+        setSelectedPort('')
+      }
     }
   }, [formData.deviceType, device, existingDevices])
 
@@ -621,53 +636,114 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </div>
             )}
 
+            {/* ============ CONNECTION TYPE ============ */}
+            {(() => {
+              const connectionConfig = getDeviceConnectionConfig(formData.deviceType as string)
+              // Only show if there's more than one option
+              if (connectionConfig.options.length > 1) {
+                return (
+                  <>
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      📡 Connection Type
+                    </h4>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>How does this device connect to the network?</label>
+                      <select 
+                        name="connectionType" 
+                        value={formData.connectionType || connectionConfig.default} 
+                        onChange={(e) => {
+                          const newConnectionType = e.target.value as 'wired' | 'wifi' | 'both' | 'none'
+                          setFormData(prev => ({ ...prev, connectionType: newConnectionType }))
+                          // Clear switch binding if WiFi or none selected
+                          if (newConnectionType === 'wifi' || newConnectionType === 'none') {
+                            setSelectedSwitch('')
+                            setSelectedPort('')
+                          }
+                        }}
+                      >
+                        {connectionConfig.options.map(opt => (
+                          <option key={opt} value={opt}>
+                            {opt === 'wired' ? '🔌 Wired (Ethernet)' : 
+                             opt === 'wifi' ? '📶 WiFi' : 
+                             opt === 'both' ? '🔌📶 Both (Wired + WiFi)' : 
+                             '⚡ No Network (Power only)'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )
+              }
+              return null
+            })()}
+
             {/* ============ SWITCH PORT BINDING ============ */}
-            <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-              🔌 Switch Port Binding
-            </h4>
+            {/* Only show if device has wired or both connection type */}
+            {(() => {
+              const connectionConfig = getDeviceConnectionConfig(formData.deviceType as string)
+              const currentConnectionType = formData.connectionType || connectionConfig.default
+              const showSwitchBinding = currentConnectionType === 'wired' || currentConnectionType === 'both'
+              
+              // Don't show for routers and switches (they ARE the switch)
+              if (formData.deviceType === 'router' || formData.deviceType === 'switch') {
+                return null
+              }
+              
+              if (!showSwitchBinding) {
+                return null
+              }
+              
+              return (
+                <>
+                  <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                    🔌 Switch Port Binding
+                  </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Connected to Switch/Router</label>
-                <select 
-                  value={selectedSwitch} 
-                  onChange={(e) => {
-                    setSelectedSwitch(e.target.value)
-                    setSelectedPort('')
-                  }}
-                >
-                  <option value="">-- Not bound --</option>
-                  {switches.map(sw => (
-                    <option key={sw._id} value={sw._id}>
-                      {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Connected to Switch/Router</label>
+                      <select 
+                        value={selectedSwitch} 
+                        onChange={(e) => {
+                          setSelectedSwitch(e.target.value)
+                          setSelectedPort('')
+                        }}
+                      >
+                        <option value="">-- Not bound --</option>
+                        {switches.map(sw => (
+                          <option key={sw._id} value={sw._id}>
+                            {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Switch Port</label>
-                <select 
-                  value={selectedPort} 
-                  onChange={(e) => setSelectedPort(e.target.value ? parseInt(e.target.value) : '')}
-                  disabled={!selectedSwitch}
-                >
-                  <option value="">-- Select port --</option>
-                  {getAvailablePorts().map(port => (
-                    <option 
-                      key={port.number} 
-                      value={port.number}
-                      style={port.isBound ? { color: '#ef4444' } : {}}
-                    >
-                      Port {port.number} {port.isBound ? '(in use)' : ''}
-                    </option>
-                  ))}
-                </select>
-                {portWarning && (
-                  <small style={{ color: '#f59e0b', display: 'block', marginTop: '0.25rem' }}>{portWarning}</small>
-                )}
-              </div>
-            </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Switch Port</label>
+                      <select 
+                        value={selectedPort} 
+                        onChange={(e) => setSelectedPort(e.target.value ? parseInt(e.target.value) : '')}
+                        disabled={!selectedSwitch}
+                      >
+                        <option value="">-- Select port --</option>
+                        {getAvailablePorts().map(port => (
+                          <option 
+                            key={port.number} 
+                            value={port.number}
+                            style={port.isBound ? { color: '#ef4444' } : {}}
+                          >
+                            Port {port.number} {port.isBound ? '(in use)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {portWarning && (
+                        <small style={{ color: '#f59e0b', display: 'block', marginTop: '0.25rem' }}>{portWarning}</small>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
 
             {/* ============ CATEGORY-SPECIFIC FIELDS ============ */}
             

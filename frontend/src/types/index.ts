@@ -226,6 +226,9 @@ export interface Device {
   boundToProcessor?: string | { _id: string; name: string };
   irPort: number;
   
+  // Connection Type
+  connectionType: 'wired' | 'wifi' | 'both' | 'none' | '';
+  
   // Network - Router
   lanPorts: number;
   wanPorts: number;
@@ -397,6 +400,68 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
     { value: 'pool', label: '🏊 Pool Controller' },
     { value: 'generic', label: '📦 Other Device' },
   ],
+};
+
+// Device connection type configuration
+// Defines available connection options and defaults for each device type
+export const DEVICE_CONNECTION_CONFIG: Record<string, {
+  options: ('wired' | 'wifi' | 'both' | 'none')[];
+  default: 'wired' | 'wifi' | 'both' | 'none';
+  requiresSwitch: boolean; // Whether this device type typically needs switch binding
+}> = {
+  // Network devices - always wired
+  'router': { options: ['wired'], default: 'wired', requiresSwitch: false },
+  'switch': { options: ['wired'], default: 'wired', requiresSwitch: false },
+  'access-point': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  
+  // Cameras - mostly wired (PoE) but some WiFi
+  'camera': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'nvr': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'dvr': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  
+  // Security - mostly wired
+  'alarm-panel': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'keypad': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: false },
+  'door-controller': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  
+  // Control - wired
+  'control-processor': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'touch-panel': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'secondary-processor': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'door-station': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'remote': { options: ['wifi', 'none'], default: 'wifi', requiresSwitch: false },
+  
+  // Lighting - wired
+  'lighting-processor': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'dimmer': { options: ['wired', 'none'], default: 'none', requiresSwitch: false },
+  'relay-pack': { options: ['wired', 'none'], default: 'none', requiresSwitch: false },
+  'lighting-gateway': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'dali-gateway': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  
+  // AV - mostly wired
+  'receiver': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'tv': { options: ['wired', 'wifi', 'both'], default: 'wired', requiresSwitch: true },
+  'projector': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'audio-matrix': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'video-matrix': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'amplifier': { options: ['wired', 'none'], default: 'wired', requiresSwitch: true },
+  'soundbar': { options: ['wired', 'wifi', 'both'], default: 'wifi', requiresSwitch: false },
+  'media-player': { options: ['wired', 'wifi', 'both'], default: 'wired', requiresSwitch: true },
+  
+  // Other - varies
+  'fan': { options: ['wifi'], default: 'wifi', requiresSwitch: false },
+  'irrigation': { options: ['wired', 'wifi'], default: 'wifi', requiresSwitch: false },
+  'hvac': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'relay': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'fireplace': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: false },
+  'shade': { options: ['wired', 'wifi', 'none'], default: 'wired', requiresSwitch: false },
+  'pool': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'generic': { options: ['wired', 'wifi', 'both', 'none'], default: 'wired', requiresSwitch: true },
+};
+
+// Helper to get connection config for a device type
+export const getDeviceConnectionConfig = (deviceType: string) => {
+  return DEVICE_CONNECTION_CONFIG[deviceType] || DEVICE_CONNECTION_CONFIG['generic'];
 };
 
 export interface Manufacturer {

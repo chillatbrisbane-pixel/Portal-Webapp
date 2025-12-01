@@ -88,6 +88,13 @@ const deviceSchema = new mongoose.Schema(
     },
     irPort: Number,
     
+    // Connection Type
+    connectionType: {
+      type: String,
+      enum: ['wired', 'wifi', 'both', 'none', ''],
+      default: 'wired'
+    },
+    
     // ============ NETWORK-SPECIFIC FIELDS ============
     
     // Router specific
