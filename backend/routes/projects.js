@@ -75,15 +75,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Check access permission
-    const hasAccess =
-      project.createdBy._id.toString() === req.userId.toString() ||
-      project.teamMembers.some((m) => m.userId._id.toString() === req.userId.toString());
-
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
+    // All authenticated users can view all projects
     res.json(project);
   } catch (error) {
     console.error('Get project error:', error);

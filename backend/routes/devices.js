@@ -87,14 +87,7 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const hasAccess =
-      project.createdBy.toString() === req.userId.toString() ||
-      project.teamMembers.some((m) => m.userId.toString() === req.userId.toString());
-
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
+    // All authenticated users can view all project devices
     const devices = await Device.find({ projectId: req.params.projectId })
       .populate('boundToSwitch', 'name')
       .populate('boundToNVR', 'name')
@@ -137,15 +130,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    const project = await Project.findById(device.projectId);
-    const hasAccess =
-      project.createdBy.toString() === req.userId.toString() ||
-      project.teamMembers.some((m) => m.userId.toString() === req.userId.toString());
-
-    if (!hasAccess) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
+    // All authenticated users can view device details
     res.json(device);
   } catch (error) {
     console.error('Get device error:', error);
@@ -163,17 +148,7 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const userTeamMember = project.teamMembers.find(
-      (m) => m.userId.toString() === req.userId.toString()
-    );
-    const canEdit =
-      project.createdBy.toString() === req.userId.toString() ||
-      userTeamMember?.role === 'editor';
-
-    if (!canEdit) {
-      return res.status(403).json({ error: 'You do not have permission to edit this project' });
-    }
-
+    // All authenticated users can create devices
     let deviceData = { ...req.body };
     
     // Auto-assign IP if requested and no IP provided
@@ -226,18 +201,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    const project = await Project.findById(device.projectId);
-    const userTeamMember = project.teamMembers.find(
-      (m) => m.userId.toString() === req.userId.toString()
-    );
-    const canEdit =
-      project.createdBy.toString() === req.userId.toString() ||
-      userTeamMember?.role === 'editor';
-
-    if (!canEdit) {
-      return res.status(403).json({ error: 'You do not have permission to edit this project' });
-    }
-
+    // All authenticated users can update devices
     // Check for IP conflict if IP is being changed
     if (req.body.ipAddress && req.body.ipAddress !== device.ipAddress) {
       const conflict = await checkIPConflict(device.projectId, req.body.ipAddress, device._id, Device);
@@ -271,18 +235,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    const project = await Project.findById(device.projectId);
-    const userTeamMember = project.teamMembers.find(
-      (m) => m.userId.toString() === req.userId.toString()
-    );
-    const canEdit =
-      project.createdBy.toString() === req.userId.toString() ||
-      userTeamMember?.role === 'editor';
-
-    if (!canEdit) {
-      return res.status(403).json({ error: 'You do not have permission to edit this project' });
-    }
-
+    // All authenticated users can delete devices
     await Device.findByIdAndDelete(req.params.id);
     res.json({ message: 'Device deleted successfully' });
   } catch (error) {
@@ -301,17 +254,7 @@ router.post('/bulk', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const userTeamMember = project.teamMembers.find(
-      (m) => m.userId.toString() === req.userId.toString()
-    );
-    const canEdit =
-      project.createdBy.toString() === req.userId.toString() ||
-      userTeamMember?.role === 'editor';
-
-    if (!canEdit) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
-
+    // All authenticated users can bulk create devices
     const createdDevices = [];
     const errors = [];
 
