@@ -206,6 +206,7 @@ export interface Device {
   macAddress: string;
   ipAddress: string;
   vlan: number;
+  firmwareVersion: string;
   
   // Credentials
   username: string;
@@ -218,6 +219,15 @@ export interface Device {
   room: string;
   rackPosition: string;
   installDate: string;
+  
+  // Alarm System Specific
+  slamCount: number;           // Inception SLAM modules
+  inputExpanderCount: number;  // Input expanders
+  outputExpanderCount: number; // Output expanders
+  readerCount: number;         // Card readers
+  partitionCount: number;      // Partitions/areas
+  userCodeCount: number;       // User codes
+  sirenCount: number;          // Sirens
   
   // Switch/Port Binding
   switchPort: number;

@@ -55,6 +55,7 @@ const deviceSchema = new mongoose.Schema(
     macAddress: String,
     ipAddress: String,
     vlan: { type: Number, default: 1 },
+    firmwareVersion: String,
     
     // Credentials
     username: String,
@@ -67,6 +68,17 @@ const deviceSchema = new mongoose.Schema(
     room: String,
     rackPosition: String,
     installDate: Date,
+    
+    // ============ ALARM SYSTEM SPECIFIC ============
+    // Inception specific
+    slamCount: { type: Number, default: 0 },        // Number of SLAM modules
+    inputExpanderCount: { type: Number, default: 0 }, // Input expanders
+    outputExpanderCount: { type: Number, default: 0 }, // Output expanders
+    readerCount: { type: Number, default: 0 },      // Card readers
+    // General alarm
+    partitionCount: { type: Number, default: 1 },   // Number of partitions/areas
+    userCodeCount: { type: Number, default: 0 },    // Number of user codes
+    sirenCount: { type: Number, default: 0 },       // Internal/external sirens
     
     // Switch/Port Binding
     switchPort: Number,

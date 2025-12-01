@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Device, DeviceCategory, DeviceType, DEVICE_TYPE_OPTIONS, BRAND_OPTIONS, getDeviceConnectionConfig } from '../types'
 import { devicesAPI } from '../services/apiService'
 
@@ -30,6 +30,7 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   macAddress: '',
   ipAddress: '',
   vlan: 1,
+  firmwareVersion: '',
   username: '',
   password: '',
   hideCredentials: false,
@@ -46,6 +47,14 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   lightingBrand: '',
   controlMethod: 'ip',
   connectionType: 'wired',
+  // Alarm system fields
+  slamCount: 0,
+  inputExpanderCount: 0,
+  outputExpanderCount: 0,
+  readerCount: 0,
+  partitionCount: 1,
+  userCodeCount: 0,
+  sirenCount: 0,
 }
 
 // Default device names by type
@@ -113,6 +122,12 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   const [selectedSwitch, setSelectedSwitch] = useState<string>('')
   const [selectedPort, setSelectedPort] = useState<number | ''>('')
   const [portWarning, setPortWarning] = useState<string | null>(null)
+  
+  // Barcode scanner
+  const [showScanner, setShowScanner] = useState(false)
+  const [scanTarget, setScanTarget] = useState<'serialNumber' | 'model'>('serialNumber')
+  const videoRef = React.useRef<HTMLVideoElement>(null)
+  const streamRef = React.useRef<MediaStream | null>(null)
 
   // Get device types for selected category
   const deviceTypes = DEVICE_TYPE_OPTIONS[formData.category as DeviceCategory] || []
@@ -237,6 +252,64 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
       console.error('Failed to generate password:', err)
     }
   }
+
+  // Barcode Scanner Functions
+  const startScanner = async (target: 'serialNumber' | 'model') => {
+    setScanTarget(target)
+    setShowScanner(true)
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' } // Use back camera on mobile
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+      }
+    } catch (err) {
+      console.error('Camera access error:', err)
+      alert('Unable to access camera. Please check permissions or enter the value manually.')
+      setShowScanner(false)
+    }
+  }
+
+  const stopScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    setShowScanner(false)
+  }
+
+  const captureAndProcess = async () => {
+    if (!videoRef.current) return
+    
+    // Create canvas to capture frame
+    const canvas = document.createElement('canvas')
+    canvas.width = videoRef.current.videoWidth
+    canvas.height = videoRef.current.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    
+    ctx.drawImage(videoRef.current, 0, 0)
+    
+    // For now, prompt user to enter the scanned value
+    // In a full implementation, we'd use a barcode library like @zxing/library
+    const scannedValue = prompt('Enter the scanned value (barcode/QR result):')
+    if (scannedValue) {
+      setFormData(prev => ({ ...prev, [scanTarget]: scannedValue }))
+    }
+    stopScanner()
+  }
+
+  // Cleanup scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
 
   const checkIPConflict = async (ip: string) => {
     if (!ip) {
@@ -459,22 +532,55 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
 
               <div className="form-group" style={{ margin: 0 }}>
                 <label>Model</label>
-                <input
-                  name="model"
-                  type="text"
-                  value={formData.model}
-                  onChange={handleInputChange}
-                  placeholder="e.g., USW-Pro-24-POE"
-                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    name="model"
+                    type="text"
+                    value={formData.model}
+                    onChange={handleInputChange}
+                    placeholder="e.g., USW-Pro-24-POE"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => startScanner('model')}
+                    style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                    title="Scan barcode"
+                  >
+                    📷
+                  </button>
+                </div>
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
                 <label>Serial Number</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    name="serialNumber"
+                    type="text"
+                    value={formData.serialNumber}
+                    onChange={handleInputChange}
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => startScanner('serialNumber')}
+                    style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                    title="Scan barcode"
+                  >
+                    📷
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Firmware Version</label>
                 <input
-                  name="serialNumber"
+                  name="firmwareVersion"
                   type="text"
-                  value={formData.serialNumber}
+                  value={formData.firmwareVersion || ''}
                   onChange={handleInputChange}
+                  placeholder="e.g., 1.12.3"
                 />
               </div>
             </div>
@@ -566,61 +672,95 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             </div>
 
             {/* ============ CREDENTIALS ============ */}
-            <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-              🔐 Credentials
-            </h4>
+            {(() => {
+              // Dynamic credential labels based on device type
+              const getCredentialLabels = () => {
+                const deviceType = formData.deviceType as string
+                const manufacturer = formData.manufacturer as string
+                
+                // App-based devices
+                if (deviceType === 'fan' && manufacturer?.toLowerCase().includes('haiku')) {
+                  return { title: '📱 Haiku App Login', username: 'Email', password: 'Password', placeholder: 'email@example.com' }
+                }
+                if (deviceType === 'fan') {
+                  return { title: '📱 App Login', username: 'Email/Username', password: 'Password', placeholder: 'email@example.com' }
+                }
+                if (deviceType === 'irrigation') {
+                  return { title: '📱 App Login', username: 'Email/Username', password: 'Password', placeholder: 'email@example.com' }
+                }
+                if (deviceType === 'hvac') {
+                  return { title: '🔐 Controller Login', username: 'Username', password: 'Password', placeholder: 'admin' }
+                }
+                if (deviceType === 'pool') {
+                  return { title: '📱 App Login', username: 'Email/Username', password: 'Password', placeholder: 'email@example.com' }
+                }
+                
+                // Standard device credentials
+                return { title: '🔐 Credentials', username: 'Username', password: 'Password', placeholder: 'admin' }
+              }
+              
+              const credLabels = getCredentialLabels()
+              
+              return (
+                <>
+                  <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                    {credLabels.title}
+                  </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Username</label>
-                <input
-                  name="username"
-                  type="text"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  placeholder="admin"
-                />
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>{credLabels.username}</label>
+                      <input
+                        name="username"
+                        type="text"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        placeholder={credLabels.placeholder}
+                      />
+                    </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Password</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                    title={showPassword ? 'Hide' : 'Show'}
-                  >
-                    {showPassword ? '🙈' : '👁️'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleGeneratePassword}
-                    style={{ padding: '0.5rem', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                    title="Generate Password"
-                  >
-                    🎲
-                  </button>
-                  {formData.password && (
-                    <button
-                      type="button"
-                      onClick={(e) => copyToClipboard(formData.password || '', e)}
-                      style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                      title="Copy"
-                    >
-                      📋
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>{credLabels.password}</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input
+                          name="password"
+                          type={showPassword ? 'text' : 'password'}
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                          title={showPassword ? 'Hide' : 'Show'}
+                        >
+                          {showPassword ? '🙈' : '👁️'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleGeneratePassword}
+                          style={{ padding: '0.5rem', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          title="Generate Password"
+                        >
+                          🎲
+                        </button>
+                        {formData.password && (
+                          <button
+                            type="button"
+                            onClick={(e) => copyToClipboard(formData.password || '', e)}
+                            style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                            title="Copy"
+                          >
+                            📋
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )
+            })()}
 
             {formData.manufacturer === 'Ubiquiti' && (
               <div className="form-group" style={{ margin: '0.5rem 0 0' }}>
@@ -633,6 +773,52 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   />
                   Hide credentials in reports (Unifi Cloud managed)
                 </label>
+              </div>
+            )}
+
+            {/* NVR: Copy credentials to all cameras */}
+            {formData.deviceType === 'nvr' && device && (formData.username || formData.password) && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#1e40af' }}>
+                    📹 Copy these credentials to all cameras in this project?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const cameras = existingDevices.filter(d => d.deviceType === 'camera')
+                      if (cameras.length === 0) {
+                        alert('No cameras found in this project')
+                        return
+                      }
+                      if (!window.confirm(`Update credentials for ${cameras.length} camera(s)?`)) {
+                        return
+                      }
+                      try {
+                        for (const cam of cameras) {
+                          await devicesAPI.update(cam._id, {
+                            username: formData.username,
+                            password: formData.password,
+                          })
+                        }
+                        alert(`✅ Credentials copied to ${cameras.length} camera(s)`)
+                      } catch (err) {
+                        alert('Failed to update some cameras')
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    📋 Copy to All Cameras
+                  </button>
+                </div>
               </div>
             )}
 
@@ -840,25 +1026,102 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     <input name="outputCount" type="number" value={formData.outputCount || 0} onChange={handleInputChange} min={0} />
                   </div>
                 </div>
-                {formData.panelType === 'inception' && formData.serialNumber && (
-                  <div className="form-group" style={{ marginTop: '1rem' }}>
-                    <label>SkyTunnel Link</label>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        value={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
-                        readOnly
-                        style={{ flex: 1, background: '#f3f4f6' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => copyToClipboard(`https://skytunnel.com.au/inception/${formData.serialNumber}`, e)}
-                        style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                      >
-                        📋
-                      </button>
-                    </div>
+
+                {/* Common alarm fields */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Areas/Partitions</label>
+                    <input name="partitionCount" type="number" value={formData.partitionCount || 1} onChange={handleInputChange} min={1} />
                   </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>User Codes</label>
+                    <input name="userCodeCount" type="number" value={formData.userCodeCount || 0} onChange={handleInputChange} min={0} />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Sirens</label>
+                    <input name="sirenCount" type="number" value={formData.sirenCount || 0} onChange={handleInputChange} min={0} />
+                  </div>
+                </div>
+
+                {/* Inception specific fields */}
+                {formData.panelType === 'inception' && (
+                  <>
+                    <h5 style={{ color: '#1e40af', margin: '1.5rem 0 0.75rem', fontSize: '0.95rem' }}>
+                      🔷 Inception Hardware
+                    </h5>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>SLAMs</label>
+                        <input 
+                          name="slamCount" 
+                          type="number" 
+                          value={formData.slamCount || 0} 
+                          onChange={handleInputChange} 
+                          min={0} 
+                          title="Siren, Lighting, Automation Modules"
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Input Expanders</label>
+                        <input 
+                          name="inputExpanderCount" 
+                          type="number" 
+                          value={formData.inputExpanderCount || 0} 
+                          onChange={handleInputChange} 
+                          min={0}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Output Expanders</label>
+                        <input 
+                          name="outputExpanderCount" 
+                          type="number" 
+                          value={formData.outputExpanderCount || 0} 
+                          onChange={handleInputChange} 
+                          min={0}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Card Readers</label>
+                        <input 
+                          name="readerCount" 
+                          type="number" 
+                          value={formData.readerCount || 0} 
+                          onChange={handleInputChange} 
+                          min={0}
+                        />
+                      </div>
+                    </div>
+
+                    {formData.serialNumber && (
+                      <div className="form-group" style={{ marginTop: '1rem' }}>
+                        <label>SkyTunnel Link</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            value={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
+                            readOnly
+                            style={{ flex: 1, background: '#f3f4f6' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => copyToClipboard(`https://skytunnel.com.au/inception/${formData.serialNumber}`, e)}
+                            style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                          >
+                            📋
+                          </button>
+                          <a
+                            href={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ padding: '0.5rem', background: '#3b82f6', color: 'white', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem' }}
+                          >
+                            🔗 Open
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -945,6 +1208,101 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.9)',
+            zIndex: 10000,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '12px', 
+            padding: '1.5rem', 
+            maxWidth: '500px', 
+            width: '100%',
+            textAlign: 'center',
+          }}>
+            <h3 style={{ margin: '0 0 1rem', color: '#333' }}>
+              📷 Scan {scanTarget === 'serialNumber' ? 'Serial Number' : 'Model'} Barcode
+            </h3>
+            
+            <div style={{ 
+              position: 'relative', 
+              width: '100%', 
+              background: '#000', 
+              borderRadius: '8px',
+              overflow: 'hidden',
+              marginBottom: '1rem',
+            }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                style={{ width: '100%', display: 'block' }}
+              />
+              {/* Scan overlay guide */}
+              <div style={{
+                position: 'absolute',
+                inset: '20%',
+                border: '2px dashed #00ff00',
+                borderRadius: '8px',
+                pointerEvents: 'none',
+              }} />
+            </div>
+
+            <p style={{ color: '#666', fontSize: '0.9rem', margin: '0 0 1rem' }}>
+              Position the barcode within the green guide, then tap capture.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+              <button
+                type="button"
+                onClick={stopScanner}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                }}
+              >
+                ✕ Cancel
+              </button>
+              <button
+                type="button"
+                onClick={captureAndProcess}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                }}
+              >
+                📸 Capture
+              </button>
+            </div>
+
+            <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '1rem' }}>
+              Tip: Ensure good lighting and hold steady
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

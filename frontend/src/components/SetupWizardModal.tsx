@@ -31,6 +31,22 @@ const TECH_CONFIGS: TechConfig[] = [
   { key: 'tvs', label: 'TVs/Displays', icon: '📺', deviceType: 'tv', defaultBrands: ['Samsung', 'LG', 'Sony'], defaultVlan: 1 },
 ]
 
+// Device name mappings for proper singular names
+const DEVICE_SINGULAR_NAMES: Record<string, string> = {
+  'switch': 'Switch',
+  'access-point': 'WAP',
+  'camera': 'Camera',
+  'nvr': 'NVR',
+  'alarm-panel': 'Alarm Panel',
+  'control-processor': 'Processor',
+  'touch-panel': 'Touch Panel',
+  'lighting-gateway': 'Lighting Gateway',
+  'receiver': 'Receiver',
+  'audio-matrix': 'Audio Matrix',
+  'video-matrix': 'Video Matrix',
+  'tv': 'TV',
+}
+
 interface DeviceSetup {
   techKey: string
   quantity: number
@@ -155,9 +171,10 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
         
         if (setup && techConfig && setup.quantity > 0) {
           const devices = []
+          const baseName = DEVICE_SINGULAR_NAMES[techConfig.deviceType] || techConfig.label
           for (let i = 0; i < setup.quantity; i++) {
             devices.push({
-              name: `${techConfig.label.replace(/s$/, '')}${setup.quantity > 1 ? i + 1 : ''}`,
+              name: `${baseName}${setup.quantity > 1 ? ` ${i + 1}` : ''}`,
               category: getCategoryFromDeviceType(techConfig.deviceType),
               deviceType: techConfig.deviceType,
               manufacturer: setup.brand,
