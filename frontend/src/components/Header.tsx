@@ -5,9 +5,10 @@ interface HeaderProps {
   user: User
   onLogout: () => void
   onShowUsers?: () => void
+  onShowSettings?: () => void
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) => {
+export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers, onShowSettings }) => {
   return (
     <header className="header">
       <div className="header-content">
@@ -32,7 +33,29 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers }) =
           <div className="user-info">
             <span>👤 {user.name}</span>
             <span className="user-role">{user.role}</span>
+            {user.twoFactorEnabled && <span title="2FA Enabled">🔐</span>}
           </div>
+
+          {onShowSettings && (
+            <button
+              onClick={onShowSettings}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                padding: '0.3rem 0.8rem',
+                borderRadius: '20px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                border: 'none',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+            >
+              ⚙️ Settings
+            </button>
+          )}
 
           {onShowUsers && (
             <button

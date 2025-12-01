@@ -1,5 +1,5 @@
 // API Service - Connects to backend
-import { Device, Project, User } from '../types';
+import { Device, Project, User, ActivityLog } from '../types';
 
 const API_BASE_URL = '/api';
 
@@ -17,18 +17,20 @@ const getHeaders = () => ({
 // ============ AUTHENTICATION ============
 
 export const authAPI = {
-  login: async (username: string, password: string) => {
+  login: async (email: string, password: string, twoFactorCode?: string) => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password, twoFactorCode }),
     });
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Login failed');
     }
     const data = await response.json();
-    setToken(data.token);
+    if (data.token) {
+      setToken(data.token);
+    }
     return data;
   },
 
@@ -43,6 +45,86 @@ export const authAPI = {
     if (!response.ok) {
       removeToken();
       throw new Error('Failed to get user');
+    }
+    return response.json();
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to change password');
+    }
+    return response.json();
+  },
+
+  forceChangePassword: async (newPassword: string, newEmail: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/force-change-password`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ newPassword, newEmail }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update account');
+    }
+    const data = await response.json();
+    if (data.token) {
+      setToken(data.token);
+    }
+    return data;
+  },
+
+  // 2FA methods
+  setup2FA: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/setup`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to setup 2FA');
+    }
+    return response.json();
+  },
+
+  verify2FA: async (code: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/verify`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to verify 2FA');
+    }
+    return response.json();
+  },
+
+  disable2FA: async (password: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/disable`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to disable 2FA');
+    }
+    return response.json();
+  },
+
+  get2FAStatus: async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/2fa/status`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get 2FA status');
     }
     return response.json();
   },
@@ -287,8 +369,8 @@ export const usersAPI = {
     return response.json();
   },
 
-  create: async (userData: Partial<User> & { password: string }): Promise<User> => {
-    const response = await fetch(`${API_BASE_URL}/users`, {
+  create: async (userData: { email: string; password: string; name: string; role?: string }): Promise<User> => {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(userData),
@@ -297,7 +379,8 @@ export const usersAPI = {
       const error = await response.json();
       throw new Error(error.error || 'Failed to create user');
     }
-    return response.json();
+    const data = await response.json();
+    return data.user;
   },
 
   update: async (userId: string, userData: Partial<User>): Promise<User> => {
@@ -319,13 +402,41 @@ export const usersAPI = {
     return response.json();
   },
 
+  suspend: async (userId: string, reason?: string) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/suspend`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to suspend user');
+    }
+    return response.json();
+  },
+
+  unsuspend: async (userId: string) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/unsuspend`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to unsuspend user');
+    }
+    return response.json();
+  },
+
   changePassword: async (userId: string, currentPassword: string, newPassword: string) => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/change-password`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ currentPassword, newPassword }),
     });
-    if (!response.ok) throw new Error('Failed to change password');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to change password');
+    }
     return response.json();
   },
 
@@ -335,7 +446,32 @@ export const usersAPI = {
       headers: getHeaders(),
       body: JSON.stringify({ newPassword }),
     });
-    if (!response.ok) throw new Error('Failed to reset password');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to reset password');
+    }
+    return response.json();
+  },
+
+  getLoginHistory: async (userId: string): Promise<ActivityLog[]> => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/login-history`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch login history');
+    return response.json();
+  },
+
+  getActivityLogs: async (params?: { userId?: string; action?: string; limit?: number; page?: number }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.userId) queryParams.append('userId', params.userId);
+    if (params?.action) queryParams.append('action', params.action);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.page) queryParams.append('page', params.page.toString());
+
+    const response = await fetch(`${API_BASE_URL}/users/activity-logs?${queryParams}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch activity logs');
     return response.json();
   },
 };

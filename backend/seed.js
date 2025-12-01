@@ -20,45 +20,28 @@ const seedData = async () => {
       process.exit(0);
     }
 
-    // Create default users
-    const defaultUsers = [
-      {
-        username: 'admin',
-        password: 'admin123',
-        name: 'Administrator',
-        email: 'admin@company.com',
-        role: 'admin',
-        isActive: true,
-      },
-      {
-        username: 'manager',
-        password: 'manager123',
-        name: 'Project Manager',
-        email: 'manager@company.com',
-        role: 'manager',
-        isActive: true,
-      },
-      {
-        username: 'tech',
-        password: 'tech123',
-        name: 'Field Technician',
-        email: 'tech@company.com',
-        role: 'technician',
-        isActive: true,
-      },
-    ];
+    // Create default admin user only
+    // This user MUST change their password and set email on first login
+    const defaultAdmin = {
+      username: 'admin', // Legacy username for initial login
+      email: 'admin@setup.local', // Temporary email - will be changed on first login
+      password: 'admin123',
+      name: 'Administrator',
+      role: 'admin',
+      isActive: true,
+      mustChangePassword: true, // Force password change on first login
+    };
 
-    for (const userData of defaultUsers) {
-  await User.create(userData);
-}
+    await User.create(defaultAdmin);
 
-    console.log('✅ Default users created successfully!');
-    console.log('\n📋 Default Credentials:');
+    console.log('✅ Default admin user created successfully!');
+    console.log('\n📋 Default Admin Credentials:');
     console.log('─────────────────────────────────────');
-    console.log('Admin:       admin / admin123');
-    console.log('Manager:     manager / manager123');
-    console.log('Technician:  tech / tech123');
-    console.log('─────────────────────────────────────\n');
+    console.log('Login:     admin');
+    console.log('Password:  admin123');
+    console.log('─────────────────────────────────────');
+    console.log('\n⚠️  You will be required to set your email and');
+    console.log('   change your password on first login.\n');
 
     process.exit(0);
   } catch (error) {

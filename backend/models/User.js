@@ -3,12 +3,13 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
-    username: {
+    email: {
       type: String,
-      required: [true, 'Username is required'],
+      required: [true, 'Email is required'],
       unique: true,
       trim: true,
-      minlength: 3,
+      lowercase: true,
+      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
     },
     password: {
       type: String,
@@ -19,14 +20,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Name is required'],
     },
-    email: {
-      type: String,
-      required: [true, 'Email is required'],
-      unique: true,
-      trim: true,
-      lowercase: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
-    },
     role: {
       type: String,
       enum: ['admin', 'manager', 'technician'],
@@ -35,6 +28,48 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    suspended: {
+      type: Boolean,
+      default: false,
+    },
+    suspendedAt: {
+      type: Date,
+    },
+    suspendedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+    lastLogin: {
+      type: Date,
+    },
+    lastLoginIP: {
+      type: String,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    // 2FA fields
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecret: {
+      type: String,
+    },
+    twoFactorBackupCodes: [{
+      code: String,
+      used: { type: Boolean, default: false },
+    }],
+    // For legacy migration - old username field
+    username: {
+      type: String,
+      sparse: true,
     },
   },
   { timestamps: true }
@@ -61,10 +96,12 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Remove password from JSON responses
+// Remove sensitive fields from JSON responses
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.password;
+  delete obj.twoFactorSecret;
+  delete obj.twoFactorBackupCodes;
   return obj;
 };
 

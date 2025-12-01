@@ -1,10 +1,33 @@
 export interface User {
   _id: string;
-  username: string;
-  name: string;
   email: string;
+  name: string;
   role: 'admin' | 'manager' | 'technician';
   isActive: boolean;
+  suspended?: boolean;
+  suspendedAt?: string;
+  suspendedBy?: { _id: string; name: string; email: string };
+  mustChangePassword?: boolean;
+  lastLogin?: string;
+  lastLoginIP?: string;
+  twoFactorEnabled?: boolean;
+  createdBy?: { _id: string; name: string; email: string };
+  createdAt?: string;
+  updatedAt?: string;
+  // Legacy field for migration
+  username?: string;
+}
+
+export interface ActivityLog {
+  _id: string;
+  user: { _id: string; name: string; email: string };
+  action: string;
+  targetUser?: { _id: string; name: string; email: string };
+  targetProject?: { _id: string; name: string };
+  details?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
 }
 
 export interface Technology {
