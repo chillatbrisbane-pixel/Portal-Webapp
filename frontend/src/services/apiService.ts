@@ -128,6 +128,35 @@ export const authAPI = {
     }
     return response.json();
   },
+
+  // Invite system
+  verifyInvite: async (token: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/invite/${token}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Invalid invite link');
+    }
+    return response.json();
+  },
+
+  acceptInvite: async (token: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/accept-invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to accept invite');
+    }
+    const data = await response.json();
+    if (data.token) {
+      setToken(data.token);
+    }
+    return data;
+  },
 };
 
 // ============ PROJECTS ============
@@ -369,18 +398,29 @@ export const usersAPI = {
     return response.json();
   },
 
-  create: async (userData: { email: string; password: string; name: string; role?: string }): Promise<User> => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+  invite: async (userData: { email: string; name: string; role?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/auth/invite`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(userData),
     });
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Failed to create user');
+      throw new Error(error.error || 'Failed to invite user');
     }
-    const data = await response.json();
-    return data.user;
+    return response.json();
+  },
+
+  resendInvite: async (userId: string) => {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-invite/${userId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to resend invite');
+    }
+    return response.json();
   },
 
   update: async (userId: string, userData: Partial<User>): Promise<User> => {

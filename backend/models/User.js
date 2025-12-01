@@ -66,6 +66,18 @@ const userSchema = new mongoose.Schema(
       code: String,
       used: { type: Boolean, default: false },
     }],
+    // Invite system
+    inviteToken: {
+      type: String,
+    },
+    inviteTokenExpires: {
+      type: Date,
+    },
+    accountStatus: {
+      type: String,
+      enum: ['pending', 'active'],
+      default: 'active',
+    },
     // For legacy migration - old username field
     username: {
       type: String,

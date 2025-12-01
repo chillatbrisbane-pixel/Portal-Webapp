@@ -28,6 +28,10 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     role: 'technician',
   })
   
+  // Invite link state
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [inviteCopied, setInviteCopied] = useState(false)
+  
   // Activity log state
   const [activeTab, setActiveTab] = useState<'users' | 'activity'>('users')
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
@@ -80,6 +84,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setShowForm(true)
     setPasswordMode(false)
     setSelfPasswordMode(false)
+    setInviteLink(null)
   }
 
   const handleEditUser = (user: User) => {
@@ -104,6 +109,43 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setPasswordMode(false)
     setSelfPasswordMode(true)
     setShowForm(true)
+  }
+
+  const handleResendInvite = async (user: User) => {
+    setLoading(true)
+    setError('')
+    try {
+      const result = await usersAPI.resendInvite(user._id)
+      const baseUrl = window.location.origin
+      setInviteLink(`${baseUrl}/accept-invite?token=${result.inviteToken}`)
+      setInviteCopied(false)
+      setShowForm(true)
+      setEditingUser(null)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyInviteLink = async () => {
+    if (inviteLink) {
+      try {
+        await navigator.clipboard.writeText(inviteLink)
+        setInviteCopied(true)
+        setTimeout(() => setInviteCopied(false), 3000)
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = inviteLink
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
+        setInviteCopied(true)
+        setTimeout(() => setInviteCopied(false), 3000)
+      }
+    }
   }
 
   const handleViewLoginHistory = async (user: User) => {
@@ -158,6 +200,9 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           return
         }
         await usersAPI.changePassword(currentUser._id, formData.currentPassword, formData.password)
+        setShowForm(false)
+        setPasswordMode(false)
+        setSelfPasswordMode(false)
       } else if (passwordMode) {
         if (!formData.password) {
           setError('Password is required')
@@ -165,28 +210,30 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
           return
         }
         await usersAPI.resetPassword(editingUser!._id, formData.password)
+        setShowForm(false)
+        setPasswordMode(false)
+        setSelfPasswordMode(false)
       } else if (editingUser) {
         await usersAPI.update(editingUser._id, {
           name: formData.name,
           role: formData.role as any,
         })
+        setShowForm(false)
+        setPasswordMode(false)
+        setSelfPasswordMode(false)
       } else {
-        if (!formData.password) {
-          setError('Password is required for new users')
-          setLoading(false)
-          return
-        }
-        await usersAPI.create({
+        // Create new user via invite system
+        const result = await usersAPI.invite({
           name: formData.name,
           email: formData.email,
-          password: formData.password,
           role: formData.role,
         })
+        // Show the invite link
+        const baseUrl = window.location.origin
+        setInviteLink(`${baseUrl}/accept-invite?token=${result.inviteToken}`)
+        setInviteCopied(false)
       }
 
-      setShowForm(false)
-      setPasswordMode(false)
-      setSelfPasswordMode(false)
       loadUsers()
       onUsersUpdated?.()
     } catch (err: any) {
@@ -370,15 +417,27 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           key={user._id}
                           style={{
                             padding: '1rem',
-                            background: user.suspended ? '#fef2f2' : '#f9fafb',
+                            background: user.suspended ? '#fef2f2' : user.accountStatus === 'pending' ? '#fefce8' : '#f9fafb',
                             borderRadius: '6px',
-                            border: `1px solid ${user.suspended ? '#fecaca' : '#e5e7eb'}`,
+                            border: `1px solid ${user.suspended ? '#fecaca' : user.accountStatus === 'pending' ? '#fde047' : '#e5e7eb'}`,
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                                 <h4 style={{ margin: 0 }}>{user.name}</h4>
+                                {user.accountStatus === 'pending' && (
+                                  <span style={{
+                                    padding: '0.125rem 0.5rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    background: '#eab308',
+                                    color: 'white',
+                                  }}>
+                                    PENDING
+                                  </span>
+                                )}
                                 {user.suspended && (
                                   <span style={{
                                     padding: '0.125rem 0.5rem',
@@ -420,48 +479,16 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                             </div>
 
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              <button
-                                onClick={() => handleViewLoginHistory(user)}
-                                className="btn btn-sm"
-                                style={{ background: '#6b7280', color: 'white' }}
-                                title="View login history"
-                              >
-                                🕐
-                              </button>
-                              <button
-                                onClick={() => handleEditUser(user)}
-                                className="btn btn-sm"
-                                style={{ background: '#0066cc', color: 'white' }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleResetPassword(user)}
-                                className="btn btn-sm"
-                                style={{ background: '#f59e0b', color: 'white' }}
-                                title="Reset password"
-                              >
-                                🔑
-                              </button>
-                              {user._id !== currentUser._id && (
+                              {user.accountStatus === 'pending' ? (
                                 <>
-                                  {user.suspended ? (
-                                    <button
-                                      onClick={() => handleUnsuspendUser(user)}
-                                      className="btn btn-sm"
-                                      style={{ background: '#10b981', color: 'white' }}
-                                    >
-                                      Unsuspend
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleSuspendUser(user)}
-                                      className="btn btn-sm"
-                                      style={{ background: '#f97316', color: 'white' }}
-                                    >
-                                      Suspend
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => handleResendInvite(user)}
+                                    className="btn btn-sm"
+                                    style={{ background: '#3b82f6', color: 'white' }}
+                                    title="Resend invite link"
+                                  >
+                                    📧 Resend Invite
+                                  </button>
                                   <button
                                     onClick={() => handleDeleteUser(user._id)}
                                     className="btn btn-sm"
@@ -469,6 +496,60 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                   >
                                     Delete
                                   </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleViewLoginHistory(user)}
+                                    className="btn btn-sm"
+                                    style={{ background: '#6b7280', color: 'white' }}
+                                    title="View login history"
+                                  >
+                                    🕐
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditUser(user)}
+                                    className="btn btn-sm"
+                                    style={{ background: '#0066cc', color: 'white' }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleResetPassword(user)}
+                                    className="btn btn-sm"
+                                    style={{ background: '#f59e0b', color: 'white' }}
+                                    title="Reset password"
+                                  >
+                                    🔑
+                                  </button>
+                                  {user._id !== currentUser._id && (
+                                    <>
+                                      {user.suspended ? (
+                                        <button
+                                          onClick={() => handleUnsuspendUser(user)}
+                                          className="btn btn-sm"
+                                          style={{ background: '#10b981', color: 'white' }}
+                                        >
+                                          Unsuspend
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleSuspendUser(user)}
+                                          className="btn btn-sm"
+                                          style={{ background: '#f97316', color: 'white' }}
+                                        >
+                                          Suspend
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => handleDeleteUser(user._id)}
+                                        className="btn btn-sm"
+                                        style={{ background: '#ef4444', color: 'white' }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </div>
@@ -554,15 +635,78 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                 </>
               )}
             </>
+          ) : inviteLink ? (
+            // Show invite link after user creation
+            <>
+              <h3 style={{ color: '#333333' }}>✅ User Invited Successfully</h3>
+              
+              <div style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                marginBottom: '1.5rem',
+              }}>
+                <p style={{ margin: '0 0 1rem 0', color: '#166534' }}>
+                  Share this link with the new user. They'll use it to set their password and activate their account.
+                </p>
+                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#666' }}>
+                  ⏰ Link expires in 48 hours
+                </p>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+              }}>
+                <input
+                  type="text"
+                  value={inviteLink}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    background: '#f9fafb',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={copyInviteLink}
+                  className="btn btn-primary"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {inviteCopied ? '✅ Copied!' : '📋 Copy Link'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { setInviteLink(null); setShowForm(false); }}
+                className="btn btn-secondary"
+                style={{ width: '100%' }}
+              >
+                Done
+              </button>
+            </>
           ) : (
             <>
               <h3 style={{ color: '#333333' }}>
-                {selfPasswordMode ? '🔐 Change Password' : passwordMode ? '🔐 Reset Password' : editingUser ? '✏️ Edit User' : '➕ Add New User'}
+                {selfPasswordMode ? '🔐 Change Password' : passwordMode ? '🔐 Reset Password' : editingUser ? '✏️ Edit User' : '➕ Invite New User'}
               </h3>
 
               {passwordMode && (
                 <p style={{ color: '#666', marginBottom: '1rem' }}>
                   User will be required to change this password on their next login.
+                </p>
+              )}
+
+              {!editingUser && !passwordMode && !selfPasswordMode && (
+                <p style={{ color: '#666', marginBottom: '1rem' }}>
+                  An invite link will be generated for the new user to set their own password.
                 </p>
               )}
 
@@ -630,17 +774,15 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                   </div>
                 )}
 
-                {(!editingUser || passwordMode || selfPasswordMode) && (
+                {(passwordMode || selfPasswordMode) && (
                   <div className="form-group">
-                    <label htmlFor="password">
-                      {passwordMode || selfPasswordMode ? 'New Password' : 'Password'}
-                    </label>
+                    <label htmlFor="password">New Password</label>
                     <input
                       id="password"
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder={passwordMode || selfPasswordMode ? 'Enter new password' : 'Enter password'}
+                      placeholder="Enter new password"
                       required
                       disabled={loading}
                     />
@@ -650,7 +792,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <button
                     type="button"
-                    onClick={() => { setShowForm(false); setPasswordMode(false); setSelfPasswordMode(false); }}
+                    onClick={() => { setShowForm(false); setPasswordMode(false); setSelfPasswordMode(false); setInviteLink(null); }}
                     className="btn btn-secondary"
                   >
                     Cancel
@@ -660,7 +802,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     disabled={loading}
                     className="btn btn-primary"
                   >
-                    {loading ? '⏳ Saving...' : '💾 Save'}
+                    {loading ? '⏳ Saving...' : passwordMode || selfPasswordMode ? '🔐 Change Password' : editingUser ? '💾 Save' : '📧 Send Invite'}
                   </button>
                 </div>
               </form>

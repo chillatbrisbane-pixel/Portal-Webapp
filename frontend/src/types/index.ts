@@ -14,6 +14,9 @@ export interface User {
   createdBy?: { _id: string; name: string; email: string };
   createdAt?: string;
   updatedAt?: string;
+  // Invite system
+  accountStatus?: 'pending' | 'active';
+  inviteTokenExpires?: string;
   // Legacy field for migration
   username?: string;
 }

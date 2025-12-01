@@ -29,14 +29,19 @@ const logActivity = async (userId, action, details = {}, req = null, targetUser 
   }
 };
 
-// Register new user (admin only)
-router.post('/register', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+// Generate invite token helper
+const generateInviteToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+// Create user invite (admin only) - no password, generates invite link
+router.post('/invite', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, name, role } = req.body;
 
     // Validate input
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Email and name are required' });
     }
 
     // Check if user exists
@@ -45,14 +50,20 @@ router.post('/register', authenticateToken, authorizeRole(['admin']), async (req
       return res.status(400).json({ error: 'Email already exists' });
     }
 
-    // Create user
+    // Generate invite token (valid for 48 hours)
+    const inviteToken = generateInviteToken();
+    const inviteTokenExpires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
+    // Create user without password (pending status)
     const user = new User({
       email: email.toLowerCase(),
-      password,
+      password: crypto.randomBytes(32).toString('hex'), // Random placeholder, can't be used to login
       name,
       role: role || 'technician',
       createdBy: req.userId,
-      mustChangePassword: false, // New users don't need to change password
+      accountStatus: 'pending',
+      inviteToken,
+      inviteTokenExpires,
     });
 
     await user.save();
@@ -60,18 +71,143 @@ router.post('/register', authenticateToken, authorizeRole(['admin']), async (req
     // Log the activity
     await logActivity(req.userId, 'user_created', { 
       newUserEmail: user.email, 
-      newUserRole: user.role 
+      newUserRole: user.role,
+      inviteSent: true,
     }, req, user._id);
 
     res.status(201).json({
-      message: 'User created successfully',
+      message: 'User invited successfully',
       userId: user._id,
+      user: user.toJSON(),
+      inviteToken,
+      inviteLink: `/accept-invite?token=${inviteToken}`,
+      expiresAt: inviteTokenExpires,
+    });
+  } catch (error) {
+    console.error('Invite error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify invite token (public - for checking if token is valid)
+router.get('/invite/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const user = await User.findOne({
+      inviteToken: token,
+      inviteTokenExpires: { $gt: new Date() },
+      accountStatus: 'pending',
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired invite link' });
+    }
+
+    res.json({
+      valid: true,
+      email: user.email,
+      name: user.name,
+    });
+  } catch (error) {
+    console.error('Verify invite error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Accept invite and set password (public)
+router.post('/accept-invite', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const user = await User.findOne({
+      inviteToken: token,
+      inviteTokenExpires: { $gt: new Date() },
+      accountStatus: 'pending',
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired invite link' });
+    }
+
+    // Activate account
+    user.password = password;
+    user.accountStatus = 'active';
+    user.inviteToken = undefined;
+    user.inviteTokenExpires = undefined;
+    await user.save();
+
+    // Log the activity
+    await logActivity(user._id, 'login', { inviteAccepted: true }, req);
+
+    // Generate JWT token so they're logged in immediately
+    const jwtToken = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET || 'your_secret_key',
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      message: 'Account activated successfully',
+      token: jwtToken,
       user: user.toJSON(),
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Accept invite error:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// Resend invite (admin only)
+router.post('/resend-invite/:userId', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.accountStatus !== 'pending') {
+      return res.status(400).json({ error: 'User account is already active' });
+    }
+
+    // Generate new invite token (valid for 48 hours)
+    const inviteToken = generateInviteToken();
+    const inviteTokenExpires = new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+    user.inviteToken = inviteToken;
+    user.inviteTokenExpires = inviteTokenExpires;
+    await user.save();
+
+    res.json({
+      message: 'Invite resent successfully',
+      inviteToken,
+      inviteLink: `/accept-invite?token=${inviteToken}`,
+      expiresAt: inviteTokenExpires,
+    });
+  } catch (error) {
+    console.error('Resend invite error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Legacy register route (kept for backwards compatibility but now uses invite system)
+router.post('/register', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  // Redirect to invite system
+  req.url = '/invite';
+  return router.handle(req, res);
 });
 
 // Login
@@ -104,6 +240,11 @@ router.post('/login', async (req, res) => {
     // Check if user is suspended
     if (user.suspended) {
       return res.status(403).json({ error: 'User account is suspended. Contact an administrator.' });
+    }
+
+    // Check if account is pending (invite not accepted)
+    if (user.accountStatus === 'pending') {
+      return res.status(403).json({ error: 'Account not activated. Please use the invite link sent to you.' });
     }
 
     // Check password
