@@ -125,12 +125,13 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
         <div className="modal-header">
           <h2>⚙️ Account Settings</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
+        <div className="modal-body">
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
           <button
@@ -350,6 +351,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

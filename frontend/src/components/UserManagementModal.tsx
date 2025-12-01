@@ -19,10 +19,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [showForm, setShowForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [passwordMode, setPasswordMode] = useState(false)
+  const [selfPasswordMode, setSelfPasswordMode] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
+    currentPassword: '',
     role: 'technician',
   })
   
@@ -74,22 +76,33 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleAddUser = () => {
     setEditingUser(null)
-    setFormData({ name: '', email: '', password: '', role: 'technician' })
+    setFormData({ name: '', email: '', password: '', currentPassword: '', role: 'technician' })
     setShowForm(true)
     setPasswordMode(false)
+    setSelfPasswordMode(false)
   }
 
   const handleEditUser = (user: User) => {
     setEditingUser(user)
-    setFormData({ name: user.name, email: user.email, password: '', role: user.role })
+    setFormData({ name: user.name, email: user.email, password: '', currentPassword: '', role: user.role })
     setShowForm(true)
     setPasswordMode(false)
+    setSelfPasswordMode(false)
   }
 
   const handleResetPassword = (user: User) => {
     setEditingUser(user)
-    setFormData({ name: user.name, email: user.email, password: '', role: user.role })
+    setFormData({ name: user.name, email: user.email, password: '', currentPassword: '', role: user.role })
     setPasswordMode(true)
+    setSelfPasswordMode(false)
+    setShowForm(true)
+  }
+
+  const handleChangeOwnPassword = () => {
+    setEditingUser(currentUser)
+    setFormData({ name: currentUser.name, email: currentUser.email, password: '', currentPassword: '', role: currentUser.role })
+    setPasswordMode(false)
+    setSelfPasswordMode(true)
     setShowForm(true)
   }
 
@@ -132,7 +145,20 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setLoading(true)
 
     try {
-      if (passwordMode) {
+      if (selfPasswordMode) {
+        // Changing own password - requires current password
+        if (!formData.currentPassword || !formData.password) {
+          setError('Current password and new password are required')
+          setLoading(false)
+          return
+        }
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters')
+          setLoading(false)
+          return
+        }
+        await usersAPI.changePassword(currentUser._id, formData.currentPassword, formData.password)
+      } else if (passwordMode) {
         if (!formData.password) {
           setError('Password is required')
           setLoading(false)
@@ -159,6 +185,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       }
 
       setShowForm(false)
+      setPasswordMode(false)
+      setSelfPasswordMode(false)
       loadUsers()
       onUsersUpdated?.()
     } catch (err: any) {
@@ -517,13 +545,19 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                   >
                     ✏️ Edit Profile
                   </button>
+                  <button
+                    onClick={handleChangeOwnPassword}
+                    className="btn btn-secondary"
+                  >
+                    🔐 Change Password
+                  </button>
                 </>
               )}
             </>
           ) : (
             <>
               <h3 style={{ color: '#333333' }}>
-                {passwordMode ? '🔐 Reset Password' : editingUser ? '✏️ Edit User' : '➕ Add New User'}
+                {selfPasswordMode ? '🔐 Change Password' : passwordMode ? '🔐 Reset Password' : editingUser ? '✏️ Edit User' : '➕ Add New User'}
               </h3>
 
               {passwordMode && (
@@ -533,7 +567,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               )}
 
               <form onSubmit={handleSubmit}>
-                {!passwordMode && (
+                {!passwordMode && !selfPasswordMode && (
                   <>
                     <div className="form-group">
                       <label htmlFor="name">Name</label>
@@ -581,17 +615,32 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                   </>
                 )}
 
-                {(!editingUser || passwordMode) && (
+                {selfPasswordMode && (
+                  <div className="form-group">
+                    <label htmlFor="currentPassword">Current Password</label>
+                    <input
+                      id="currentPassword"
+                      type="password"
+                      value={formData.currentPassword}
+                      onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
+                      placeholder="Enter current password"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                )}
+
+                {(!editingUser || passwordMode || selfPasswordMode) && (
                   <div className="form-group">
                     <label htmlFor="password">
-                      {passwordMode ? 'New Password' : 'Password'}
+                      {passwordMode || selfPasswordMode ? 'New Password' : 'Password'}
                     </label>
                     <input
                       id="password"
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder={passwordMode ? 'Enter new password' : 'Enter password'}
+                      placeholder={passwordMode || selfPasswordMode ? 'Enter new password' : 'Enter password'}
                       required
                       disabled={loading}
                     />
@@ -601,7 +650,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <button
                     type="button"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => { setShowForm(false); setPasswordMode(false); setSelfPasswordMode(false); }}
                     className="btn btn-secondary"
                   >
                     Cancel
