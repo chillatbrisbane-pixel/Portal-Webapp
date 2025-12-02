@@ -120,7 +120,17 @@ const projectSchema = new mongoose.Schema(
     ],
 
     // Notes and documentation
-    notes: String,
+    notes: String, // Legacy field - kept for backwards compatibility
+    
+    // Timestamped note entries
+    noteEntries: [{
+      text: { type: String, required: true },
+      createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      createdAt: { type: Date, default: Date.now },
+    }],
     
     // Project handover document
     handoverDocument: {

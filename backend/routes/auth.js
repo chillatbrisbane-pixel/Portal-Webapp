@@ -156,7 +156,7 @@ router.post('/accept-invite', async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET || 'your_secret_key',
-      { expiresIn: '7d' }
+      { expiresIn: '2h' }
     );
 
     res.json({
@@ -304,7 +304,7 @@ router.post('/login', async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET || 'your_secret_key',
-      { expiresIn: '7d' }
+      { expiresIn: '2h' }
     );
 
     res.json({
@@ -416,7 +416,7 @@ router.post('/force-change-password', authenticateToken, async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET || 'your_secret_key',
-      { expiresIn: '7d' }
+      { expiresIn: '2h' }
     );
 
     res.json({ 

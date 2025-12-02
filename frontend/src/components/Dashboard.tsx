@@ -80,6 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           setProjects([newProject, ...projects])
           setSelectedProject(newProject)
         }}
+        currentUser={user}
       />
     )
   }

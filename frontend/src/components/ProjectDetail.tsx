@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Project, Device, ProjectVersion } from '../types'
+import { Project, Device, ProjectVersion, NoteEntry } from '../types'
 import { projectsAPI, reportsAPI, devicesAPI } from '../services/apiService'
 import { DeviceList } from './DeviceList'
 
@@ -9,6 +9,7 @@ interface ProjectDetailProps {
   onProjectUpdated: (project: Project) => void
   onProjectDeleted: (projectId: string) => void
   onProjectCloned?: (project: Project) => void
+  currentUser?: { _id: string; name: string; role: string }
 }
 
 interface WiFiNetwork {
@@ -33,6 +34,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   onProjectUpdated,
   onProjectDeleted,
   onProjectCloned,
+  currentUser,
 }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -44,6 +46,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [versions, setVersions] = useState<ProjectVersion[]>([])
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [rollingBack, setRollingBack] = useState(false)
+  
+  // Note entries
+  const [noteEntries, setNoteEntries] = useState<NoteEntry[]>([])
+  const [newNoteText, setNewNoteText] = useState('')
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const [addingNote, setAddingNote] = useState(false)
   
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -131,6 +139,51 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       loadVersions()
     }
   }, [activeTab, project._id])
+
+  // Load notes when notes tab is selected
+  const loadNotes = async () => {
+    setLoadingNotes(true)
+    try {
+      const notes = await projectsAPI.getNotes(project._id)
+      setNoteEntries(notes)
+    } catch (err) {
+      console.error('Failed to load notes:', err)
+    } finally {
+      setLoadingNotes(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'notes') {
+      loadNotes()
+    }
+  }, [activeTab, project._id])
+
+  const handleAddNote = async () => {
+    if (!newNoteText.trim()) return
+    
+    setAddingNote(true)
+    try {
+      const updatedNotes = await projectsAPI.addNote(project._id, newNoteText.trim())
+      setNoteEntries(updatedNotes)
+      setNewNoteText('')
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setAddingNote(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!window.confirm('Delete this note?')) return
+    
+    try {
+      await projectsAPI.deleteNote(project._id, noteId)
+      setNoteEntries(prev => prev.filter(n => n._id !== noteId))
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
 
   // Get switches for port management
   const switches = devices.filter(d => d.deviceType === 'switch')
@@ -1214,28 +1267,153 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {activeTab === 'notes' && (
         <div className="card">
-          <h3>📝 Project Notes</h3>
-          <textarea
-            value={formData.notes || ''}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={10}
-            placeholder="Add project notes here..."
-            style={{ width: '100%', fontFamily: 'inherit' }}
-          />
-          <button
-            className="btn btn-primary"
-            onClick={async () => {
-              try {
-                await projectsAPI.update(project._id, { notes: formData.notes })
-                alert('Notes saved!')
-              } catch (err: any) {
-                setError(err.message)
-              }
-            }}
-            style={{ marginTop: '1rem' }}
-          >
-            💾 Save Notes
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>📝 Project Notes</h3>
+            <button className="btn btn-secondary btn-sm" onClick={loadNotes} disabled={loadingNotes}>
+              {loadingNotes ? '🔄 Loading...' : '🔄 Refresh'}
+            </button>
+          </div>
+
+          {/* Add new note */}
+          <div style={{ 
+            padding: '1rem', 
+            background: '#f0f9ff', 
+            borderRadius: '8px', 
+            marginBottom: '1.5rem',
+            border: '1px solid #bae6fd',
+          }}>
+            <label style={{ fontWeight: 600, marginBottom: '0.5rem', display: 'block' }}>
+              ➕ Add a Note
+            </label>
+            <textarea
+              value={newNoteText}
+              onChange={(e) => setNewNoteText(e.target.value)}
+              rows={3}
+              placeholder="Type your note here... (will be timestamped automatically)"
+              style={{ width: '100%', fontFamily: 'inherit', marginBottom: '0.5rem' }}
+              disabled={addingNote}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-primary"
+                onClick={handleAddNote}
+                disabled={addingNote || !newNoteText.trim()}
+              >
+                {addingNote ? '⏳ Adding...' : '📝 Add Note'}
+              </button>
+            </div>
+          </div>
+
+          {/* Notes timeline */}
+          {loadingNotes ? (
+            <p>Loading notes...</p>
+          ) : noteEntries.length === 0 ? (
+            <p style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
+              No notes yet. Add the first note above!
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {noteEntries
+                .slice()
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((note) => (
+                  <div
+                    key={note._id}
+                    style={{
+                      padding: '1rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Header with user and timestamp */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'flex-start',
+                      marginBottom: '0.5rem',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ 
+                          background: '#3b82f6', 
+                          color: 'white', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '4px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                        }}>
+                          👤 {note.createdBy?.name || 'Unknown'}
+                        </span>
+                        <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                          {new Date(note.createdAt).toLocaleDateString('en-AU', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })} at {new Date(note.createdAt).toLocaleTimeString('en-AU', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      
+                      {/* Delete button - only show for note creator or admin */}
+                      {(currentUser?.role === 'admin' || currentUser?._id === note.createdBy?._id) && (
+                        <button
+                          onClick={() => handleDeleteNote(note._id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#9ca3af',
+                            padding: '0.25rem',
+                            fontSize: '0.9rem',
+                          }}
+                          title="Delete note"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Note text */}
+                    <div style={{ 
+                      whiteSpace: 'pre-wrap', 
+                      color: '#374151',
+                      lineHeight: 1.6,
+                    }}>
+                      {note.text}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Legacy notes section - only show if there are legacy notes */}
+          {formData.notes && (
+            <div style={{ 
+              marginTop: '2rem', 
+              padding: '1rem', 
+              background: '#fefce8', 
+              borderRadius: '8px',
+              border: '1px solid #fde047',
+            }}>
+              <h4 style={{ margin: '0 0 0.5rem', color: '#854d0e' }}>📋 Legacy Notes</h4>
+              <p style={{ fontSize: '0.85rem', color: '#a16207', marginBottom: '0.5rem' }}>
+                These notes were saved before the timestamped notes feature. They are preserved here for reference.
+              </p>
+              <div style={{ 
+                whiteSpace: 'pre-wrap', 
+                background: 'white', 
+                padding: '0.75rem', 
+                borderRadius: '4px',
+                color: '#374151',
+              }}>
+                {formData.notes}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

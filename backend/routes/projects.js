@@ -246,6 +246,94 @@ router.delete('/:id/team/:userId', authenticateToken, async (req, res) => {
   }
 });
 
+// Add a note entry to project
+router.post('/:id/notes', authenticateToken, async (req, res) => {
+  try {
+    const { text } = req.body;
+    
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'Note text is required' });
+    }
+
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Initialize noteEntries if it doesn't exist
+    if (!project.noteEntries) {
+      project.noteEntries = [];
+    }
+
+    // Add the new note entry
+    project.noteEntries.push({
+      text: text.trim(),
+      createdBy: req.userId,
+      createdAt: new Date(),
+    });
+
+    await project.save();
+
+    // Populate the user info and return
+    await project.populate('noteEntries.createdBy', 'name email');
+    
+    res.json(project.noteEntries);
+  } catch (error) {
+    console.error('Add note error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get note entries for a project
+router.get('/:id/notes', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id)
+      .populate('noteEntries.createdBy', 'name email');
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json(project.noteEntries || []);
+  } catch (error) {
+    console.error('Get notes error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a note entry (admin or note creator only)
+router.delete('/:id/notes/:noteId', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    const noteIndex = project.noteEntries.findIndex(
+      n => n._id.toString() === req.params.noteId
+    );
+
+    if (noteIndex === -1) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    const note = project.noteEntries[noteIndex];
+    
+    // Only allow deletion by note creator or admin
+    if (note.createdBy.toString() !== req.userId.toString() && req.userRole !== 'admin') {
+      return res.status(403).json({ error: 'You can only delete your own notes' });
+    }
+
+    project.noteEntries.splice(noteIndex, 1);
+    await project.save();
+
+    res.json({ message: 'Note deleted' });
+  } catch (error) {
+    console.error('Delete note error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Add device to project
 router.post('/:id/devices', authenticateToken, async (req, res) => {
   try {

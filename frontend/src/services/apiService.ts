@@ -6,13 +6,25 @@ const API_BASE_URL = '/api';
 // Store token in localStorage
 const getToken = () => localStorage.getItem('token');
 const setToken = (token: string) => localStorage.setItem('token', token);
-const removeToken = () => localStorage.removeItem('token');
+const removeToken = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('loginTime');
+};
 
 // Headers with auth token
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   ...(getToken() && { 'Authorization': `Bearer ${getToken()}` }),
 });
+
+// Handle expired/invalid token - force logout
+const handleAuthError = (response: Response) => {
+  if (response.status === 401 || response.status === 403) {
+    removeToken();
+    // Reload the page to show login screen
+    window.location.reload();
+  }
+};
 
 // ============ AUTHENTICATION ============
 
@@ -30,6 +42,7 @@ export const authAPI = {
     const data = await response.json();
     if (data.token) {
       setToken(data.token);
+      localStorage.setItem('loginTime', Date.now().toString());
     }
     return data;
   },
@@ -43,7 +56,7 @@ export const authAPI = {
       headers: getHeaders(),
     });
     if (!response.ok) {
-      removeToken();
+      handleAuthError(response);
       throw new Error('Failed to get user');
     }
     return response.json();
@@ -258,6 +271,40 @@ export const projectsAPI = {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Failed to rollback');
+    }
+    return response.json();
+  },
+
+  // Note entries
+  getNotes: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/notes`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch notes');
+    return response.json();
+  },
+
+  addNote: async (projectId: string, text: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/notes`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add note');
+    }
+    return response.json();
+  },
+
+  deleteNote: async (projectId: string, noteId: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/notes/${noteId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete note');
     }
     return response.json();
   },

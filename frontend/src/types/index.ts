@@ -54,6 +54,13 @@ export interface ProjectVersion {
   createdAt: string;
 }
 
+export interface NoteEntry {
+  _id: string;
+  text: string;
+  createdBy: { _id: string; name: string; email: string };
+  createdAt: string;
+}
+
 export interface Technology {
   network: boolean;
   security: boolean;
