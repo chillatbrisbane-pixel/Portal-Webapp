@@ -106,7 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     <div className="container" style={{ paddingTop: '2rem' }}>
       {/* Statistics Cards */}
       {totalProjects > 0 && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: '1.5rem', gap: '1rem' }}>
+        <div className="grid stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', marginBottom: '1.5rem', gap: '1rem' }}>
           <div 
             className="card" 
             style={{ background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)', border: 'none', padding: '1rem', cursor: 'pointer' }}

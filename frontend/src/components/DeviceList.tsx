@@ -204,22 +204,22 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <h3 style={{ margin: 0 }}>🎛️ Devices ({filteredDevices.length}{searchFilter || filterCategory !== 'all' ? `/${devices.length}` : ''})</h3>
+      <div className="device-list-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="device-list-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', flex: 1 }}>
+          <h3 style={{ margin: 0, whiteSpace: 'nowrap' }}>🎛️ Devices ({filteredDevices.length}{searchFilter || filterCategory !== 'all' ? `/${devices.length}` : ''})</h3>
           
           {/* Search filter */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '150px', maxWidth: '250px' }}>
             <input
               type="text"
-              placeholder="🔍 Filter by name, IP, brand..."
+              placeholder="🔍 Filter..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               style={{ 
-                padding: '0.5rem 0.5rem 0.5rem 2rem', 
+                padding: '0.5rem 2rem 0.5rem 0.5rem', 
                 borderRadius: '4px', 
                 border: '1px solid #d1d5db',
-                width: '220px',
+                width: '100%',
               }}
             />
             {searchFilter && (
@@ -244,7 +244,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', minWidth: '120px' }}
           >
             <option value="all">All Categories</option>
             {Object.entries(CATEGORY_INFO).map(([key, info]) => (
@@ -316,8 +316,8 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'none' }} className="auto-refresh-text">
             🔄 Auto-refreshes every 30s
           </span>
           <button 
@@ -329,7 +329,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
             🔄 {lastRefresh.toLocaleTimeString()}
           </button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            ➕ Add Device
+            ➕ Add
           </button>
         </div>
       </div>

@@ -460,6 +460,31 @@ select {
     padding: 0.35rem 0.5rem;
     font-size: 0.8rem;
   }
+  
+  /* Full width modal on small screens */
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+    height: 100vh;
+  }
+  
+  .modal-overlay {
+    padding: 0;
+  }
+  
+  /* Modal footer buttons stack */
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Touch device optimizations */
@@ -479,4 +504,230 @@ select {
     min-height: 48px;
     padding: 0.75rem;
   }
+}
+
+/* ============================================
+   MOBILE-SPECIFIC COMPONENT STYLES
+   ============================================ */
+
+/* Mobile: Stack project info cards */
+@media (max-width: 600px) {
+  /* Project header actions */
+  .project-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .project-header-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* SharePoint/OneDrive link bar */
+  .sharepoint-bar {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+  }
+  
+  .sharepoint-bar > a:first-of-type {
+    text-align: center;
+  }
+  
+  .sharepoint-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: stretch;
+  }
+  
+  .sharepoint-buttons > * {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+  }
+  
+  /* WiFi network items */
+  .wifi-item {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+  }
+  
+  .wifi-item-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .wifi-item-buttons > * {
+    flex: 1;
+  }
+  
+  /* Tab navigation - scrollable */
+  .tabs-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .tabs-container::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .tabs {
+    display: flex;
+    min-width: max-content;
+  }
+  
+  .tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Device list controls */
+  .device-list-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .device-list-controls {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .device-list-controls > * {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  /* Form grids - single column */
+  .form-grid,
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Device cards in list view */
+  .device-card {
+    padding: 0.75rem;
+  }
+  
+  .device-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .device-card-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .device-card-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  /* Credential display */
+  .credential-row {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.25rem;
+  }
+  
+  .credential-value {
+    width: 100%;
+    word-break: break-all;
+  }
+  
+  /* Input groups */
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .input-group input,
+  .input-group select,
+  .input-group button {
+    width: 100%;
+  }
+  
+  /* Stats cards on dashboard */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.25rem;
+  }
+  
+  .stat-card p {
+    font-size: 0.75rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 380px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Even smaller buttons */
+  .btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Compact header */
+  .header h1 {
+    font-size: 1rem;
+  }
+  
+  .user-info {
+    font-size: 0.8rem;
+  }
+  
+  .user-role {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Utility: Hide on mobile */
+@media (max-width: 600px) {
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  .auto-refresh-text {
+    display: none !important;
+  }
+}
+
+/* Utility: Show only on mobile */
+@media (min-width: 601px) {
+  .show-mobile-only {
+    display: none !important;
+  }
+}
+
+/* Prevent horizontal scroll on body */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better touch scrolling */
+.modal-body,
+.tabs-container {
+  -webkit-overflow-scrolling: touch;
 }

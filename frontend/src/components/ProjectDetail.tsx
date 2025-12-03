@@ -799,16 +799,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
             {/* SharePoint/OneDrive Link */}
             {project.sharePointLink && (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.75rem',
-                marginBottom: '1.5rem',
-                padding: '0.75rem 1rem',
-                background: '#eff6ff',
-                borderRadius: '8px',
-                border: '1px solid #bfdbfe',
-              }}>
+              <div 
+                className="sharepoint-bar"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.75rem',
+                  marginBottom: '1.5rem',
+                  padding: '0.75rem 1rem',
+                  background: '#eff6ff',
+                  borderRadius: '8px',
+                  border: '1px solid #bfdbfe',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <span style={{ fontSize: '1.25rem' }}>📁</span>
                 <a 
                   href={project.sharePointLink} 
@@ -816,6 +820,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   rel="noopener noreferrer"
                   style={{ 
                     flex: 1,
+                    minWidth: '150px',
                     color: '#1e40af', 
                     fontWeight: 600,
                     fontSize: '1rem',
@@ -824,81 +829,92 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 >
                   {project.name} OneDrive Link
                 </a>
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault()
-                    try {
-                      await navigator.clipboard.writeText(project.sharePointLink)
-                      setCopyFeedback('link')
-                      setTimeout(() => setCopyFeedback(null), 2000)
-                    } catch (err) {
-                      // Fallback
-                      const textarea = document.createElement('textarea')
-                      textarea.value = project.sharePointLink
-                      document.body.appendChild(textarea)
-                      textarea.select()
-                      document.execCommand('copy')
-                      document.body.removeChild(textarea)
-                      setCopyFeedback('link')
-                      setTimeout(() => setCopyFeedback(null), 2000)
-                    }
-                  }}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    background: copyFeedback === 'link' ? '#10b981' : '#e5e7eb',
-                    color: copyFeedback === 'link' ? 'white' : '#374151',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.2s',
-                  }}
-                  title="Copy link"
-                >
-                  {copyFeedback === 'link' ? '✓ Copied!' : '📋 Copy'}
-                </button>
-                <button
-                  onClick={() => setShowSharePointQR(true)}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    background: '#3b82f6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                  }}
-                  title="Show QR code"
-                >
-                  📱 QR
-                </button>
-                <a
-                  href={project.sharePointLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    background: '#0078d4',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    textDecoration: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                  }}
-                  title="Open in new tab"
-                >
-                  🔗 Open
-                </a>
+                <div className="sharepoint-buttons" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      try {
+                        await navigator.clipboard.writeText(project.sharePointLink)
+                        setCopyFeedback('link')
+                        setTimeout(() => setCopyFeedback(null), 2000)
+                      } catch (err) {
+                        // Fallback
+                        const textarea = document.createElement('textarea')
+                        textarea.value = project.sharePointLink
+                        document.body.appendChild(textarea)
+                        textarea.select()
+                        document.execCommand('copy')
+                        document.body.removeChild(textarea)
+                        setCopyFeedback('link')
+                        setTimeout(() => setCopyFeedback(null), 2000)
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: copyFeedback === 'link' ? '#10b981' : '#e5e7eb',
+                      color: copyFeedback === 'link' ? 'white' : '#374151',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.2s',
+                      flex: 1,
+                      minWidth: '70px',
+                    }}
+                    title="Copy link"
+                  >
+                    {copyFeedback === 'link' ? '✓ Copied!' : '📋 Copy'}
+                  </button>
+                  <button
+                    onClick={() => setShowSharePointQR(true)}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      flex: 1,
+                      minWidth: '60px',
+                    }}
+                    title="Show QR code"
+                  >
+                    📱 QR
+                  </button>
+                  <a
+                    href={project.sharePointLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: '#0078d4',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      flex: 1,
+                      minWidth: '60px',
+                    }}
+                    title="Open in new tab"
+                  >
+                    🔗 Open
+                  </a>
+                </div>
               </div>
             )}
 
@@ -949,8 +965,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       </div>
 
       {/* Tabs */}
-      <div style={{ borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', gap: '0' }}>
+      <div className="tabs-container" style={{ borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div className="tabs" style={{ display: 'flex', gap: '0', minWidth: 'max-content' }}>
           {[
             { id: 'devices', label: '🎛️ Devices' },
             { id: 'wifi', label: '📶 WiFi' },
@@ -960,6 +976,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           ].map(tab => (
             <button
               key={tab.id}
+              className="tab-btn"
               onClick={() => setActiveTab(tab.id as any)}
               style={{
                 padding: '0.75rem 1.5rem',
@@ -970,6 +987,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 color: activeTab === tab.id ? '#0066cc' : '#6b7280',
                 borderBottom: activeTab === tab.id ? '2px solid #0066cc' : '2px solid transparent',
                 marginBottom: '-2px',
+                whiteSpace: 'nowrap',
               }}
             >
               {tab.label}
