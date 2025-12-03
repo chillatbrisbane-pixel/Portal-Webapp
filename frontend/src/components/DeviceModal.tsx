@@ -258,48 +258,140 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   }
 
   // Barcode Scanner Functions
+  const [scannerError, setScannerError] = useState<string | null>(null)
+  const [isScanning, setIsScanning] = useState(false)
+  const scanIntervalRef = React.useRef<number | null>(null)
+
   const startScanner = async (target: 'serialNumber' | 'model') => {
     setScanTarget(target)
+    setScannerError(null)
     setShowScanner(true)
     
     try {
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access not supported in this browser. Try Chrome or Safari.')
+      }
+
+      // Request camera permission with constraints
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use back camera on mobile
+        video: { 
+          facingMode: { ideal: 'environment' }, // Prefer back camera
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       })
+      
       streamRef.current = stream
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.setAttribute('playsinline', 'true') // Important for iOS
+        await videoRef.current.play()
+        
+        // Start continuous barcode detection if supported
+        if ('BarcodeDetector' in window) {
+          startBarcodeDetection()
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Camera access error:', err)
-      alert('Unable to access camera. Please check permissions or enter the value manually.')
-      setShowScanner(false)
+      let errorMsg = 'Unable to access camera.'
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg = 'Camera permission denied. Please allow camera access in your browser settings and reload the page.'
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMsg = 'No camera found on this device.'
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMsg = 'Camera is in use by another application.'
+      } else if (err.name === 'OverconstrainedError') {
+        errorMsg = 'Camera does not meet requirements. Trying default camera...'
+        // Try again with no constraints
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true })
+          streamRef.current = fallbackStream
+          if (videoRef.current) {
+            videoRef.current.srcObject = fallbackStream
+            videoRef.current.setAttribute('playsinline', 'true')
+            await videoRef.current.play()
+          }
+          return
+        } catch {
+          errorMsg = 'Could not access any camera.'
+        }
+      } else if (err.message) {
+        errorMsg = err.message
+      }
+      
+      setScannerError(errorMsg)
     }
   }
 
+  // Use BarcodeDetector API for continuous scanning
+  const startBarcodeDetection = () => {
+    if (!('BarcodeDetector' in window)) return
+    
+    setIsScanning(true)
+    const detector = new (window as any).BarcodeDetector({
+      formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'codabar', 'itf']
+    })
+    
+    const detectBarcode = async () => {
+      if (!videoRef.current || videoRef.current.readyState !== 4) return
+      
+      try {
+        const barcodes = await detector.detect(videoRef.current)
+        if (barcodes.length > 0) {
+          const value = barcodes[0].rawValue
+          setFormData(prev => ({ ...prev, [scanTarget]: value }))
+          stopScanner()
+          return
+        }
+      } catch (err) {
+        // Detection failed, continue scanning
+      }
+    }
+    
+    // Scan every 200ms
+    scanIntervalRef.current = window.setInterval(detectBarcode, 200)
+  }
+
   const stopScanner = () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current)
+      scanIntervalRef.current = null
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop())
       streamRef.current = null
     }
     setShowScanner(false)
+    setIsScanning(false)
+    setScannerError(null)
   }
 
   const captureAndProcess = async () => {
     if (!videoRef.current) return
     
-    // Create canvas to capture frame
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    // Try BarcodeDetector first
+    if ('BarcodeDetector' in window) {
+      try {
+        const detector = new (window as any).BarcodeDetector({
+          formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'codabar', 'itf']
+        })
+        const barcodes = await detector.detect(videoRef.current)
+        if (barcodes.length > 0) {
+          setFormData(prev => ({ ...prev, [scanTarget]: barcodes[0].rawValue }))
+          stopScanner()
+          return
+        }
+      } catch (err) {
+        console.log('BarcodeDetector failed, falling back to manual entry')
+      }
+    }
     
-    ctx.drawImage(videoRef.current, 0, 0)
-    
-    // For now, prompt user to enter the scanned value
-    // In a full implementation, we'd use a barcode library like @zxing/library
-    const scannedValue = prompt('Enter the scanned value (barcode/QR result):')
+    // Fallback: prompt user to enter the scanned value
+    const scannedValue = prompt('No barcode detected. Enter the value manually:')
     if (scannedValue) {
       setFormData(prev => ({ ...prev, [scanTarget]: scannedValue }))
     }
@@ -309,6 +401,9 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   // Cleanup scanner on unmount
   useEffect(() => {
     return () => {
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current)
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop())
       }
@@ -1676,32 +1771,77 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               📷 Scan {scanTarget === 'serialNumber' ? 'Serial Number' : 'Model'} Barcode
             </h3>
             
-            <div style={{ 
-              position: 'relative', 
-              width: '100%', 
-              background: '#000', 
-              borderRadius: '8px',
-              overflow: 'hidden',
-              marginBottom: '1rem',
-            }}>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                style={{ width: '100%', display: 'block' }}
-              />
-              {/* Scan overlay guide */}
-              <div style={{
-                position: 'absolute',
-                inset: '20%',
-                border: '2px dashed #00ff00',
+            {scannerError ? (
+              // Error state
+              <div style={{ 
+                padding: '2rem',
+                background: '#fef2f2',
                 borderRadius: '8px',
-                pointerEvents: 'none',
-              }} />
-            </div>
+                marginBottom: '1rem',
+              }}>
+                <p style={{ color: '#991b1b', margin: '0 0 1rem', fontWeight: 600 }}>
+                  ⚠️ Camera Error
+                </p>
+                <p style={{ color: '#991b1b', margin: '0 0 1rem', fontSize: '0.9rem' }}>
+                  {scannerError}
+                </p>
+                <p style={{ color: '#6b7280', margin: 0, fontSize: '0.85rem' }}>
+                  On mobile: Check Settings → Safari/Chrome → Camera<br />
+                  On desktop: Click the camera icon in the address bar
+                </p>
+              </div>
+            ) : (
+              // Camera view
+              <div style={{ 
+                position: 'relative', 
+                width: '100%', 
+                background: '#000', 
+                borderRadius: '8px',
+                overflow: 'hidden',
+                marginBottom: '1rem',
+              }}>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{ width: '100%', display: 'block', minHeight: '250px' }}
+                />
+                {/* Scan overlay guide */}
+                <div style={{
+                  position: 'absolute',
+                  inset: '20%',
+                  border: '2px dashed #00ff00',
+                  borderRadius: '8px',
+                  pointerEvents: 'none',
+                }} />
+                {/* Scanning indicator */}
+                {isScanning && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(16, 185, 129, 0.9)',
+                    color: 'white',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                  }}>
+                    🔍 Scanning...
+                  </div>
+                )}
+              </div>
+            )}
 
             <p style={{ color: '#666', fontSize: '0.9rem', margin: '0 0 1rem' }}>
-              Position the barcode within the green guide, then tap capture.
+              {scannerError 
+                ? 'Fix permissions and try again, or enter manually below.'
+                : isScanning 
+                  ? 'Point at barcode - it will scan automatically!'
+                  : 'Position the barcode within the green guide, then tap capture.'
+              }
             </p>
 
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
@@ -1720,12 +1860,35 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               >
                 ✕ Cancel
               </button>
+              {!scannerError && (
+                <button
+                  type="button"
+                  onClick={captureAndProcess}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                  }}
+                >
+                  📸 Capture
+                </button>
+              )}
               <button
                 type="button"
-                onClick={captureAndProcess}
+                onClick={() => {
+                  const value = prompt(`Enter ${scanTarget === 'serialNumber' ? 'serial number' : 'model'} manually:`)
+                  if (value) {
+                    setFormData(prev => ({ ...prev, [scanTarget]: value }))
+                  }
+                  stopScanner()
+                }}
                 style={{
                   padding: '0.75rem 1.5rem',
-                  background: '#10b981',
+                  background: '#3b82f6',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',
@@ -1733,12 +1896,15 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   fontSize: '1rem',
                 }}
               >
-                📸 Capture
+                ⌨️ Manual
               </button>
             </div>
 
             <p style={{ color: '#9ca3af', fontSize: '0.8rem', marginTop: '1rem' }}>
-              Tip: Ensure good lighting and hold steady
+              {'BarcodeDetector' in window 
+                ? '✅ Auto-detection supported in this browser'
+                : '⚠️ Auto-detection not supported - use Capture or Manual'
+              }
             </p>
           </div>
         </div>
