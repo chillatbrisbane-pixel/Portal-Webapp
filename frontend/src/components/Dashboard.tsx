@@ -8,6 +8,14 @@ interface DashboardProps {
   user: User
 }
 
+interface WiFiNetwork {
+  _id?: string
+  name: string
+  password: string
+  vlan: number
+  band: string
+}
+
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Projects', color: '#6b7280' },
   { value: 'planning', label: 'Planning', color: '#f59e0b' },
@@ -24,6 +32,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  
+  // WiFi QR code modal
+  const [qrProject, setQrProject] = useState<Project | null>(null)
+  const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null)
 
   useEffect(() => {
     loadProjects()
@@ -326,6 +338,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <span><strong>Created:</strong> {new Date(project.createdAt).toLocaleDateString()}</span>
                     <span><strong>Modified:</strong> {new Date(project.updatedAt).toLocaleDateString()}</span>
                   </p>
+                  
+                  {/* WiFi QR Button */}
+                  {project.wifiNetworks && project.wifiNetworks.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setQrProject(project)
+                      }}
+                      style={{
+                        marginTop: '0.5rem',
+                        padding: '0.35rem 0.75rem',
+                        background: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                      }}
+                      title="Show WiFi QR codes"
+                    >
+                      📶 WiFi ({project.wifiNetworks.length})
+                    </button>
+                  )}
                 </div>
               </div>
             )
@@ -372,6 +409,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   </p>
                 )}
 
+                {/* WiFi QR Button in list view */}
+                {project.wifiNetworks && project.wifiNetworks.length > 0 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setQrProject(project)
+                    }}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      marginRight: '1rem',
+                    }}
+                    title="Show WiFi QR codes"
+                  >
+                    📶
+                  </button>
+                )}
+
                 <span style={{
                   padding: '0.35rem 0.75rem',
                   borderRadius: '12px',
@@ -396,6 +455,115 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           onClose={() => setShowWizard(false)}
           onProjectCreated={handleProjectCreated}
         />
+      )}
+
+      {/* WiFi Networks Modal */}
+      {qrProject && (
+        <div className="modal-overlay" onClick={() => { setQrProject(null); setQrWifi(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3>📶 WiFi Networks - {qrProject.name}</h3>
+              <button className="close-btn" onClick={() => { setQrProject(null); setQrWifi(null); }}>✕</button>
+            </div>
+            <div className="modal-body">
+              {qrWifi ? (
+                // Show QR code for selected network
+                <div style={{ textAlign: 'center', padding: '1rem' }}>
+                  <button
+                    onClick={() => setQrWifi(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      marginBottom: '1rem',
+                      color: '#3b82f6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                    }}
+                  >
+                    ← Back to networks
+                  </button>
+                  
+                  <p style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '1rem' }}>{qrWifi.name}</p>
+                  
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`WIFI:T:WPA;S:${qrWifi.name};P:${qrWifi.password};;`)}`}
+                    alt="WiFi QR Code"
+                    style={{ 
+                      border: '1px solid #e5e7eb', 
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      background: 'white',
+                    }}
+                  />
+                  
+                  <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
+                    Scan with your phone camera to connect
+                  </p>
+                  
+                  <div style={{ 
+                    marginTop: '1rem', 
+                    padding: '0.75rem', 
+                    background: '#f3f4f6', 
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    textAlign: 'left',
+                  }}>
+                    <strong>Network:</strong> {qrWifi.name}<br />
+                    <strong>Password:</strong> {qrWifi.password}<br />
+                    <strong>Security:</strong> WPA/WPA2
+                  </div>
+                </div>
+              ) : (
+                // Show list of networks
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {qrProject.wifiNetworks?.map((wifi, index) => (
+                    <div 
+                      key={index}
+                      style={{
+                        padding: '1rem',
+                        background: '#f9fafb',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <strong>{wifi.name}</strong>
+                        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                          Password: <code style={{ background: '#e5e7eb', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>{wifi.password}</code>
+                          <span style={{ marginLeft: '0.5rem' }}>VLAN {wifi.vlan}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setQrWifi(wifi)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                        }}
+                      >
+                        📱 QR Code
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => { setQrProject(null); setQrWifi(null); }}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

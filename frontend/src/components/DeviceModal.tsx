@@ -930,6 +930,9 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   </div>
                 )
               }
+
+              // Check if camera is bound to NVR (disable switch binding)
+              const boundToNVR = formData.deviceType === 'camera' && formData.boundToNVR
               
               return (
                 <>
@@ -937,48 +940,54 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     🔌 Switch Port Binding
                   </h4>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label>Connected to Switch/Router</label>
-                      <select 
-                        value={selectedSwitch} 
-                        onChange={(e) => {
-                          setSelectedSwitch(e.target.value)
-                          setSelectedPort('')
-                        }}
-                      >
-                        <option value="">-- Not bound --</option>
-                        {switches.map(sw => (
-                          <option key={sw._id} value={sw._id}>
-                            {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
-                          </option>
-                        ))}
-                      </select>
+                  {boundToNVR ? (
+                    <div style={{ padding: '1rem', background: '#f3f4f6', borderRadius: '8px', color: '#6b7280' }}>
+                      Camera is connected directly to NVR - switch port binding disabled
                     </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Connected to Switch/Router</label>
+                        <select 
+                          value={selectedSwitch} 
+                          onChange={(e) => {
+                            setSelectedSwitch(e.target.value)
+                            setSelectedPort('')
+                          }}
+                        >
+                          <option value="">-- Not bound --</option>
+                          {switches.map(sw => (
+                            <option key={sw._id} value={sw._id}>
+                              {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label>Switch Port</label>
-                      <select 
-                        value={selectedPort} 
-                        onChange={(e) => setSelectedPort(e.target.value ? parseInt(e.target.value) : '')}
-                        disabled={!selectedSwitch}
-                      >
-                        <option value="">-- Select port --</option>
-                        {getAvailablePorts().map(port => (
-                          <option 
-                            key={port.number} 
-                            value={port.number}
-                            style={port.isBound ? { color: '#ef4444' } : {}}
-                          >
-                            Port {port.number} {port.isBound ? '(in use)' : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {portWarning && (
-                        <small style={{ color: '#f59e0b', display: 'block', marginTop: '0.25rem' }}>{portWarning}</small>
-                      )}
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Switch Port</label>
+                        <select 
+                          value={selectedPort} 
+                          onChange={(e) => setSelectedPort(e.target.value ? parseInt(e.target.value) : '')}
+                          disabled={!selectedSwitch}
+                        >
+                          <option value="">-- Select port --</option>
+                          {getAvailablePorts().map(port => (
+                            <option 
+                              key={port.number} 
+                              value={port.number}
+                              style={port.isBound ? { color: '#ef4444' } : {}}
+                            >
+                              Port {port.number} {port.isBound ? '(in use)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {portWarning && (
+                          <small style={{ color: '#f59e0b', display: 'block', marginTop: '0.25rem' }}>{portWarning}</small>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )
             })()}
@@ -989,28 +998,34 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                   📹 NVR Connection
                 </h4>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label>Connected to NVR</label>
-                  <select 
-                    name="boundToNVR"
-                    value={typeof formData.boundToNVR === 'object' ? formData.boundToNVR._id : (formData.boundToNVR || '')}
-                    onChange={handleInputChange}
-                    disabled={bulkMode}
-                  >
-                    <option value="">-- Direct to switch (no NVR) --</option>
-                    {existingDevices
-                      .filter(d => d.deviceType === 'nvr')
-                      .map(nvr => (
-                        <option key={nvr._id} value={nvr._id}>
-                          {nvr.name} {nvr.manufacturer ? `(${nvr.manufacturer})` : ''}
-                        </option>
-                      ))
-                    }
-                  </select>
-                  <small style={{ color: '#6b7280', marginTop: '0.25rem', display: 'block' }}>
-                    If camera connects directly to NVR rather than via switch
-                  </small>
-                </div>
+                {selectedSwitch ? (
+                  <div style={{ padding: '1rem', background: '#f3f4f6', borderRadius: '8px', color: '#6b7280' }}>
+                    Camera is bound to switch port - NVR binding disabled
+                  </div>
+                ) : (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Connected to NVR</label>
+                    <select 
+                      name="boundToNVR"
+                      value={typeof formData.boundToNVR === 'object' ? formData.boundToNVR._id : (formData.boundToNVR || '')}
+                      onChange={handleInputChange}
+                      disabled={bulkMode}
+                    >
+                      <option value="">-- Direct to switch (no NVR) --</option>
+                      {existingDevices
+                        .filter(d => d.deviceType === 'nvr')
+                        .map(nvr => (
+                          <option key={nvr._id} value={nvr._id}>
+                            {nvr.name} {nvr.manufacturer ? `(${nvr.manufacturer})` : ''}
+                          </option>
+                        ))
+                      }
+                    </select>
+                    <small style={{ color: '#6b7280', marginTop: '0.25rem', display: 'block' }}>
+                      If camera connects directly to NVR rather than via switch
+                    </small>
+                  </div>
+                )}
               </>
             )}
 

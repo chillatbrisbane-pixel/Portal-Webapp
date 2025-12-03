@@ -115,19 +115,6 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     }
   }
 
-  // Group devices by category and sort by IP within each group
-  const devicesByCategory = devices.reduce((acc, device) => {
-    const cat = device.category || 'other'
-    if (!acc[cat]) acc[cat] = []
-    acc[cat].push(device)
-    return acc
-  }, {} as Record<string, Device[]>)
-  
-  // Sort each category by IP
-  Object.keys(devicesByCategory).forEach(cat => {
-    devicesByCategory[cat] = sortByIP(devicesByCategory[cat])
-  })
-
   // Filter devices by category and search, then sort by IP
   const filteredDevices = sortByIP(
     devices.filter(d => {
@@ -143,8 +130,28 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     })
   )
 
-  // Category counts
-  const categoryCounts = Object.entries(devicesByCategory).map(([cat, devs]) => ({
+  // Group FILTERED devices by category and sort by IP within each group
+  const devicesByCategory = filteredDevices.reduce((acc, device) => {
+    const cat = device.category || 'other'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(device)
+    return acc
+  }, {} as Record<string, Device[]>)
+  
+  // Sort each category by IP
+  Object.keys(devicesByCategory).forEach(cat => {
+    devicesByCategory[cat] = sortByIP(devicesByCategory[cat])
+  })
+
+  // Category counts (from all devices, not filtered)
+  const allDevicesByCategory = devices.reduce((acc, device) => {
+    const cat = device.category || 'other'
+    if (!acc[cat]) acc[cat] = []
+    acc[cat].push(device)
+    return acc
+  }, {} as Record<string, Device[]>)
+
+  const categoryCounts = Object.entries(allDevicesByCategory).map(([cat, devs]) => ({
     category: cat,
     count: devs.length,
     ...CATEGORY_INFO[cat as DeviceCategory]
