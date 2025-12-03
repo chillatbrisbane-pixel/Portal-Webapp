@@ -133,6 +133,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'clientEmail',
       'clientPhone',
       'address',
+      'sharePointLink',
       'status',
       'startDate',
       'completionDate',
