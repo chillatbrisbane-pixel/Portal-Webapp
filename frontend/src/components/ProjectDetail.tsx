@@ -810,24 +810,20 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 border: '1px solid #bfdbfe',
               }}>
                 <span style={{ fontSize: '1.25rem' }}>📁</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: '#6b7280', fontSize: '0.75rem', margin: '0 0 0.25rem' }}>SharePoint / OneDrive</p>
-                  <a 
-                    href={project.sharePointLink} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ 
-                      color: '#2563eb', 
-                      fontWeight: 500,
-                      wordBreak: 'break-all',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    {project.sharePointLink.length > 60 
-                      ? project.sharePointLink.substring(0, 60) + '...' 
-                      : project.sharePointLink}
-                  </a>
-                </div>
+                <a 
+                  href={project.sharePointLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ 
+                    flex: 1,
+                    color: '#1e40af', 
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {project.name} OneDrive Link
+                </a>
                 <button
                   onClick={async (e) => {
                     e.preventDefault()
