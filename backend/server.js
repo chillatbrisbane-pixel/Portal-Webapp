@@ -5,6 +5,14 @@ const cors = require('cors');
 
 const app = express();
 
+// Request timeout middleware (30 seconds)
+app.use((req, res, next) => {
+  req.setTimeout(30000, () => {
+    res.status(408).json({ error: 'Request timeout' });
+  });
+  next();
+});
+
 // Middleware
 app.use(cors({
   origin: [
@@ -12,22 +20,51 @@ app.use(cors({
     'http://localhost:3000',           // Alternative local port
     'http://192.168.1.100:5173',       // Local machine on network
     'http://192.168.1.100:5000',       // Backend on network
-    'https://neuronic-brain-nonmobile.ngrok-free.dev',  // Your ngrok domain
+    'https://eliving.ovh',             // Production domain
+    'http://eliving.ovh',              // Production domain (http)
+    'https://www.eliving.ovh',         // Production with www
+    'http://www.eliving.ovh',          // Production with www (http)
   ],
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// MongoDB Connection
+// MongoDB Connection with better error handling
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/av-project-manager';
 
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('✅ Connected to MongoDB'))
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,  // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000,          // Close sockets after 45s of inactivity
+      maxPoolSize: 10,                 // Maintain up to 10 socket connections
+    });
+    console.log('✅ Connected to MongoDB');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err);
+    // Retry connection after 5 seconds
+    setTimeout(connectDB, 5000);
+  }
+};
+
+connectDB();
+
+// MongoDB connection event handlers
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected. Attempting to reconnect...');
+  setTimeout(connectDB, 5000);
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('MongoDB reconnected');
+});
 
 // Import Routes
 const authRoutes = require('./routes/auth');
@@ -39,11 +76,14 @@ const deviceRoutes = require('./routes/devices');
 const reportRoutes = require('./routes/reports');
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   res.json({
-    status: 'ok',
+    status: dbStatus === 'connected' ? 'ok' : 'degraded',
     message: 'AV Project Manager API is running',
+    database: dbStatus,
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
   });
 });
 
@@ -70,6 +110,32 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+});
+
+// Handle server timeouts
+server.timeout = 30000; // 30 second timeout
+server.keepAliveTimeout = 65000; // Slightly higher than typical load balancer timeout
+server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    mongoose.connection.close(false, () => {
+      console.log('Server closed. Database connection closed.');
+      process.exit(0);
+    });
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  // Keep the server running, just log the error
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Keep the server running, just log the error
 });

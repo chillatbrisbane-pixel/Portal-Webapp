@@ -11,6 +11,27 @@ const removeToken = () => {
   localStorage.removeItem('loginTime');
 };
 
+// Fetch with timeout (default 15 seconds)
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Request timeout - server not responding');
+    }
+    throw err;
+  }
+};
+
 // Headers with auth token
 const getHeaders = () => ({
   'Content-Type': 'application/json',
@@ -30,7 +51,7 @@ const handleAuthError = (response: Response) => {
 
 export const authAPI = {
   login: async (email: string, password: string, twoFactorCode?: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, twoFactorCode }),
@@ -52,9 +73,13 @@ export const authAPI = {
   },
 
   getCurrentUser: async () => {
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No token');
+    }
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/me`, {
       headers: getHeaders(),
-    });
+    }, 10000); // 10 second timeout for auth check
     if (!response.ok) {
       handleAuthError(response);
       throw new Error('Failed to get user');
@@ -63,7 +88,7 @@ export const authAPI = {
   },
 
   changePassword: async (currentPassword: string, newPassword: string) => {
-    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/change-password`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ currentPassword, newPassword }),
