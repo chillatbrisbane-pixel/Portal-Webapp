@@ -112,13 +112,25 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
   }
 
   const handleDeviceSetupChange = (techKey: string, field: string, value: any) => {
-    setDeviceSetups(prev => ({
-      ...prev,
-      [techKey]: {
-        ...prev[techKey],
-        [field]: value,
+    setDeviceSetups(prev => {
+      const updated = {
+        ...prev,
+        [techKey]: {
+          ...prev[techKey],
+          [field]: value,
+        }
       }
-    }))
+      
+      // Sync touch panel brand when control system brand changes
+      if (techKey === 'controlSystem' && field === 'brand' && selectedTechs.includes('touchPanels')) {
+        updated.touchPanels = {
+          ...prev.touchPanels,
+          brand: value,
+        }
+      }
+      
+      return updated
+    })
   }
 
   const handleNext = (e: React.MouseEvent) => {

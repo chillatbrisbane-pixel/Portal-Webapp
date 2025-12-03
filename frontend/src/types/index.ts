@@ -149,7 +149,7 @@ export type DeviceType =
   // Camera
   | 'camera' | 'nvr' | 'dvr'
   // Security
-  | 'alarm-panel' | 'keypad' | 'door-controller'
+  | 'alarm-panel' | 'keypad' | 'door-controller' | 'ekey-reader'
   // Control System
   | 'control-processor' | 'touch-panel' | 'secondary-processor' | 'door-station' | 'remote'
   // Lighting
@@ -197,6 +197,24 @@ export interface AudioZone {
   sourceInput: string;
 }
 
+export interface AlarmUser {
+  _id?: string;
+  name: string;
+  code: string;
+  accessAreas: string[];
+  canArm: boolean;
+  canDisarm: boolean;
+  isAdmin: boolean;
+}
+
+export interface NVRUser {
+  _id?: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'operator' | 'viewer';
+  notes: string;
+}
+
 export interface Device {
   _id: string;
   projectId: string;
@@ -233,12 +251,22 @@ export interface Device {
   outputExpanderCount: number; // Output expanders
   readerCount: number;         // Card readers
   partitionCount: number;      // Partitions/areas
-  userCodeCount: number;       // User codes
+  userCodeCount: number;       // User codes (legacy)
   sirenCount: number;          // Sirens
+  
+  // Alarm user codes with access permissions
+  alarmUsers: AlarmUser[];
+  
+  // NVR extra users
+  nvrUsers: NVRUser[];
+  
+  // Sonos specific
+  sonosPin: string;
+  networkPath: 'wired' | 'wireless' | '';
   
   // Switch/Port Binding
   switchPort: number;
-  boundToSwitch?: string | { _id: string; name: string };
+  boundToSwitch?: string | { _id: string; name: string; portCount?: number; lanPorts?: number };
   boundToNVR?: string | { _id: string; name: string };
   boundToProcessor?: string | { _id: string; name: string };
   irPort: number;
@@ -340,6 +368,7 @@ export const BRAND_OPTIONS = {
   },
   security: {
     'alarm-panel': ['Inner Range (Inception)', 'Paradox', 'Bosch', 'Honeywell', 'Custom'],
+    'ekey-reader': ['Ekey', 'Custom'],
   },
   'control-system': {
     'control-processor': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
@@ -385,6 +414,7 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
     { value: 'alarm-panel', label: '🚨 Alarm Panel' },
     { value: 'keypad', label: '🔢 Keypad' },
     { value: 'door-controller', label: '🚪 Door Controller' },
+    { value: 'ekey-reader', label: '👆 Ekey Fingerprint Reader' },
   ],
   'control-system': [
     { value: 'control-processor', label: '🖥️ Main Processor' },
@@ -440,6 +470,7 @@ export const DEVICE_CONNECTION_CONFIG: Record<string, {
   'alarm-panel': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
   'keypad': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: false },
   'door-controller': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'ekey-reader': { options: ['wired'], default: 'wired', requiresSwitch: true },
   
   // Control - wired
   'control-processor': { options: ['wired'], default: 'wired', requiresSwitch: true },

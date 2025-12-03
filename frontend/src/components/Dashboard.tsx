@@ -44,6 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const handleProjectCreated = (newProject: Project) => {
     setProjects([newProject, ...projects])
     setShowWizard(false)
+    setSelectedProject(newProject) // Auto-open the newly created project
   }
 
   const handleProjectDeleted = (projectId: string) => {
@@ -59,9 +60,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   // Filter projects based on search and status
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.clientName?.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.toLowerCase()
+    const matchesSearch = 
+      project.name.toLowerCase().includes(query) ||
+      project.description?.toLowerCase().includes(query) ||
+      project.clientName?.toLowerCase().includes(query) ||
+      project.clientEmail?.toLowerCase().includes(query) ||
+      project.address?.toLowerCase().includes(query)
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
   })

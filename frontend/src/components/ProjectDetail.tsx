@@ -71,6 +71,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [editingWifi, setEditingWifi] = useState<WiFiNetwork | null>(null)
   const [showEditWifiPassword, setShowEditWifiPassword] = useState(false)
   const [wifiPasswordWarning, setWifiPasswordWarning] = useState(false)
+  const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null)
   
   // Devices
   const [devices, setDevices] = useState<Device[]>([])
@@ -185,8 +186,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     }
   }
 
-  // Get switches for port management
-  const switches = devices.filter(d => d.deviceType === 'switch')
+  // Get switches for port management (sorted by name so Switch 1 appears first)
+  const switches = devices
+    .filter(d => d.deviceType === 'switch')
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
   const selectedSwitch = switches.find(s => s._id === selectedSwitchId)
   
   // Get non-switch devices for port assignment, sorted by IP
@@ -1020,10 +1023,18 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '0.25rem' }}>
                           Password: <code style={{ background: '#e5e7eb', padding: '0.1rem 0.4rem', borderRadius: '3px' }}>{wifi.password || '(none)'}</code>
                           {wifi.password && (
-                            <button onClick={(e) => copyToClipboard(wifi.password, e)}
-                              style={{ marginLeft: '0.5rem', padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                              📋
-                            </button>
+                            <>
+                              <button onClick={(e) => copyToClipboard(wifi.password, e)}
+                                style={{ marginLeft: '0.5rem', padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                title="Copy password">
+                                📋
+                              </button>
+                              <button onClick={() => setQrWifi(wifi)}
+                                style={{ padding: '0.1rem 0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                title="Show QR code">
+                                📱
+                              </button>
+                            </>
                           )}
                           <span style={{ marginLeft: '0.75rem' }}>VLAN {wifi.vlan}</span>
                           <span style={{ marginLeft: '0.75rem' }}>{wifi.band}</span>
@@ -1574,6 +1585,60 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 disabled={!cloneName.trim() || loading}
               >
                 {loading ? 'Cloning...' : '📋 Clone Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* WiFi QR Code Modal */}
+      {qrWifi && (
+        <div className="modal-overlay" onClick={() => setQrWifi(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>📱 WiFi QR Code</h3>
+              <button className="close-btn" onClick={() => setQrWifi(null)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ marginBottom: '1rem', fontWeight: 600 }}>{qrWifi.name}</p>
+              
+              {/* QR Code using Google Charts API */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`WIFI:T:WPA;S:${qrWifi.name};P:${qrWifi.password};;`)}`}
+                alt="WiFi QR Code"
+                style={{ 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  background: 'white',
+                }}
+              />
+              
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
+                Scan with your phone camera to connect
+              </p>
+              
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '0.75rem', 
+                background: '#f3f4f6', 
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+              }}>
+                <strong>Network:</strong> {qrWifi.name}<br />
+                <strong>Password:</strong> {qrWifi.password}<br />
+                <strong>Security:</strong> WPA/WPA2
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setQrWifi(null)}>Close</button>
+              <button 
+                className="btn btn-primary"
+                onClick={(e) => {
+                  copyToClipboard(qrWifi.password, e)
+                }}
+              >
+                📋 Copy Password
               </button>
             </div>
           </div>

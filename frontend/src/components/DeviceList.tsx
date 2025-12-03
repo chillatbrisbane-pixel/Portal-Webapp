@@ -38,6 +38,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
   const [showModal, setShowModal] = useState(false)
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [searchFilter, setSearchFilter] = useState('')
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped')
   const [viewOnlyMode, setViewOnlyMode] = useState(false)
 
@@ -127,11 +128,19 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     devicesByCategory[cat] = sortByIP(devicesByCategory[cat])
   })
 
-  // Filter devices and sort by IP
+  // Filter devices by category and search, then sort by IP
   const filteredDevices = sortByIP(
-    filterCategory === 'all' 
-      ? devices 
-      : devices.filter(d => d.category === filterCategory)
+    devices.filter(d => {
+      const matchesCategory = filterCategory === 'all' || d.category === filterCategory
+      const searchLower = searchFilter.toLowerCase()
+      const matchesSearch = !searchFilter || 
+        d.name.toLowerCase().includes(searchLower) ||
+        d.ipAddress?.toLowerCase().includes(searchLower) ||
+        d.manufacturer?.toLowerCase().includes(searchLower) ||
+        d.model?.toLowerCase().includes(searchLower) ||
+        d.location?.toLowerCase().includes(searchLower)
+      return matchesCategory && matchesSearch
+    })
   )
 
   // Category counts
@@ -156,8 +165,41 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     <div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <h3 style={{ margin: 0 }}>🎛️ Devices ({devices.length})</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0 }}>🎛️ Devices ({filteredDevices.length}{searchFilter || filterCategory !== 'all' ? `/${devices.length}` : ''})</h3>
+          
+          {/* Search filter */}
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="🔍 Filter by name, IP, brand..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              style={{ 
+                padding: '0.5rem 0.5rem 0.5rem 2rem', 
+                borderRadius: '4px', 
+                border: '1px solid #d1d5db',
+                width: '220px',
+              }}
+            />
+            {searchFilter && (
+              <button
+                onClick={() => setSearchFilter('')}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
           
           <select
             value={filterCategory}

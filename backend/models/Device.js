@@ -77,8 +77,35 @@ const deviceSchema = new mongoose.Schema(
     readerCount: { type: Number, default: 0 },      // Card readers
     // General alarm
     partitionCount: { type: Number, default: 1 },   // Number of partitions/areas
-    userCodeCount: { type: Number, default: 0 },    // Number of user codes
+    userCodeCount: { type: Number, default: 0 },    // Number of user codes (legacy)
     sirenCount: { type: Number, default: 0 },       // Internal/external sirens
+    
+    // Alarm user codes with access permissions
+    alarmUsers: [{
+      name: String,
+      code: String,
+      accessAreas: [String], // Which areas/partitions they can access
+      canArm: { type: Boolean, default: true },
+      canDisarm: { type: Boolean, default: true },
+      isAdmin: { type: Boolean, default: false },
+    }],
+    
+    // ============ NVR SPECIFIC ============
+    // Extra NVR users (beyond main credentials)
+    nvrUsers: [{
+      username: String,
+      password: String,
+      role: { type: String, enum: ['admin', 'operator', 'viewer'], default: 'viewer' },
+      notes: String,
+    }],
+    
+    // ============ SONOS SPECIFIC ============
+    sonosPin: String,           // Sonos setup PIN
+    networkPath: {              // For Sonos devices
+      type: String,
+      enum: ['wired', 'wireless', ''],
+      default: ''
+    },
     
     // Switch/Port Binding
     switchPort: Number,

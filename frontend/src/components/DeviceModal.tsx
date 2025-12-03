@@ -91,6 +91,7 @@ const getDefaultDeviceName = (deviceType: string, existingCount: number) => {
     'fireplace': 'Fireplace',
     'shade': 'Shade',
     'pool': 'Pool Controller',
+    'ekey-reader': 'Ekey Reader',
     'generic': 'Device',
   }
   const baseName = names[deviceType] || 'Device'
@@ -143,8 +144,8 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
       setSwitches(bindableDevices.map(s => ({
         _id: s._id,
         name: s.name,
-        // Routers typically have 4-8 LAN ports, switches have more
-        portCount: s.portCount || (s.deviceType === 'router' ? 4 : 24),
+        // Use lanPorts for routers, portCount for switches
+        portCount: s.deviceType === 'router' ? (s.lanPorts || 4) : (s.portCount || 24),
         managedPorts: s.managedPorts || [],
         deviceType: s.deviceType
       })))
@@ -561,29 +562,71 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     value={formData.serialNumber}
                     onChange={handleInputChange}
                     style={{ flex: 1 }}
+                    disabled={bulkMode}
+                    placeholder={bulkMode ? '(Set individually after creation)' : ''}
                   />
-                  <button
-                    type="button"
-                    onClick={() => startScanner('serialNumber')}
-                    style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                    title="Scan barcode"
-                  >
-                    📷
-                  </button>
+                  {!bulkMode && (
+                    <button
+                      type="button"
+                      onClick={() => startScanner('serialNumber')}
+                      style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                      title="Scan barcode"
+                    >
+                      📷
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Firmware Version</label>
-                <input
-                  name="firmwareVersion"
-                  type="text"
-                  value={formData.firmwareVersion || ''}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 1.12.3"
-                />
-              </div>
+              {/* Hide firmware for Sonos devices */}
+              {formData.manufacturer !== 'Sonos' && (
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Firmware Version</label>
+                  <input
+                    name="firmwareVersion"
+                    type="text"
+                    value={formData.firmwareVersion || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 1.12.3"
+                    disabled={bulkMode}
+                  />
+                </div>
+              )}
             </div>
+
+            {/* ============ SONOS SPECIFIC ============ */}
+            {formData.manufacturer === 'Sonos' && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  🔊 Sonos Configuration
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Network Path</label>
+                    <select 
+                      name="networkPath" 
+                      value={formData.networkPath || ''} 
+                      onChange={handleInputChange}
+                    >
+                      <option value="">Select...</option>
+                      <option value="wired">🔌 Wired (Ethernet)</option>
+                      <option value="wireless">📶 Wireless (WiFi)</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Sonos PIN</label>
+                    <input
+                      name="sonosPin"
+                      type="text"
+                      value={formData.sonosPin || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 1234"
+                      maxLength={8}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* ============ BULK ADD (only for new devices) ============ */}
             {!device && (
@@ -878,6 +921,15 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               if (!showSwitchBinding) {
                 return null
               }
+
+              // Disable in bulk mode
+              if (bulkMode) {
+                return (
+                  <div style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px', color: '#6b7280' }}>
+                    🔌 Switch port binding will be set individually after devices are created
+                  </div>
+                )
+              }
               
               return (
                 <>
@@ -930,6 +982,37 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 </>
               )
             })()}
+
+            {/* ============ CAMERA NVR BINDING ============ */}
+            {formData.category === 'camera' && formData.deviceType === 'camera' && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  📹 NVR Connection
+                </h4>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Connected to NVR</label>
+                  <select 
+                    name="boundToNVR"
+                    value={typeof formData.boundToNVR === 'object' ? formData.boundToNVR._id : (formData.boundToNVR || '')}
+                    onChange={handleInputChange}
+                    disabled={bulkMode}
+                  >
+                    <option value="">-- Direct to switch (no NVR) --</option>
+                    {existingDevices
+                      .filter(d => d.deviceType === 'nvr')
+                      .map(nvr => (
+                        <option key={nvr._id} value={nvr._id}>
+                          {nvr.name} {nvr.manufacturer ? `(${nvr.manufacturer})` : ''}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <small style={{ color: '#6b7280', marginTop: '0.25rem', display: 'block' }}>
+                    If camera connects directly to NVR rather than via switch
+                  </small>
+                </div>
+              </>
+            )}
 
             {/* ============ CATEGORY-SPECIFIC FIELDS ============ */}
             
