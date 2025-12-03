@@ -55,6 +55,9 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   partitionCount: 1,
   userCodeCount: 0,
   sirenCount: 0,
+  // Users arrays
+  nvrUsers: [],
+  alarmUsers: [],
 }
 
 // Default device names by type
@@ -865,6 +868,139 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </div>
             )}
 
+            {/* ============ NVR EXTRA USERS ============ */}
+            {formData.deviceType === 'nvr' && !bulkMode && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  👥 Additional Users
+                </h4>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                  Add extra user accounts for operators/viewers beyond the main admin credentials above.
+                </p>
+                
+                {/* Existing NVR users list */}
+                {(formData.nvrUsers || []).length > 0 && (
+                  <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {formData.nvrUsers?.map((user, idx) => (
+                      <div key={idx} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem',
+                        padding: '0.75rem',
+                        background: '#f9fafb',
+                        borderRadius: '6px',
+                        border: '1px solid #e5e7eb',
+                      }}>
+                        <span style={{ 
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          background: user.role === 'admin' ? '#fee2e2' : user.role === 'operator' ? '#fef3c7' : '#dcfce7',
+                          color: user.role === 'admin' ? '#991b1b' : user.role === 'operator' ? '#92400e' : '#166534',
+                        }}>
+                          {user.role}
+                        </span>
+                        <strong style={{ flex: 1 }}>{user.username}</strong>
+                        <code style={{ background: '#e5e7eb', padding: '0.2rem 0.5rem', borderRadius: '3px', fontSize: '0.85rem' }}>
+                          {user.password}
+                        </code>
+                        {user.notes && <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>({user.notes})</span>}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...(formData.nvrUsers || [])]
+                            updated.splice(idx, 1)
+                            setFormData({ ...formData, nvrUsers: updated })
+                          }}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            background: '#fee2e2',
+                            color: '#991b1b',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Add new NVR user form */}
+                <div style={{ 
+                  padding: '1rem',
+                  background: '#f0f9ff',
+                  borderRadius: '6px',
+                  border: '1px dashed #bae6fd',
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Username"
+                      id="new-nvr-username"
+                      style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Password"
+                      id="new-nvr-password"
+                      style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                    />
+                    <select id="new-nvr-role" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
+                      <option value="viewer">Viewer</option>
+                      <option value="operator">Operator</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Notes (optional)"
+                      id="new-nvr-notes"
+                      style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const username = (document.getElementById('new-nvr-username') as HTMLInputElement).value.trim()
+                        const password = (document.getElementById('new-nvr-password') as HTMLInputElement).value.trim()
+                        const role = (document.getElementById('new-nvr-role') as HTMLSelectElement).value as 'admin' | 'operator' | 'viewer'
+                        const notes = (document.getElementById('new-nvr-notes') as HTMLInputElement).value.trim()
+                        
+                        if (!username || !password) {
+                          alert('Username and password are required')
+                          return
+                        }
+                        
+                        const newUser = { username, password, role, notes }
+                        setFormData({ ...formData, nvrUsers: [...(formData.nvrUsers || []), newUser] })
+                        
+                        // Clear form
+                        ;(document.getElementById('new-nvr-username') as HTMLInputElement).value = ''
+                        ;(document.getElementById('new-nvr-password') as HTMLInputElement).value = ''
+                        ;(document.getElementById('new-nvr-role') as HTMLSelectElement).value = 'viewer'
+                        ;(document.getElementById('new-nvr-notes') as HTMLInputElement).value = ''
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ➕ Add User
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* ============ CONNECTION TYPE ============ */}
             {(() => {
               const connectionConfig = getDeviceConnectionConfig(formData.deviceType as string)
@@ -913,12 +1049,16 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               const currentConnectionType = formData.connectionType || connectionConfig.default
               const showSwitchBinding = currentConnectionType === 'wired' || currentConnectionType === 'both'
               
-              // Don't show for routers and switches (they ARE the switch)
-              if (formData.deviceType === 'router' || formData.deviceType === 'switch') {
+              // For switches, show uplink binding option but exclude self from list
+              // For routers, they typically don't connect to other switches (they ARE the upstream)
+              if (formData.deviceType === 'router') {
                 return null
               }
               
-              if (!showSwitchBinding) {
+              // For switches, show uplink port binding
+              const isSwitch = formData.deviceType === 'switch'
+              
+              if (!showSwitchBinding && !isSwitch) {
                 return null
               }
 
@@ -934,10 +1074,13 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               // Check if camera is bound to NVR (disable switch binding)
               const boundToNVR = formData.deviceType === 'camera' && formData.boundToNVR
               
+              // Filter out the current device from available switches for uplink
+              const availableSwitches = switches.filter(sw => sw._id !== device?._id)
+              
               return (
                 <>
                   <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-                    🔌 Switch Port Binding
+                    {isSwitch ? '🔗 Uplink Port Binding' : '🔌 Switch Port Binding'}
                   </h4>
 
                   {boundToNVR ? (
@@ -945,48 +1088,55 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                       Camera is connected directly to NVR - switch port binding disabled
                     </div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>Connected to Switch/Router</label>
-                        <select 
-                          value={selectedSwitch} 
-                          onChange={(e) => {
-                            setSelectedSwitch(e.target.value)
-                            setSelectedPort('')
-                          }}
-                        >
-                          <option value="">-- Not bound --</option>
-                          {switches.map(sw => (
-                            <option key={sw._id} value={sw._id}>
-                              {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    <>
+                      {isSwitch && (
+                        <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                          Select which switch/router port this switch's uplink connects to.
+                        </p>
+                      )}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>{isSwitch ? 'Uplink to Switch/Router' : 'Connected to Switch/Router'}</label>
+                          <select 
+                            value={selectedSwitch} 
+                            onChange={(e) => {
+                              setSelectedSwitch(e.target.value)
+                              setSelectedPort('')
+                            }}
+                          >
+                            <option value="">-- Not bound --</option>
+                            {availableSwitches.map(sw => (
+                              <option key={sw._id} value={sw._id}>
+                                {sw.name} ({sw.portCount} {sw.deviceType === 'router' ? 'LAN ports' : 'ports'})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>Switch Port</label>
-                        <select 
-                          value={selectedPort} 
-                          onChange={(e) => setSelectedPort(e.target.value ? parseInt(e.target.value) : '')}
-                          disabled={!selectedSwitch}
-                        >
-                          <option value="">-- Select port --</option>
-                          {getAvailablePorts().map(port => (
-                            <option 
-                              key={port.number} 
-                              value={port.number}
-                              style={port.isBound ? { color: '#ef4444' } : {}}
-                            >
-                              Port {port.number} {port.isBound ? '(in use)' : ''}
-                            </option>
-                          ))}
-                        </select>
-                        {portWarning && (
-                          <small style={{ color: '#f59e0b', display: 'block', marginTop: '0.25rem' }}>{portWarning}</small>
-                        )}
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>{isSwitch ? 'Uplink Port' : 'Switch Port'}</label>
+                          <select 
+                            value={selectedPort} 
+                            onChange={(e) => setSelectedPort(e.target.value ? parseInt(e.target.value) : '')}
+                            disabled={!selectedSwitch}
+                          >
+                            <option value="">-- Select port --</option>
+                            {getAvailablePorts().map(port => (
+                              <option 
+                                key={port.number} 
+                                value={port.number}
+                                style={port.isBound ? { color: '#ef4444' } : {}}
+                              >
+                                Port {port.number} {port.isBound ? '(in use)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                          {portWarning && (
+                            <small style={{ color: '#f59e0b', display: 'block', marginTop: '0.25rem' }}>{portWarning}</small>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                 </>
               )
@@ -1219,6 +1369,198 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         </div>
                       </div>
                     )}
+                  </>
+                )}
+
+                {/* ============ ALARM USER CODES ============ */}
+                {!bulkMode && (
+                  <>
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      🔑 User Codes
+                    </h4>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      Manage alarm user codes with access permissions.
+                    </p>
+                    
+                    {/* Existing alarm users list */}
+                    {(formData.alarmUsers || []).length > 0 && (
+                      <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {formData.alarmUsers?.map((user, idx) => (
+                          <div key={idx} style={{ 
+                            padding: '0.75rem',
+                            background: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                              {user.isAdmin && (
+                                <span style={{ 
+                                  padding: '0.2rem 0.5rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  background: '#fee2e2',
+                                  color: '#991b1b',
+                                }}>
+                                  ADMIN
+                                </span>
+                              )}
+                              <strong style={{ flex: 1 }}>{user.name}</strong>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = formData.alarmUsers || []
+                                  const updated = current.map((u, i) => 
+                                    i === idx ? { ...u, _showCode: !u._showCode } : u
+                                  )
+                                  setFormData({ ...formData, alarmUsers: updated as any })
+                                }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: '#e5e7eb',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                {(user as any)._showCode ? '🙈 Hide' : '👁️ Show'}
+                              </button>
+                              <code style={{ 
+                                background: '#e5e7eb', 
+                                padding: '0.2rem 0.5rem', 
+                                borderRadius: '3px', 
+                                fontSize: '0.85rem',
+                                fontFamily: 'monospace',
+                                letterSpacing: '0.1rem',
+                              }}>
+                                {(user as any)._showCode ? user.code : '••••'}
+                              </code>
+                              <button
+                                type="button"
+                                onClick={(e) => copyToClipboard(user.code, e)}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                📋
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(formData.alarmUsers || [])]
+                                  updated.splice(idx, 1)
+                                  setFormData({ ...formData, alarmUsers: updated })
+                                }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: '#fee2e2',
+                                  color: '#991b1b',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                              <span>{user.canArm ? '✅ Arm' : '❌ Arm'}</span>
+                              <span>{user.canDisarm ? '✅ Disarm' : '❌ Disarm'}</span>
+                              {user.accessAreas?.length > 0 && (
+                                <span>📍 Areas: {user.accessAreas.join(', ')}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Add new alarm user form */}
+                    <div style={{ 
+                      padding: '1rem',
+                      background: '#fef3c7',
+                      borderRadius: '6px',
+                      border: '1px dashed #fbbf24',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input
+                          type="text"
+                          placeholder="User Name"
+                          id="new-alarm-name"
+                          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Code (e.g. 1234)"
+                          id="new-alarm-code"
+                          maxLength={8}
+                          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                          <input type="checkbox" id="new-alarm-arm" defaultChecked /> Can Arm
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                          <input type="checkbox" id="new-alarm-disarm" defaultChecked /> Can Disarm
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                          <input type="checkbox" id="new-alarm-admin" /> Admin
+                        </label>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <input
+                          type="text"
+                          placeholder="Access Areas (comma-separated, e.g. House, Garage)"
+                          id="new-alarm-areas"
+                          style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const name = (document.getElementById('new-alarm-name') as HTMLInputElement).value.trim()
+                            const code = (document.getElementById('new-alarm-code') as HTMLInputElement).value.trim()
+                            const canArm = (document.getElementById('new-alarm-arm') as HTMLInputElement).checked
+                            const canDisarm = (document.getElementById('new-alarm-disarm') as HTMLInputElement).checked
+                            const isAdmin = (document.getElementById('new-alarm-admin') as HTMLInputElement).checked
+                            const areasStr = (document.getElementById('new-alarm-areas') as HTMLInputElement).value.trim()
+                            const accessAreas = areasStr ? areasStr.split(',').map(a => a.trim()).filter(a => a) : []
+                            
+                            if (!name || !code) {
+                              alert('Name and code are required')
+                              return
+                            }
+                            
+                            const newUser = { name, code, canArm, canDisarm, isAdmin, accessAreas }
+                            setFormData({ ...formData, alarmUsers: [...(formData.alarmUsers || []), newUser] })
+                            
+                            // Clear form
+                            ;(document.getElementById('new-alarm-name') as HTMLInputElement).value = ''
+                            ;(document.getElementById('new-alarm-code') as HTMLInputElement).value = ''
+                            ;(document.getElementById('new-alarm-arm') as HTMLInputElement).checked = true
+                            ;(document.getElementById('new-alarm-disarm') as HTMLInputElement).checked = true
+                            ;(document.getElementById('new-alarm-admin') as HTMLInputElement).checked = false
+                            ;(document.getElementById('new-alarm-areas') as HTMLInputElement).value = ''
+                          }}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: '#f59e0b',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ➕ Add User
+                        </button>
+                      </div>
+                    </div>
                   </>
                 )}
               </>

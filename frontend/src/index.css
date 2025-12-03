@@ -328,3 +328,155 @@ select {
   background: #fee2e2;
   color: #991b1b;
 }
+
+/* ============ MOBILE RESPONSIVE STYLES ============ */
+
+/* Tablet and smaller */
+@media (max-width: 1024px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .modal {
+    width: 95%;
+    max-width: none;
+    margin: 1rem;
+    max-height: 90vh;
+  }
+  
+  .modal-body {
+    max-height: 60vh;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.75rem;
+  }
+  
+  /* Full width buttons on mobile */
+  .btn {
+    justify-content: center;
+  }
+  
+  /* Modal improvements */
+  .modal {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+    height: 100vh;
+  }
+  
+  .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid var(--gray-200);
+    z-index: 10;
+  }
+  
+  .modal-body {
+    max-height: calc(100vh - 140px);
+    padding: 1rem;
+  }
+  
+  /* Form grid adjustments */
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  input, select, textarea {
+    font-size: 16px !important; /* Prevent zoom on iOS */
+  }
+  
+  /* Card padding */
+  .card {
+    padding: 1rem;
+  }
+  
+  /* Table horizontal scroll */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  th, td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  /* Touch-friendly tap targets */
+  button, 
+  .btn, 
+  a, 
+  select {
+    min-height: 44px;
+  }
+  
+  /* Compact header on mobile */
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  h2 {
+    font-size: 1.25rem;
+  }
+  
+  h3 {
+    font-size: 1.1rem;
+  }
+  
+  h4 {
+    font-size: 1rem;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .container {
+    padding: 0.5rem;
+  }
+  
+  .modal-body {
+    padding: 0.75rem;
+  }
+  
+  /* Smaller buttons */
+  .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn-sm {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  button:hover,
+  .btn:hover,
+  .card:hover {
+    transform: none;
+    box-shadow: inherit;
+  }
+  
+  /* Larger touch targets */
+  .copy-btn,
+  .action-btn {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0.75rem;
+  }
+}

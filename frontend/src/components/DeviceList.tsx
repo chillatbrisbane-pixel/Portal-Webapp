@@ -31,6 +31,11 @@ const sortByIP = (devices: Device[]): Device[] => {
   return [...devices].sort((a, b) => parseIP(a.ipAddress || '') - parseIP(b.ipAddress || ''))
 }
 
+// Sort devices by name (alphabetical with numeric awareness)
+const sortByName = (devices: Device[]): Device[] => {
+  return [...devices].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+}
+
 export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChanged }) => {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,11 +44,22 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [searchFilter, setSearchFilter] = useState('')
+  const [sortBy, setSortBy] = useState<'ip' | 'name'>('ip')
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped')
   const [viewOnlyMode, setViewOnlyMode] = useState(false)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
 
   useEffect(() => {
     loadDevices()
+  }, [projectId])
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshDevicesSilently()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [projectId])
 
   const loadDevices = async () => {
@@ -51,10 +67,24 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
       setLoading(true)
       const data = await devicesAPI.getByProject(projectId)
       setDevices(data)
+      setLastRefresh(new Date())
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Silent refresh without loading spinner
+  const refreshDevicesSilently = async () => {
+    try {
+      const data = await devicesAPI.getByProject(projectId)
+      setDevices(data)
+      setLastRefresh(new Date())
+      onDevicesChanged?.()
+    } catch (err) {
+      // Silently fail on background refresh
+      console.log('Background refresh failed')
     }
   }
 
@@ -115,8 +145,11 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     }
   }
 
-  // Filter devices by category and search, then sort by IP
-  const filteredDevices = sortByIP(
+  // Sort function based on current sortBy setting
+  const sortDevices = (devs: Device[]) => sortBy === 'ip' ? sortByIP(devs) : sortByName(devs)
+
+  // Filter devices by category and search, then sort
+  const filteredDevices = sortDevices(
     devices.filter(d => {
       const matchesCategory = filterCategory === 'all' || d.category === filterCategory
       const searchLower = searchFilter.toLowerCase()
@@ -130,7 +163,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     })
   )
 
-  // Group FILTERED devices by category and sort by IP within each group
+  // Group FILTERED devices by category and sort within each group
   const devicesByCategory = filteredDevices.reduce((acc, device) => {
     const cat = device.category || 'other'
     if (!acc[cat]) acc[cat] = []
@@ -138,9 +171,9 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
     return acc
   }, {} as Record<string, Device[]>)
   
-  // Sort each category by IP
+  // Sort each category
   Object.keys(devicesByCategory).forEach(cat => {
-    devicesByCategory[cat] = sortByIP(devicesByCategory[cat])
+    devicesByCategory[cat] = sortDevices(devicesByCategory[cat])
   })
 
   // Category counts (from all devices, not filtered)
@@ -247,11 +280,58 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
               📋 Table
             </button>
           </div>
+
+          {/* Sort Toggle */}
+          <div style={{ display: 'flex', gap: '0.25rem', background: '#f3f4f6', borderRadius: '6px', padding: '0.25rem' }}>
+            <button
+              onClick={() => setSortBy('ip')}
+              style={{
+                padding: '0.25rem 0.75rem',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                background: sortBy === 'ip' ? 'white' : 'transparent',
+                boxShadow: sortBy === 'ip' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                fontSize: '0.85rem',
+              }}
+              title="Sort by IP Address"
+            >
+              🔢 IP
+            </button>
+            <button
+              onClick={() => setSortBy('name')}
+              style={{
+                padding: '0.25rem 0.75rem',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                background: sortBy === 'name' ? 'white' : 'transparent',
+                boxShadow: sortBy === 'name' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                fontSize: '0.85rem',
+              }}
+              title="Sort by Name"
+            >
+              🔤 Name
+            </button>
+          </div>
         </div>
 
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          ➕ Add Device
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+            🔄 Auto-refreshes every 30s
+          </span>
+          <button 
+            className="btn btn-secondary" 
+            onClick={refreshDevicesSilently}
+            title={`Last refreshed: ${lastRefresh.toLocaleTimeString()}`}
+            style={{ padding: '0.5rem 0.75rem' }}
+          >
+            🔄 {lastRefresh.toLocaleTimeString()}
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            ➕ Add Device
+          </button>
+        </div>
       </div>
 
       {/* Category Summary */}

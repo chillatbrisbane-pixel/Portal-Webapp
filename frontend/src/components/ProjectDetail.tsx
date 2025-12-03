@@ -193,8 +193,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const selectedSwitch = switches.find(s => s._id === selectedSwitchId)
   
   // Get non-switch devices for port assignment, sorted by IP
+  // Devices assignable to switch ports - exclude current switch but allow other switches
   const assignableDevices = devices
-    .filter(d => d.deviceType !== 'switch')
+    .filter(d => d.deviceType !== 'switch' || d._id !== selectedSwitchId)
     .sort((a, b) => parseIP(a.ipAddress || '') - parseIP(b.ipAddress || ''))
 
   // Get WiFi from access points
@@ -803,13 +804,22 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                         {wifi.password || '(open)'}
                       </code>
                       {wifi.password && (
-                        <button
-                          onClick={(e) => copyToClipboard(wifi.password, e)}
-                          style={{ padding: '0.15rem 0.35rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
-                          title="Copy password"
-                        >
-                          📋
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => copyToClipboard(wifi.password, e)}
+                            style={{ padding: '0.15rem 0.35rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
+                            title="Copy password"
+                          >
+                            📋
+                          </button>
+                          <button
+                            onClick={() => setQrWifi(wifi)}
+                            style={{ padding: '0.15rem 0.35rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}
+                            title="Show QR code"
+                          >
+                            📱
+                          </button>
+                        </>
                       )}
                     </div>
                   ))}
