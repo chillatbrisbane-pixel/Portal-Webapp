@@ -260,43 +260,86 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
   // Barcode Scanner Functions
   const [scannerError, setScannerError] = useState<string | null>(null)
   const [isScanning, setIsScanning] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('')
   const scanIntervalRef = React.useRef<number | null>(null)
 
   const startScanner = async (target: 'serialNumber' | 'model') => {
     setScanTarget(target)
     setScannerError(null)
+    setDebugInfo('')
     setShowScanner(true)
     
+    // Wait a tick for modal to render and video element to mount
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
     try {
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera access not supported in this browser. Try Chrome or Safari.')
+      // Check if we're on HTTPS (required for camera on mobile)
+      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost'
+      if (!isSecure) {
+        throw new Error(`SecurityError: Camera requires HTTPS. Current: ${window.location.protocol}//${window.location.hostname}`)
       }
 
-      // Request camera permission with constraints
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices) {
+        throw new Error('navigator.mediaDevices not available. Site must be served over HTTPS.')
+      }
+      
+      if (!navigator.mediaDevices.getUserMedia) {
+        throw new Error('getUserMedia not available. Try a different browser.')
+      }
+
+      setDebugInfo('Requesting camera permission...')
+
+      // Request camera permission with simpler constraints for mobile
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
-          facingMode: { ideal: 'environment' }, // Prefer back camera
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+          facingMode: 'environment' // Use back camera on mobile
         }
       })
       
+      setDebugInfo('Got stream, attaching to video...')
       streamRef.current = stream
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.setAttribute('playsinline', 'true') // Important for iOS
-        await videoRef.current.play()
+        
+        // Wait for video to be ready
+        await new Promise<void>((resolve, reject) => {
+          if (!videoRef.current) return reject(new Error('Video element not found'))
+          
+          videoRef.current.onloadedmetadata = () => {
+            setDebugInfo('Video metadata loaded, playing...')
+            videoRef.current?.play()
+              .then(() => {
+                setDebugInfo('Video playing!')
+                resolve()
+              })
+              .catch(reject)
+          }
+          
+          videoRef.current.onerror = () => reject(new Error('Video element error'))
+          
+          // Timeout after 5 seconds
+          setTimeout(() => reject(new Error('Video load timeout')), 5000)
+        })
         
         // Start continuous barcode detection if supported
         if ('BarcodeDetector' in window) {
           startBarcodeDetection()
+          setDebugInfo('BarcodeDetector active')
+        } else {
+          setDebugInfo('Camera ready (no auto-detect)')
         }
+      } else {
+        throw new Error('Video element not mounted')
       }
     } catch (err: any) {
       console.error('Camera access error:', err)
+      
+      // Build detailed error message
       let errorMsg = 'Unable to access camera.'
+      const errorName = err.name || 'Unknown'
+      const errorMessage = err.message || ''
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         errorMsg = 'Camera permission denied. Please allow camera access in your browser settings and reload the page.'
@@ -305,24 +348,29 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         errorMsg = 'Camera is in use by another application.'
       } else if (err.name === 'OverconstrainedError') {
-        errorMsg = 'Camera does not meet requirements. Trying default camera...'
-        // Try again with no constraints
+        // Try again with absolutely no constraints
         try {
+          setDebugInfo('Trying fallback camera...')
           const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true })
           streamRef.current = fallbackStream
           if (videoRef.current) {
             videoRef.current.srcObject = fallbackStream
-            videoRef.current.setAttribute('playsinline', 'true')
             await videoRef.current.play()
+            setDebugInfo('Fallback camera working')
+            return
           }
-          return
-        } catch {
-          errorMsg = 'Could not access any camera.'
+        } catch (fallbackErr: any) {
+          errorMsg = `Could not access any camera: ${fallbackErr.message || fallbackErr.name}`
         }
-      } else if (err.message) {
-        errorMsg = err.message
+      } else if (err.name === 'AbortError') {
+        errorMsg = 'Camera request was aborted. Please try again.'
+      } else if (err.name === 'SecurityError') {
+        errorMsg = 'Camera blocked due to security policy. Ensure site is served over HTTPS.'
+      } else {
+        errorMsg = `${errorName}: ${errorMessage}`
       }
       
+      setDebugInfo(`Error: ${errorName} - ${errorMessage}`)
       setScannerError(errorMsg)
     }
   }
@@ -368,6 +416,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     setShowScanner(false)
     setIsScanning(false)
     setScannerError(null)
+    setDebugInfo('')
   }
 
   const captureAndProcess = async () => {
@@ -1782,13 +1831,21 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 <p style={{ color: '#991b1b', margin: '0 0 1rem', fontWeight: 600 }}>
                   ⚠️ Camera Error
                 </p>
-                <p style={{ color: '#991b1b', margin: '0 0 1rem', fontSize: '0.9rem' }}>
+                <p style={{ color: '#991b1b', margin: '0 0 1rem', fontSize: '0.9rem', wordBreak: 'break-word' }}>
                   {scannerError}
                 </p>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '0.85rem' }}>
-                  On mobile: Check Settings → Safari/Chrome → Camera<br />
-                  On desktop: Click the camera icon in the address bar
-                </p>
+                <div style={{ color: '#6b7280', margin: 0, fontSize: '0.85rem', textAlign: 'left' }}>
+                  <p style={{ margin: '0 0 0.5rem', fontWeight: 600 }}>Troubleshooting:</p>
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                    <li>Site must be served over <strong>HTTPS</strong> (not HTTP)</li>
+                    <li>On mobile: Settings → Chrome → Site Settings → Camera → Allow</li>
+                    <li>On iOS: Settings → Safari → Camera → Allow</li>
+                    <li>Try refreshing the page after granting permission</li>
+                  </ul>
+                  <p style={{ margin: '0.75rem 0 0', padding: '0.5rem', background: '#fee2e2', borderRadius: '4px', fontSize: '0.8rem' }}>
+                    Current URL: {typeof window !== 'undefined' ? window.location.protocol + '//' + window.location.host : 'N/A'}
+                  </p>
+                </div>
               </div>
             ) : (
               // Camera view
@@ -1906,6 +1963,21 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 : '⚠️ Auto-detection not supported - use Capture or Manual'
               }
             </p>
+            
+            {/* Debug info */}
+            {debugInfo && (
+              <p style={{ 
+                color: '#6b7280', 
+                fontSize: '0.75rem', 
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                background: '#f3f4f6',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+              }}>
+                Status: {debugInfo}
+              </p>
+            )}
           </div>
         </div>
       )}

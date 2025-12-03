@@ -114,6 +114,7 @@ export interface Project {
   clientEmail: string;
   clientPhone: string;
   address: string;
+  sharePointLink: string;
   status: 'planning' | 'in-progress' | 'completed';
   startDate: string;
   completionDate: string;

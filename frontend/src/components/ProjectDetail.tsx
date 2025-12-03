@@ -72,6 +72,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [showEditWifiPassword, setShowEditWifiPassword] = useState(false)
   const [wifiPasswordWarning, setWifiPasswordWarning] = useState(false)
   const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null)
+  const [showSharePointQR, setShowSharePointQR] = useState(false)
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   
   // Devices
   const [devices, setDevices] = useState<Device[]>([])
@@ -221,6 +223,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
         address: formData.address,
+        sharePointLink: formData.sharePointLink,
         status: formData.status,
         notes: formData.notes,
       }
@@ -743,6 +746,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
               </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>📁 SharePoint/OneDrive Link</label>
+                <input
+                  type="url"
+                  value={formData.sharePointLink || ''}
+                  onChange={(e) => setFormData({ ...formData, sharePointLink: e.target.value })}
+                  placeholder="https://company.sharepoint.com/..."
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -783,6 +796,115 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 <p style={{ fontWeight: 600, margin: 0 }}>{project.address || 'N/A'}</p>
               </div>
             </div>
+
+            {/* SharePoint/OneDrive Link */}
+            {project.sharePointLink && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.75rem',
+                marginBottom: '1.5rem',
+                padding: '0.75rem 1rem',
+                background: '#eff6ff',
+                borderRadius: '8px',
+                border: '1px solid #bfdbfe',
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>📁</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: '#6b7280', fontSize: '0.75rem', margin: '0 0 0.25rem' }}>SharePoint / OneDrive</p>
+                  <a 
+                    href={project.sharePointLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ 
+                      color: '#2563eb', 
+                      fontWeight: 500,
+                      wordBreak: 'break-all',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    {project.sharePointLink.length > 60 
+                      ? project.sharePointLink.substring(0, 60) + '...' 
+                      : project.sharePointLink}
+                  </a>
+                </div>
+                <button
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    try {
+                      await navigator.clipboard.writeText(project.sharePointLink)
+                      setCopyFeedback('link')
+                      setTimeout(() => setCopyFeedback(null), 2000)
+                    } catch (err) {
+                      // Fallback
+                      const textarea = document.createElement('textarea')
+                      textarea.value = project.sharePointLink
+                      document.body.appendChild(textarea)
+                      textarea.select()
+                      document.execCommand('copy')
+                      document.body.removeChild(textarea)
+                      setCopyFeedback('link')
+                      setTimeout(() => setCopyFeedback(null), 2000)
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: copyFeedback === 'link' ? '#10b981' : '#e5e7eb',
+                    color: copyFeedback === 'link' ? 'white' : '#374151',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    transition: 'all 0.2s',
+                  }}
+                  title="Copy link"
+                >
+                  {copyFeedback === 'link' ? '✓ Copied!' : '📋 Copy'}
+                </button>
+                <button
+                  onClick={() => setShowSharePointQR(true)}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}
+                  title="Show QR code"
+                >
+                  📱 QR
+                </button>
+                <a
+                  href={project.sharePointLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: '#0078d4',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}
+                  title="Open in new tab"
+                >
+                  🔗 Open
+                </a>
+              </div>
+            )}
 
             {/* WiFi Networks in Header */}
             {allWifiNetworks.length > 0 && (
@@ -1650,6 +1772,95 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               >
                 📋 Copy Password
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SharePoint QR Code Modal */}
+      {showSharePointQR && project.sharePointLink && (
+        <div className="modal-overlay" onClick={() => setShowSharePointQR(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header" style={{ background: '#eff6ff' }}>
+              <h3>📁 SharePoint / OneDrive</h3>
+              <button className="close-btn" onClick={() => setShowSharePointQR(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ marginBottom: '1rem', fontWeight: 600, color: '#1e40af' }}>
+                {project.name} - Project Files
+              </p>
+              
+              {/* QR Code */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(project.sharePointLink)}`}
+                alt="SharePoint QR Code"
+                style={{ 
+                  border: '2px solid #bfdbfe', 
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  background: 'white',
+                }}
+              />
+              
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
+                Scan to open project files on your device
+              </p>
+              
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '0.75rem', 
+                background: '#f0f9ff', 
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                wordBreak: 'break-all',
+                color: '#1e40af',
+                border: '1px solid #bfdbfe',
+              }}>
+                {project.sharePointLink}
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => setShowSharePointQR(false)}>Close</button>
+              <button 
+                className="btn btn-primary"
+                style={{ 
+                  background: copyFeedback === 'modal' ? '#10b981' : '#3b82f6',
+                  transition: 'background 0.2s',
+                }}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(project.sharePointLink)
+                    setCopyFeedback('modal')
+                    setTimeout(() => setCopyFeedback(null), 2000)
+                  } catch (err) {
+                    const textarea = document.createElement('textarea')
+                    textarea.value = project.sharePointLink
+                    document.body.appendChild(textarea)
+                    textarea.select()
+                    document.execCommand('copy')
+                    document.body.removeChild(textarea)
+                    setCopyFeedback('modal')
+                    setTimeout(() => setCopyFeedback(null), 2000)
+                  }
+                }}
+              >
+                {copyFeedback === 'modal' ? '✓ Copied!' : '📋 Copy Link'}
+              </button>
+              <a
+                href={project.sharePointLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ 
+                  background: '#0078d4',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}
+              >
+                🔗 Open
+              </a>
             </div>
           </div>
         </div>

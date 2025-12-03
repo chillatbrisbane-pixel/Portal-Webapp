@@ -27,6 +27,10 @@ const projectSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    sharePointLink: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['planning', 'in-progress', 'completed'],
