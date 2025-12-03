@@ -35,7 +35,7 @@ const deviceSchema = new mongoose.Schema(
         // Camera
         'camera', 'nvr', 'dvr',
         // Security
-        'alarm-panel', 'keypad', 'door-controller',
+        'alarm-panel', 'keypad', 'door-controller', 'ekey-reader',
         // Control System
         'control-processor', 'touch-panel', 'secondary-processor', 'door-station', 'remote',
         // Lighting
