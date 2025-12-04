@@ -130,6 +130,28 @@ const IP_CONFIG = {
     subnet: '192.168.210'
   },
   
+  // Power - VLAN 1
+  pdu: {
+    vlan: 1,
+    defaultIP: '192.168.210.5',
+    range: { start: 5, end: 10 },
+    subnet: '192.168.210'
+  },
+  ups: {
+    vlan: 1,
+    defaultIP: '192.168.210.5',
+    range: { start: 5, end: 10 },
+    subnet: '192.168.210'
+  },
+  
+  // Network Controllers
+  cloudkey: {
+    vlan: 1,
+    defaultIP: '192.168.210.2',
+    range: { start: 2, end: 4 },
+    subnet: '192.168.210'
+  },
+  
   // Generic categories
   network: {
     vlan: 1,

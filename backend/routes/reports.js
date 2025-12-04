@@ -30,6 +30,7 @@ const CATEGORY_INFO = {
   'control-system': { label: 'Control System', color: '#8b5cf6' },
   'lighting': { label: 'Lighting Control', color: '#eab308' },
   'av': { label: 'Audio Visual', color: '#10b981' },
+  'power': { label: 'Power Distribution', color: '#dc2626' },
   'other': { label: 'Other Devices', color: '#6b7280' }
 };
 
@@ -320,40 +321,28 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     }
     
     // ============================================================
-    // SYSTEM SUMMARY PAGE
+    // SYSTEM SUMMARY PAGE - Simplified Overview
     // ============================================================
     doc.addPage();
     
-    drawSectionHeader(doc, 'System Summary');
+    drawSectionHeader(doc, 'System Overview');
     
-    doc.fontSize(11);
-    doc.font('Helvetica-Bold').text(`Total Devices: ${devices.length}`);
+    // Simple category grid - just show what categories are present
+    doc.fontSize(11).font('Helvetica');
+    doc.text('This system includes the following subsystems:', { continued: false });
     doc.moveDown(0.5);
     
-    // Category breakdown
     Object.entries(devicesByCategory).forEach(([category, catDevices]) => {
       const catInfo = CATEGORY_INFO[category] || CATEGORY_INFO.other;
-      doc.font('Helvetica').fillColor(catInfo.color);
-      doc.text(`● ${catInfo.label}: `, { continued: true });
-      doc.fillColor('#333333').text(`${catDevices.length} device(s)`);
+      doc.fillColor(catInfo.color).fontSize(10);
+      doc.text(`✓ ${catInfo.label} (${catDevices.length})`, { indent: 20 });
     });
     
-    // IP Address Range Summary
     doc.moveDown(1);
-    drawSubsectionHeader(doc, 'IP Address Allocation');
+    doc.fillColor('#333333').fontSize(10);
+    doc.text(`Total Equipment: ${devices.length} devices`);
     
-    doc.fontSize(9);
-    const sortedByIP = [...devices].filter(d => d.ipAddress).sort((a, b) => {
-      const parseIP = (ip) => ip.split('.').reduce((acc, oct) => acc * 256 + parseInt(oct), 0);
-      return parseIP(a.ipAddress) - parseIP(b.ipAddress);
-    });
-    
-    if (sortedByIP.length > 0) {
-      const firstIP = sortedByIP[0].ipAddress;
-      const lastIP = sortedByIP[sortedByIP.length - 1].ipAddress;
-      doc.text(`IP Range: ${firstIP} - ${lastIP}`);
-      doc.text(`Devices with IP: ${sortedByIP.length}`);
-    }
+    doc.moveDown(1.5);
     
     // ============================================================
     // DEVICE PAGES BY CATEGORY
@@ -442,45 +431,86 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       drawSubsectionHeader(doc, 'Detailed Device Information');
       
       sortedDevices.forEach((device, index) => {
-        if (doc.y > 680) {
+        if (doc.y > 650) {
           doc.addPage();
         }
         
+        // Device header with background
+        const headerY = doc.y;
+        doc.rect(50, headerY, 495, 18).fill('#f1f5f9');
         doc.fontSize(10).font('Helvetica-Bold').fillColor('#1e293b');
-        doc.text(`${index + 1}. ${device.name}`);
+        doc.text(`${device.name}`, 55, headerY + 4);
         
-        doc.fontSize(9).font('Helvetica').fillColor('#475569');
-        
-        const details = [];
-        if (device.manufacturer) details.push(`Manufacturer: ${device.manufacturer}`);
-        if (device.model) details.push(`Model: ${device.model}`);
-        if (device.serialNumber) details.push(`Serial: ${device.serialNumber}`);
-        if (device.ipAddress) details.push(`IP: ${device.ipAddress}`);
-        if (device.macAddress) details.push(`MAC: ${device.macAddress}`);
-        if (device.vlan) details.push(`VLAN: ${device.vlan}`);
-        if (device.location) details.push(`Location: ${device.location}`);
-        if (device.username && !device.hideCredentials) details.push(`Username: ${device.username}`);
-        if (device.password && !device.hideCredentials) details.push(`Password: ${device.password}`);
-        
-        // Category specific
-        if (device.boundToSwitch) {
-          const switchName = typeof device.boundToSwitch === 'object' ? device.boundToSwitch.name : 'Switch';
-          details.push(`Switch Port: ${switchName} Port ${device.switchPort || 'N/A'}`);
+        // IP on right side of header
+        if (device.ipAddress) {
+          doc.font('Helvetica').fontSize(9).fillColor('#475569');
+          doc.text(device.ipAddress, 450, headerY + 5, { width: 90, align: 'right' });
         }
         
+        doc.y = headerY + 22;
+        doc.fontSize(9).font('Helvetica').fillColor('#475569');
+        
+        // Two-column layout for details
+        const leftX = 60;
+        const rightX = 300;
+        let currentY = doc.y;
+        
+        // Left column
+        if (device.manufacturer || device.model) {
+          doc.text(`Make/Model: ${[device.manufacturer, device.model].filter(Boolean).join(' ')}`, leftX, currentY);
+          currentY += 12;
+        }
+        if (device.serialNumber) {
+          doc.text(`Serial: ${device.serialNumber}`, leftX, currentY);
+          currentY += 12;
+        }
+        if (device.macAddress) {
+          doc.text(`MAC: ${device.macAddress}`, leftX, currentY);
+          currentY += 12;
+        }
+        if (device.location) {
+          doc.text(`Location: ${device.location}`, leftX, currentY);
+          currentY += 12;
+        }
+        
+        // Right column - reset Y position
+        let rightY = doc.y;
+        if (device.vlan) {
+          doc.text(`VLAN: ${device.vlan}`, rightX, rightY);
+          rightY += 12;
+        }
+        if (device.username && !device.hideCredentials) {
+          doc.text(`Username: ${device.username}`, rightX, rightY);
+          rightY += 12;
+        }
+        if (device.password && !device.hideCredentials) {
+          doc.text(`Password: ${device.password}`, rightX, rightY);
+          rightY += 12;
+        }
+        if (device.boundToSwitch) {
+          const switchName = typeof device.boundToSwitch === 'object' ? device.boundToSwitch.name : 'Switch';
+          doc.text(`Port: ${switchName} P${device.switchPort || '?'}`, rightX, rightY);
+          rightY += 12;
+        }
+        
+        // SSIDs (full width)
+        doc.y = Math.max(currentY, rightY);
         if (device.ssids && device.ssids.length > 0) {
           device.ssids.forEach(ssid => {
-            details.push(`SSID: ${ssid.name} (${ssid.password || 'Open'})`);
+            doc.text(`WiFi: ${ssid.name} / ${ssid.password || 'Open'}`, leftX, doc.y);
+            doc.y += 12;
           });
         }
         
-        doc.text(details.join('  |  '), { indent: 15 });
-        
+        // Notes (full width)
         if (device.configNotes) {
-          doc.fillColor('#64748b').text(`Notes: ${device.configNotes}`, { indent: 15 });
+          doc.fillColor('#64748b').fontSize(8);
+          doc.text(`Notes: ${device.configNotes}`, leftX, doc.y, { width: 480 });
+          doc.moveDown(0.3);
         }
         
         doc.moveDown(0.8);
+        doc.fillColor('#475569');
       });
     });
     
