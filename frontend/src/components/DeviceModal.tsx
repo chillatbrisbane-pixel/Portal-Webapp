@@ -1921,7 +1921,6 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         >
                           ➕ Add User
                         </button>
-                      </div>
                     </div>
                   </>
                 )}
