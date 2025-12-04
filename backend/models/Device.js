@@ -119,6 +119,7 @@ const deviceSchema = new mongoose.Schema(
     // ============ CONTROL4 TEMP LOGIN ============
     control4TempUser: String,
     control4TempPass: String,
+    control4AccountName: String,
     
     // ============ ARAKNIS / OVRC ============
     ovrcUsername: String,

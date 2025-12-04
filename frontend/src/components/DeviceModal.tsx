@@ -61,6 +61,7 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   // Control4 temp login
   control4TempUser: '',
   control4TempPass: '',
+  control4AccountName: '',
   // Araknis / OvrC fields
   ovrcUsername: '',
   ovrcPassword: '',
@@ -275,8 +276,29 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
 
   const handleGeneratePassword = async () => {
     try {
+      // Warn if password already exists
+      if (formData.password && formData.password.trim() !== '') {
+        if (!window.confirm('A password already exists. Do you want to replace it?')) {
+          return
+        }
+      }
       const { password } = await devicesAPI.generatePassword()
       setFormData(prev => ({ ...prev, password }))
+    } catch (err) {
+      console.error('Failed to generate password:', err)
+    }
+  }
+
+  const handleGenerateControl4TempPass = async () => {
+    try {
+      // Warn if password already exists
+      if (formData.control4TempPass && formData.control4TempPass.trim() !== '') {
+        if (!window.confirm('A password already exists. Do you want to replace it?')) {
+          return
+        }
+      }
+      const { password } = await devicesAPI.generatePassword()
+      setFormData(prev => ({ ...prev, control4TempPass: password }))
     } catch (err) {
       console.error('Failed to generate password:', err)
     }
@@ -801,48 +823,67 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </>
             )}
 
-            {/* ============ CONTROL4 TEMP LOGIN ============ */}
+            {/* ============ CONTROL4 CONFIGURATION ============ */}
             {formData.manufacturer === 'Control4' && (
               <>
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-                  🎛️ Control4 Temporary Login
+                  🎛️ Control4 Configuration
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Temp Username</label>
-                    <input
-                      name="control4TempUser"
-                      type="text"
-                      value={formData.control4TempUser || ''}
-                      onChange={handleInputChange}
-                      placeholder="Installer username"
-                    />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Temp Password</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input
-                        name="control4TempPass"
-                        type="text"
-                        value={formData.control4TempPass || ''}
-                        onChange={handleInputChange}
-                        placeholder="Temp password"
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleGeneratePassword}
-                        style={{ padding: '0.5rem', background: '#e5e7eb', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                        title="Generate Password"
-                      >
-                        🎲
-                      </button>
-                    </div>
-                  </div>
+                <div className="form-group" style={{ margin: '0 0 1rem' }}>
+                  <label>Account Name</label>
+                  <input
+                    name="control4AccountName"
+                    type="text"
+                    value={formData.control4AccountName || ''}
+                    onChange={handleInputChange}
+                    placeholder="Customer's Control4 account name"
+                  />
                 </div>
-                <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>
-                  Temporary installer credentials for project handover
-                </p>
+                
+                {/* Temp login only for primary control processor */}
+                {formData.deviceType === 'control-processor' && (
+                  <>
+                    <h5 style={{ color: '#1e40af', margin: '1rem 0 0.75rem', fontSize: '0.95rem' }}>
+                      🔑 Temporary Installer Login
+                    </h5>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Temp Username</label>
+                        <input
+                          name="control4TempUser"
+                          type="text"
+                          value={formData.control4TempUser || ''}
+                          onChange={handleInputChange}
+                          placeholder="Installer username"
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Temp Password</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            name="control4TempPass"
+                            type="text"
+                            value={formData.control4TempPass || ''}
+                            onChange={handleInputChange}
+                            placeholder="Temp password"
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleGenerateControl4TempPass}
+                            style={{ padding: '0.5rem', background: '#e5e7eb', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            title="Generate Password"
+                          >
+                            🎲
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                      Temporary installer credentials for project handover
+                    </p>
+                  </>
+                )}
               </>
             )}
 
@@ -1013,6 +1054,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               // Check if Ubiquiti device - credentials managed via UniFi controller
               const manufacturer = formData.manufacturer?.toLowerCase() || ''
               const isUnifi = manufacturer.includes('ubiquiti') || manufacturer.includes('unifi')
+              const isControl4 = formData.manufacturer === 'Control4'
               
               if (isUnifi) {
                 return (
@@ -1026,6 +1068,24 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     <p style={{ margin: 0, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span>ℹ️</span>
                       <span>UniFi devices are managed via the UniFi Controller - credentials not required here.</span>
+                    </p>
+                  </div>
+                )
+              }
+              
+              // Control4 devices don't use local credentials
+              if (isControl4) {
+                return (
+                  <div style={{ 
+                    margin: '1.5rem 0', 
+                    padding: '1rem', 
+                    background: '#faf5ff', 
+                    borderRadius: '8px',
+                    border: '1px solid #e9d5ff',
+                  }}>
+                    <p style={{ margin: 0, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>ℹ️</span>
+                      <span>Control4 devices are managed via the Control4 system - local credentials not required.</span>
                     </p>
                   </div>
                 )
@@ -1873,6 +1933,12 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           <button
                             type="button"
                             onClick={async () => {
+                              const currentPass = (document.getElementById('new-alarm-webpass') as HTMLInputElement).value
+                              if (currentPass && currentPass.trim() !== '') {
+                                if (!window.confirm('A password already exists. Do you want to replace it?')) {
+                                  return
+                                }
+                              }
                               const { password } = await devicesAPI.generatePassword()
                               ;(document.getElementById('new-alarm-webpass') as HTMLInputElement).value = password
                             }}
