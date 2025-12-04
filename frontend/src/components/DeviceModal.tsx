@@ -61,6 +61,11 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   // Control4 temp login
   control4TempUser: '',
   control4TempPass: '',
+  // Araknis / OvrC fields
+  ovrcUsername: '',
+  ovrcPassword: '',
+  localAdminUser: '',
+  localAdminPass: '',
   // Audio matrix / multiroom amp
   audioInputCount: 0,
   audioOutputCount: 0,
@@ -168,9 +173,13 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
     loadSwitches()
   }, [existingDevices, device])
 
+  // Track previous category to detect actual changes
+  const [prevCategory, setPrevCategory] = useState(formData.category)
+  
   // Update device type and name when category changes
   useEffect(() => {
-    if (!device) {
+    if (!device && formData.category !== prevCategory) {
+      setPrevCategory(formData.category)
       const types = DEVICE_TYPE_OPTIONS[formData.category as DeviceCategory]
       if (types && types.length > 0) {
         const newType = types[0].value
@@ -189,11 +198,15 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
         }
       }
     }
-  }, [formData.category, device, existingDevices])
+  }, [formData.category, device, existingDevices, prevCategory])
 
+  // Track previous device type to detect actual changes
+  const [prevDeviceType, setPrevDeviceType] = useState(formData.deviceType)
+  
   // Update name and connection type when device type changes
   useEffect(() => {
-    if (!device && formData.deviceType) {
+    if (!device && formData.deviceType && formData.deviceType !== prevDeviceType) {
+      setPrevDeviceType(formData.deviceType)
       const existingCount = existingDevices.filter(d => d.deviceType === formData.deviceType).length
       const connectionConfig = getDeviceConnectionConfig(formData.deviceType as string)
       setFormData(prev => ({ 
@@ -207,7 +220,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
         setSelectedPort('')
       }
     }
-  }, [formData.deviceType, device, existingDevices])
+  }, [formData.deviceType, device, existingDevices, prevDeviceType])
 
   // Auto-assign IP when device type changes
   useEffect(() => {
@@ -648,6 +661,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   <option value="control-system">🎛️ Control System</option>
                   <option value="lighting">💡 Lighting</option>
                   <option value="av">📺 AV</option>
+                  <option value="power">🔌 Power</option>
                   <option value="other">📦 Other</option>
                 </select>
               </div>
@@ -1105,20 +1119,6 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               )
             })()}
 
-            {formData.manufacturer === 'Ubiquiti' && (
-              <div className="form-group" style={{ margin: '0.5rem 0 0' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    name="hideCredentials"
-                    type="checkbox"
-                    checked={formData.hideCredentials}
-                    onChange={handleInputChange}
-                  />
-                  Hide credentials in reports (Unifi Cloud managed)
-                </label>
-              </div>
-            )}
-
             {/* NVR: Copy credentials to all cameras */}
             {formData.deviceType === 'nvr' && device && (formData.username || formData.password) && (
               <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
@@ -1541,6 +1541,59 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     <input name="wanPorts" type="number" value={formData.wanPorts || 1} onChange={handleInputChange} min={1} max={4} />
                   </div>
                 </div>
+
+                {/* Araknis specific - OvrC and extra logins */}
+                {formData.manufacturer === 'Araknis' && (
+                  <>
+                    <h5 style={{ color: '#1e40af', margin: '1.5rem 0 0.75rem', fontSize: '0.95rem' }}>
+                      📡 Araknis / OvrC Configuration
+                    </h5>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>OvrC Username</label>
+                        <input
+                          name="ovrcUsername"
+                          type="text"
+                          value={formData.ovrcUsername || ''}
+                          onChange={handleInputChange}
+                          placeholder="OvrC account email"
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>OvrC Password</label>
+                        <input
+                          name="ovrcPassword"
+                          type="text"
+                          value={formData.ovrcPassword || ''}
+                          onChange={handleInputChange}
+                          placeholder="OvrC password"
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Local Admin Username</label>
+                        <input
+                          name="localAdminUser"
+                          type="text"
+                          value={formData.localAdminUser || ''}
+                          onChange={handleInputChange}
+                          placeholder="Local admin username"
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Local Admin Password</label>
+                        <input
+                          name="localAdminPass"
+                          type="text"
+                          value={formData.localAdminPass || ''}
+                          onChange={handleInputChange}
+                          placeholder="Local admin password"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
 

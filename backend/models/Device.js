@@ -120,6 +120,12 @@ const deviceSchema = new mongoose.Schema(
     control4TempUser: String,
     control4TempPass: String,
     
+    // ============ ARAKNIS / OVRC ============
+    ovrcUsername: String,
+    ovrcPassword: String,
+    localAdminUser: String,
+    localAdminPass: String,
+    
     // ============ AUDIO MATRIX / MULTIROOM AMP ============
     audioInputCount: { type: Number, default: 0 },
     audioOutputCount: { type: Number, default: 0 },
