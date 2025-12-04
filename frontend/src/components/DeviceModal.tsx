@@ -58,6 +58,15 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   // Users arrays
   nvrUsers: [],
   alarmUsers: [],
+  // Control4 temp login
+  control4TempUser: '',
+  control4TempPass: '',
+  // Audio matrix / multiroom amp
+  audioInputCount: 0,
+  audioOutputCount: 0,
+  isAmplified: false,
+  audioInputNames: '',
+  audioOutputNames: '',
 }
 
 // Default device names by type
@@ -95,6 +104,9 @@ const getDefaultDeviceName = (deviceType: string, existingCount: number) => {
     'shade': 'Shade',
     'pool': 'Pool Controller',
     'ekey-reader': 'Ekey Reader',
+    'cloudkey': 'Cloudkey',
+    'pdu': 'PDU',
+    'ups': 'UPS',
     'generic': 'Device',
   }
   const baseName = names[deviceType] || 'Device'
@@ -775,6 +787,127 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </>
             )}
 
+            {/* ============ CONTROL4 TEMP LOGIN ============ */}
+            {formData.manufacturer === 'Control4' && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  🎛️ Control4 Temporary Login
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Temp Username</label>
+                    <input
+                      name="control4TempUser"
+                      type="text"
+                      value={formData.control4TempUser || ''}
+                      onChange={handleInputChange}
+                      placeholder="Installer username"
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Temp Password</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        name="control4TempPass"
+                        type="text"
+                        value={formData.control4TempPass || ''}
+                        onChange={handleInputChange}
+                        placeholder="Temp password"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleGeneratePassword}
+                        style={{ padding: '0.5rem', background: '#e5e7eb', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        title="Generate Password"
+                      >
+                        🎲
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                  Temporary installer credentials for project handover
+                </p>
+              </>
+            )}
+
+            {/* ============ AUDIO MATRIX / MULTIROOM AMP ============ */}
+            {(formData.deviceType === 'audio-matrix' || formData.deviceType === 'amplifier') && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  🎵 Audio Configuration
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Input Count</label>
+                    <input
+                      name="audioInputCount"
+                      type="number"
+                      min="0"
+                      max="32"
+                      value={formData.audioInputCount || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 8"
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Output Count</label>
+                    <input
+                      name="audioOutputCount"
+                      type="number"
+                      min="0"
+                      max="32"
+                      value={formData.audioOutputCount || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 8"
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Amplified?</label>
+                    <select
+                      name="isAmplified"
+                      value={formData.isAmplified ? 'yes' : 'no'}
+                      onChange={(e) => setFormData({ ...formData, isAmplified: e.target.value === 'yes' })}
+                    >
+                      <option value="no">No (Preamp Only)</option>
+                      <option value="yes">Yes (With Amplifier)</option>
+                    </select>
+                  </div>
+                </div>
+                {(formData.audioInputCount > 0 || formData.audioOutputCount > 0) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    {formData.audioInputCount > 0 && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Input Names (one per line)</label>
+                        <textarea
+                          name="audioInputNames"
+                          value={formData.audioInputNames || ''}
+                          onChange={handleInputChange}
+                          placeholder={`Input 1\nInput 2\nInput 3...`}
+                          rows={Math.min(formData.audioInputCount || 4, 6)}
+                          style={{ resize: 'vertical' }}
+                        />
+                      </div>
+                    )}
+                    {formData.audioOutputCount > 0 && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Output Names / Zones (one per line)</label>
+                        <textarea
+                          name="audioOutputNames"
+                          value={formData.audioOutputNames || ''}
+                          onChange={handleInputChange}
+                          placeholder={`Living Room\nKitchen\nMaster Bedroom...`}
+                          rows={Math.min(formData.audioOutputCount || 4, 6)}
+                          style={{ resize: 'vertical' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
             {/* ============ BULK ADD (only for new devices) ============ */}
             {!device && (
               <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd' }}>
@@ -863,13 +996,33 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
 
             {/* ============ CREDENTIALS ============ */}
             {(() => {
+              // Check if Ubiquiti device - credentials managed via UniFi controller
+              const manufacturer = formData.manufacturer?.toLowerCase() || ''
+              const isUnifi = manufacturer.includes('ubiquiti') || manufacturer.includes('unifi')
+              
+              if (isUnifi) {
+                return (
+                  <div style={{ 
+                    margin: '1.5rem 0', 
+                    padding: '1rem', 
+                    background: '#f0f9ff', 
+                    borderRadius: '8px',
+                    border: '1px solid #bae6fd',
+                  }}>
+                    <p style={{ margin: 0, color: '#0369a1', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>ℹ️</span>
+                      <span>UniFi devices are managed via the UniFi Controller - credentials not required here.</span>
+                    </p>
+                  </div>
+                )
+              }
+              
               // Dynamic credential labels based on device type
               const getCredentialLabels = () => {
                 const deviceType = formData.deviceType as string
-                const manufacturer = formData.manufacturer as string
                 
                 // App-based devices
-                if (deviceType === 'fan' && manufacturer?.toLowerCase().includes('haiku')) {
+                if (deviceType === 'fan' && manufacturer?.includes('haiku')) {
                   return { title: '📱 Haiku App Login', username: 'Email', password: 'Password', placeholder: 'email@example.com' }
                 }
                 if (deviceType === 'fan') {
@@ -1613,9 +1766,12 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                 ✕
                               </button>
                             </div>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
                               <span>{user.canArm ? '✅ Arm' : '❌ Arm'}</span>
                               <span>{user.canDisarm ? '✅ Disarm' : '❌ Disarm'}</span>
+                              {user.isRestApiUser && <span>🔌 API</span>}
+                              {user.webUsername && <span>🌐 Web: {user.webUsername}</span>}
+                              {user.userGroup && <span>👥 {user.userGroup}</span>}
                               {user.accessAreas?.length > 0 && (
                                 <span>📍 Areas: {user.accessAreas.join(', ')}</span>
                               )}
@@ -1647,6 +1803,53 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
                       </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input
+                          type="text"
+                          placeholder="Web Login Username"
+                          id="new-alarm-webuser"
+                          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            type="text"
+                            placeholder="Web Password"
+                            id="new-alarm-webpass"
+                            style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const { password } = await devicesAPI.generatePassword()
+                              ;(document.getElementById('new-alarm-webpass') as HTMLInputElement).value = password
+                            }}
+                            style={{
+                              padding: '0.5rem',
+                              background: '#e5e7eb',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                            title="Generate Password"
+                          >
+                            🎲
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input
+                          type="text"
+                          placeholder="User Group (e.g. Operators)"
+                          id="new-alarm-group"
+                          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Access Areas (comma-separated)"
+                          id="new-alarm-areas"
+                          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                        />
+                      </div>
                       <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
                           <input type="checkbox" id="new-alarm-arm" defaultChecked /> Can Arm
@@ -1657,47 +1860,62 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
                           <input type="checkbox" id="new-alarm-admin" /> Admin
                         </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                          <input type="checkbox" id="new-alarm-restapi" /> REST API User
+                        </label>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
-                        <input
-                          type="text"
-                          placeholder="Access Areas (comma-separated, e.g. House, Garage)"
-                          id="new-alarm-areas"
-                          style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const name = (document.getElementById('new-alarm-name') as HTMLInputElement).value.trim()
-                            const code = (document.getElementById('new-alarm-code') as HTMLInputElement).value.trim()
-                            const canArm = (document.getElementById('new-alarm-arm') as HTMLInputElement).checked
-                            const canDisarm = (document.getElementById('new-alarm-disarm') as HTMLInputElement).checked
-                            const isAdmin = (document.getElementById('new-alarm-admin') as HTMLInputElement).checked
-                            const areasStr = (document.getElementById('new-alarm-areas') as HTMLInputElement).value.trim()
-                            const accessAreas = areasStr ? areasStr.split(',').map(a => a.trim()).filter(a => a) : []
-                            
-                            if (!name || !code) {
-                              alert('Name and code are required')
-                              return
-                            }
-                            
-                            const newUser = { name, code, canArm, canDisarm, isAdmin, accessAreas }
-                            setFormData({ ...formData, alarmUsers: [...(formData.alarmUsers || []), newUser] })
-                            
-                            // Clear form
-                            ;(document.getElementById('new-alarm-name') as HTMLInputElement).value = ''
-                            ;(document.getElementById('new-alarm-code') as HTMLInputElement).value = ''
-                            ;(document.getElementById('new-alarm-arm') as HTMLInputElement).checked = true
-                            ;(document.getElementById('new-alarm-disarm') as HTMLInputElement).checked = true
-                            ;(document.getElementById('new-alarm-admin') as HTMLInputElement).checked = false
-                            ;(document.getElementById('new-alarm-areas') as HTMLInputElement).value = ''
-                          }}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: '#f59e0b',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = (document.getElementById('new-alarm-name') as HTMLInputElement).value.trim()
+                          const code = (document.getElementById('new-alarm-code') as HTMLInputElement).value.trim()
+                          const canArm = (document.getElementById('new-alarm-arm') as HTMLInputElement).checked
+                          const canDisarm = (document.getElementById('new-alarm-disarm') as HTMLInputElement).checked
+                          const isAdmin = (document.getElementById('new-alarm-admin') as HTMLInputElement).checked
+                          const areasStr = (document.getElementById('new-alarm-areas') as HTMLInputElement).value.trim()
+                          const accessAreas = areasStr ? areasStr.split(',').map(a => a.trim()).filter(a => a) : []
+                          const webUsername = (document.getElementById('new-alarm-webuser') as HTMLInputElement).value.trim()
+                          const webPassword = (document.getElementById('new-alarm-webpass') as HTMLInputElement).value.trim()
+                          const userGroup = (document.getElementById('new-alarm-group') as HTMLInputElement).value.trim()
+                          const isRestApiUser = (document.getElementById('new-alarm-restapi') as HTMLInputElement).checked
+                          
+                          if (!name || !code) {
+                            alert('Name and code are required')
+                            return
+                          }
+                          
+                          const newUser = { 
+                            name, 
+                            code, 
+                            canArm, 
+                            canDisarm, 
+                            isAdmin, 
+                            accessAreas,
+                            webUsername,
+                            webPassword,
+                            userGroup,
+                            isRestApiUser,
+                          }
+                          setFormData({ ...formData, alarmUsers: [...(formData.alarmUsers || []), newUser] })
+                          
+                          // Clear form
+                          ;(document.getElementById('new-alarm-name') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-alarm-code') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-alarm-webuser') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-alarm-webpass') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-alarm-group') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-alarm-arm') as HTMLInputElement).checked = true
+                          ;(document.getElementById('new-alarm-disarm') as HTMLInputElement).checked = true
+                          ;(document.getElementById('new-alarm-admin') as HTMLInputElement).checked = false
+                          ;(document.getElementById('new-alarm-restapi') as HTMLInputElement).checked = false
+                          ;(document.getElementById('new-alarm-areas') as HTMLInputElement).value = ''
+                        }}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#f59e0b',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
                             cursor: 'pointer',
                           }}
                         >

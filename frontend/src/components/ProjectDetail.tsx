@@ -96,9 +96,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       const data = await devicesAPI.getByProject(project._id)
       setDevices(data)
       
-      const switches = data.filter((d: Device) => d.deviceType === 'switch')
-      if (switches.length > 0 && !selectedSwitchId) {
-        setSelectedSwitchId(switches[0]._id)
+      // Include both switches and routers for port management
+      const portDevices = data.filter((d: Device) => d.deviceType === 'switch' || d.deviceType === 'router')
+      if (portDevices.length > 0 && !selectedSwitchId) {
+        setSelectedSwitchId(portDevices[0]._id)
       }
     } catch (err) {
       console.error('Failed to load devices:', err)
@@ -188,16 +189,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     }
   }
 
-  // Get switches for port management (sorted by name so Switch 1 appears first)
+  // Get switches and routers for port management (sorted by name)
   const switches = devices
-    .filter(d => d.deviceType === 'switch')
+    .filter(d => d.deviceType === 'switch' || d.deviceType === 'router')
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
   const selectedSwitch = switches.find(s => s._id === selectedSwitchId)
   
-  // Get non-switch devices for port assignment, sorted by IP
-  // Devices assignable to switch ports - exclude current switch but allow other switches
+  // Get non-switch/router devices for port assignment, sorted by IP
+  // Devices assignable to switch ports - exclude current switch/router but allow other switches
   const assignableDevices = devices
-    .filter(d => d.deviceType !== 'switch' || d._id !== selectedSwitchId)
+    .filter(d => (d.deviceType !== 'switch' && d.deviceType !== 'router') || d._id !== selectedSwitchId)
     .sort((a, b) => parseIP(a.ipAddress || '') - parseIP(b.ipAddress || ''))
 
   // Get WiFi from access points
@@ -1074,7 +1075,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => { setShowAddWifi(false); setShowNewWifiPassword(false) }}>Cancel</button>
-                <button className="btn btn-primary btn-sm" onClick={handleAddWifi}>Add Network</button>
+                <button className="btn btn-primary btn-sm" onClick={handleAddWifi}>💾 Save</button>
               </div>
             </div>
           )}
@@ -1265,20 +1266,24 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
           {switches.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
-              <p>No switches in this project.</p>
-              <p>Add a switch device to manage port assignments.</p>
+              <p>No switches or routers in this project.</p>
+              <p>Add a switch or router to manage port assignments.</p>
             </div>
           ) : selectedSwitch ? (
             <div>
               <div style={{ marginBottom: '1rem', padding: '0.75rem', background: '#f3f4f6', borderRadius: '6px' }}>
                 <strong>{selectedSwitch.name}</strong> • {selectedSwitch.manufacturer} {selectedSwitch.model}
                 {selectedSwitch.ipAddress && <span> • IP: {selectedSwitch.ipAddress}</span>}
+                <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                  ({selectedSwitch.deviceType === 'router' ? (selectedSwitch.lanPorts || 4) : (selectedSwitch.portCount || 24)} ports)
+                </span>
               </div>
 
               {/* VLAN Legend */}
               {(() => {
                 const usedVlans = new Set<number>()
-                Array.from({ length: selectedSwitch.portCount || 24 }, (_, i) => i + 1).forEach(portNum => {
+                const portCount = selectedSwitch.deviceType === 'router' ? (selectedSwitch.lanPorts || 4) : (selectedSwitch.portCount || 24)
+                Array.from({ length: portCount }, (_, i) => i + 1).forEach(portNum => {
                   const device = getDeviceOnPort(portNum)
                   if (device?.vlan) usedVlans.add(device.vlan)
                 })
@@ -1335,7 +1340,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               })()}
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem' }}>
-                {Array.from({ length: selectedSwitch.portCount || 24 }, (_, i) => i + 1).map(portNum => {
+                {Array.from({ length: selectedSwitch.deviceType === 'router' ? (selectedSwitch.lanPorts || 4) : (selectedSwitch.portCount || 24) }, (_, i) => i + 1).map(portNum => {
                   const assignedDevice = getDeviceOnPort(portNum)
                   
                   // VLAN color scheme

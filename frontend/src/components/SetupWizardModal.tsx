@@ -26,9 +26,10 @@ const TECH_CONFIGS: TechConfig[] = [
   { key: 'touchPanels', label: 'Touch Panels', icon: '📱', deviceType: 'touch-panel', defaultBrands: ['Control4', 'Crestron Home', 'RTI'], defaultVlan: 1 },
   { key: 'lighting', label: 'Lighting Gateway', icon: '💡', deviceType: 'lighting-gateway', defaultBrands: ['C-Bus', 'Lutron', 'Dynalite', 'Crestron', 'Control4'], defaultVlan: 1 },
   { key: 'av', label: 'AV Receivers', icon: '🔊', deviceType: 'receiver', defaultBrands: ['Denon', 'Marantz', 'Yamaha', 'Anthem', 'Integra', 'Trinnov'], defaultVlan: 1 },
-  { key: 'multiroom', label: 'Multiroom Audio', icon: '🎵', deviceType: 'audio-matrix', defaultBrands: ['Sonance', 'Sonos', 'Control4', 'Russound'], defaultVlan: 1 },
+  { key: 'multiroom', label: 'Multiroom Audio', icon: '🎵', deviceType: 'audio-matrix', defaultBrands: ['Sonance', 'Sonos', 'Control4', 'Crestron', 'Anthem', 'Episode', 'Triad'], defaultVlan: 1 },
   { key: 'videodist', label: 'Video Distribution', icon: '🖥️', deviceType: 'video-matrix', defaultBrands: ['Crestron', 'Atlona', 'Just Add Power', 'Binary'], defaultVlan: 1 },
   { key: 'tvs', label: 'TVs/Displays', icon: '📺', deviceType: 'tv', defaultBrands: ['Samsung', 'LG', 'Sony'], defaultVlan: 1 },
+  { key: 'power', label: 'Power / PDU', icon: '🔌', deviceType: 'pdu', defaultBrands: ['Wattbox', 'APC', 'CyberPower', 'Panamax'], defaultVlan: 1 },
 ]
 
 // Device name mappings for proper singular names
@@ -45,6 +46,9 @@ const DEVICE_SINGULAR_NAMES: Record<string, string> = {
   'audio-matrix': 'Audio Matrix',
   'video-matrix': 'Video Matrix',
   'tv': 'TV',
+  'pdu': 'PDU',
+  'ups': 'UPS',
+  'cloudkey': 'Cloudkey',
 }
 
 interface DeviceSetup {

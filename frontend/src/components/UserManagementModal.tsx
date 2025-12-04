@@ -621,23 +621,48 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           </tr>
                         </thead>
                         <tbody>
-                          {activityLogs.map((log, i) => (
-                            <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '0.75rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                                {formatDate(log.createdAt)}
-                              </td>
-                              <td style={{ padding: '0.75rem' }}>
-                                {log.user?.name || 'System'}
-                              </td>
-                              <td style={{ padding: '0.75rem' }}>
-                                {getActionLabel(log.action)}
-                              </td>
-                              <td style={{ padding: '0.75rem', fontSize: '0.85rem', color: '#666' }}>
-                                {log.targetUser && `Target: ${log.targetUser.name}`}
-                                {log.ipAddress && ` • IP: ${log.ipAddress}`}
-                              </td>
-                            </tr>
-                          ))}
+                          {activityLogs.map((log, i) => {
+                            // Format details more helpfully
+                            const formatDetails = () => {
+                              const details: string[] = []
+                              
+                              if (log.targetUser) {
+                                details.push(`👤 ${log.targetUser.name}`)
+                              }
+                              
+                              // Only show useful details
+                              if (log.details) {
+                                if (log.details.newUserEmail) {
+                                  details.push(`📧 ${log.details.newUserEmail}`)
+                                }
+                                if (log.details.newUserRole) {
+                                  details.push(`Role: ${log.details.newUserRole}`)
+                                }
+                                if (log.details.reason) {
+                                  details.push(`Reason: ${log.details.reason}`)
+                                }
+                              }
+                              
+                              return details.join(' • ') || '—'
+                            }
+                            
+                            return (
+                              <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <td style={{ padding: '0.75rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                  {formatDate(log.createdAt)}
+                                </td>
+                                <td style={{ padding: '0.75rem' }}>
+                                  {log.user?.name || 'System'}
+                                </td>
+                                <td style={{ padding: '0.75rem' }}>
+                                  {getActionLabel(log.action)}
+                                </td>
+                                <td style={{ padding: '0.75rem', fontSize: '0.85rem', color: '#666' }}>
+                                  {formatDetails()}
+                                </td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>

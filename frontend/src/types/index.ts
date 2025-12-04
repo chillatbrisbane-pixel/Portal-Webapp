@@ -141,12 +141,13 @@ export type DeviceCategory =
   | 'control-system'
   | 'lighting'
   | 'av'
+  | 'power'
   | 'other';
 
 // Device Types
 export type DeviceType = 
   // Network
-  | 'router' | 'switch' | 'access-point'
+  | 'router' | 'switch' | 'access-point' | 'cloudkey'
   // Camera
   | 'camera' | 'nvr' | 'dvr'
   // Security
@@ -157,6 +158,8 @@ export type DeviceType =
   | 'lighting-gateway' | 'dali-gateway'
   // AV
   | 'receiver' | 'tv' | 'projector' | 'audio-matrix' | 'video-matrix' | 'amplifier' | 'soundbar' | 'media-player'
+  // Power
+  | 'pdu' | 'ups'
   // Other
   | 'fan' | 'irrigation' | 'hvac' | 'relay' | 'fireplace' | 'shade' | 'pool' | 'generic';
 
@@ -362,6 +365,7 @@ export const BRAND_OPTIONS = {
     router: ['Araknis', 'Ubiquiti', 'Cisco', 'Netgear', 'TP-Link', 'Custom'],
     switch: ['Araknis', 'Ubiquiti', 'Netgear', 'Cisco', 'TP-Link', 'Custom'],
     'access-point': ['Araknis', 'Ubiquiti', 'Ruckus', 'Cisco', 'Custom'],
+    cloudkey: ['Ubiquiti', 'Araknis', 'Custom'],
   },
   camera: {
     camera: ['Dahua', 'Hikvision', 'Luma', 'Axis', 'Hanwha', 'Custom'],
@@ -386,11 +390,15 @@ export const BRAND_OPTIONS = {
     receiver: ['Denon', 'Marantz', 'Yamaha', 'Integra', 'Anthem', 'Trinnov', 'Sony', 'Custom'],
     tv: ['Samsung', 'LG', 'Sony', 'TCL', 'Custom'],
     projector: ['Sony', 'JVC', 'Epson', 'BenQ', 'Optoma', 'Custom'],
-    'audio-matrix': ['Sonance', 'Sonos', 'Control4', 'Russound', 'Autonomic', 'Custom'],
-    'video-matrix': ['Crestron', 'Atlona', 'Just Add Power', 'Binary', 'AVPro Edge', 'Custom'],
-    amplifier: ['Sonance', 'Origin Acoustics', 'Control4', 'Rotel', 'Triad', 'Custom'],
+    'audio-matrix': ['Sonance', 'Sonos', 'Control4', 'Crestron', 'Russound', 'Autonomic', 'Anthem', 'Episode', 'Pulse Eight', 'Triad', 'Custom'],
+    'video-matrix': ['Crestron', 'Atlona', 'Just Add Power', 'Binary', 'AVPro Edge', 'Pulse Eight', 'Custom'],
+    amplifier: ['Sonance', 'Origin Acoustics', 'Control4', 'Rotel', 'Triad', 'Anthem', 'Episode', 'Crown', 'Custom'],
     soundbar: ['Sonos', 'Samsung', 'LG', 'Bose', 'Custom'],
     'media-player': ['Apple TV', 'Nvidia Shield', 'Roku', 'Amazon Fire', 'Custom'],
+  },
+  power: {
+    pdu: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Panamax', 'Custom'],
+    ups: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Custom'],
   },
   other: {
     fan: ['Haiku', 'Hunter', 'Custom'],
@@ -405,6 +413,7 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
     { value: 'router', label: '🌐 Router' },
     { value: 'switch', label: '🔀 Switch' },
     { value: 'access-point', label: '📡 Wireless Access Point' },
+    { value: 'cloudkey', label: '☁️ Cloudkey / Controller' },
   ],
   camera: [
     { value: 'camera', label: '📹 Camera' },
@@ -438,6 +447,10 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
     { value: 'soundbar', label: '🔉 Soundbar' },
     { value: 'media-player', label: '▶️ Media Player' },
   ],
+  power: [
+    { value: 'pdu', label: '🔌 Power Distribution Unit (PDU)' },
+    { value: 'ups', label: '🔋 UPS / Battery Backup' },
+  ],
   other: [
     { value: 'fan', label: '🌀 Smart Fan' },
     { value: 'irrigation', label: '💧 Irrigation Controller' },
@@ -461,6 +474,7 @@ export const DEVICE_CONNECTION_CONFIG: Record<string, {
   'router': { options: ['wired'], default: 'wired', requiresSwitch: false },
   'switch': { options: ['wired'], default: 'wired', requiresSwitch: false },
   'access-point': { options: ['wired'], default: 'wired', requiresSwitch: true },
+  'cloudkey': { options: ['wired'], default: 'wired', requiresSwitch: true },
   
   // Cameras - mostly wired (PoE) but some WiFi
   'camera': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
@@ -506,6 +520,10 @@ export const DEVICE_CONNECTION_CONFIG: Record<string, {
   'shade': { options: ['wired', 'wifi', 'none'], default: 'wired', requiresSwitch: false },
   'pool': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
   'generic': { options: ['wired', 'wifi', 'both', 'none'], default: 'wired', requiresSwitch: true },
+  
+  // Power devices
+  'pdu': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
+  'ups': { options: ['wired', 'wifi', 'none'], default: 'wired', requiresSwitch: true },
 };
 
 // Helper to get connection config for a device type

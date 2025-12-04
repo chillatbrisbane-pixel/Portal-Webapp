@@ -32,6 +32,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [sortBy, setSortBy] = useState<'alpha' | 'created' | 'modified'>('alpha')
   
   // WiFi QR code modal
   const [qrProject, setQrProject] = useState<Project | null>(null)
@@ -70,7 +71,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const inProgressCount = projects.filter(p => p.status === 'in-progress').length
   const completedCount = projects.filter(p => p.status === 'completed').length
 
-  // Filter projects based on search and status
+  // Filter and sort projects
   const filteredProjects = projects.filter(project => {
     const query = searchQuery.toLowerCase()
     const matchesSearch = 
@@ -81,6 +82,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       project.address?.toLowerCase().includes(query)
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter
     return matchesSearch && matchesStatus
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case 'alpha':
+        return a.name.localeCompare(b.name, undefined, { numeric: true })
+      case 'created':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'modified':
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      default:
+        return 0
+    }
   })
 
   if (selectedProject) {
@@ -236,6 +248,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             {STATUS_OPTIONS.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'alpha' | 'created' | 'modified')}
+            style={{
+              padding: '0.75rem 1rem',
+              border: '2px solid #e5e7eb',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              background: 'white',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="alpha">🔤 A-Z</option>
+            <option value="created">📅 Newest</option>
+            <option value="modified">🔄 Recently Modified</option>
           </select>
           
           {(searchQuery || statusFilter !== 'all') && (

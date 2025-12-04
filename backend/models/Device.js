@@ -23,6 +23,7 @@ const deviceSchema = new mongoose.Schema(
         'control-system',
         'lighting',
         'av',
+        'power',
         'other'
       ],
       required: true,
@@ -31,7 +32,7 @@ const deviceSchema = new mongoose.Schema(
       type: String,
       enum: [
         // Network
-        'router', 'switch', 'access-point',
+        'router', 'switch', 'access-point', 'cloudkey',
         // Camera
         'camera', 'nvr', 'dvr',
         // Security
@@ -42,6 +43,8 @@ const deviceSchema = new mongoose.Schema(
         'lighting-gateway', 'dali-gateway',
         // AV
         'receiver', 'tv', 'projector', 'audio-matrix', 'video-matrix', 'amplifier', 'soundbar', 'media-player',
+        // Power
+        'pdu', 'ups',
         // Other
         'fan', 'irrigation', 'hvac', 'relay', 'fireplace', 'shade', 'pool', 'generic'
       ],
@@ -88,6 +91,12 @@ const deviceSchema = new mongoose.Schema(
       canArm: { type: Boolean, default: true },
       canDisarm: { type: Boolean, default: true },
       isAdmin: { type: Boolean, default: false },
+      // Web login credentials
+      webUsername: String,
+      webPassword: String,
+      // User group and API access
+      userGroup: String,
+      isRestApiUser: { type: Boolean, default: false },
     }],
     
     // ============ NVR SPECIFIC ============
@@ -106,6 +115,17 @@ const deviceSchema = new mongoose.Schema(
       enum: ['wired', 'wireless', ''],
       default: ''
     },
+    
+    // ============ CONTROL4 TEMP LOGIN ============
+    control4TempUser: String,
+    control4TempPass: String,
+    
+    // ============ AUDIO MATRIX / MULTIROOM AMP ============
+    audioInputCount: { type: Number, default: 0 },
+    audioOutputCount: { type: Number, default: 0 },
+    isAmplified: { type: Boolean, default: false },
+    audioInputNames: String,    // Newline-separated list
+    audioOutputNames: String,   // Newline-separated list
     
     // Switch/Port Binding
     switchPort: Number,
