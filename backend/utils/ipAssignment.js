@@ -147,8 +147,8 @@ const IP_CONFIG = {
   // Network Controllers
   cloudkey: {
     vlan: 1,
-    defaultIP: '192.168.210.2',
-    range: { start: 2, end: 4 },
+    defaultIP: '192.168.210.10',
+    range: { start: 10, end: 10 },
     subnet: '192.168.210'
   },
   

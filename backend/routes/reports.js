@@ -47,13 +47,19 @@ function drawSectionHeader(doc, title, color = '#0066cc') {
 }
 
 // Helper to draw a subsection header
-function drawSubsectionHeader(doc, title, color = '#666666') {
+function drawSubsectionHeader(doc, title, color = '#666666', centered = false) {
   if (doc.y > 700) {
     doc.addPage();
   }
   doc.moveDown(0.5);
-  doc.fontSize(12).fillColor(color).font('Helvetica-Bold').text(title);
-  doc.moveTo(50, doc.y + 1).lineTo(300, doc.y + 1).strokeColor('#e5e7eb').lineWidth(1).stroke();
+  doc.fontSize(12).fillColor(color).font('Helvetica-Bold');
+  if (centered) {
+    doc.text(title, 50, doc.y, { width: 495, align: 'center' });
+    doc.moveTo(150, doc.y + 1).lineTo(445, doc.y + 1).strokeColor('#e5e7eb').lineWidth(1).stroke();
+  } else {
+    doc.text(title);
+    doc.moveTo(50, doc.y + 1).lineTo(300, doc.y + 1).strokeColor('#e5e7eb').lineWidth(1).stroke();
+  }
   doc.moveDown(0.5);
   doc.font('Helvetica').fillColor('#333333');
 }
@@ -428,7 +434,7 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       doc.moveDown(2);
       if (doc.y > 600) doc.addPage();
       
-      drawSubsectionHeader(doc, 'Detailed Device Information');
+      drawSubsectionHeader(doc, 'Detailed Device Information', '#666666', true);
       
       sortedDevices.forEach((device, index) => {
         if (doc.y > 650) {
@@ -539,14 +545,16 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
           return switchId === sw._id.toString();
         });
         
-        // Port table
+        // Port table header
         doc.fontSize(8).font('Helvetica-Bold');
-        doc.text('Port', 55, doc.y, { width: 40 });
-        doc.text('Device', 100, doc.y - 10, { width: 150 });
-        doc.text('IP Address', 255, doc.y - 10, { width: 100 });
-        doc.text('VLAN', 360, doc.y - 10, { width: 50 });
+        const headerY = doc.y;
+        doc.text('Port', 55, headerY, { width: 35 });
+        doc.text('Device', 95, headerY, { width: 110 });
+        doc.text('IP Address', 210, headerY, { width: 90 });
+        doc.text('MAC Address', 305, headerY, { width: 110 });
+        doc.text('VLAN', 420, headerY, { width: 40 });
         doc.moveDown(0.3);
-        doc.moveTo(50, doc.y).lineTo(450, doc.y).strokeColor('#e5e7eb').stroke();
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
         doc.moveDown(0.3);
         
         doc.font('Helvetica');
@@ -567,11 +575,12 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
             doc.fillColor('#9ca3af');
           }
           
-          doc.text(port.toString(), 55, y, { width: 40 });
+          doc.text(port.toString(), 55, y, { width: 35 });
           doc.fillColor('#333333');
-          doc.text(device ? device.name : '-', 100, y, { width: 150 });
-          doc.text(device ? (device.ipAddress || '-') : '-', 255, y, { width: 100 });
-          doc.text(device ? (device.vlan || '-').toString() : '-', 360, y, { width: 50 });
+          doc.text(device ? device.name : '-', 95, y, { width: 110 });
+          doc.text(device ? (device.ipAddress || '-') : '-', 210, y, { width: 90 });
+          doc.fontSize(7).text(device ? (device.macAddress || '-') : '-', 305, y, { width: 110 });
+          doc.fontSize(8).text(device ? (device.vlan || '-').toString() : '-', 420, y, { width: 40 });
           
           doc.moveDown(0.4);
         }
@@ -589,11 +598,22 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     
     doc.fontSize(11).fillColor('#333333');
     doc.font('Helvetica-Bold').text('System Integrator');
-    doc.font('Helvetica').text('For technical support or service requests, please contact your system integrator.');
+    doc.moveDown(0.5);
     
-    doc.moveDown(1.5);
+    // Electronic Living contact box
+    doc.rect(50, doc.y, 495, 60).fill('#f0f9ff');
+    const boxY = doc.y;
+    doc.fillColor('#0369a1').fontSize(14).font('Helvetica-Bold');
+    doc.text('Electronic Living', 60, boxY + 10);
+    doc.fillColor('#333333').fontSize(11).font('Helvetica');
+    doc.text('1300 764 554', 60, boxY + 30);
+    doc.fontSize(10).fillColor('#666666');
+    doc.text('For technical support or service requests', 60, boxY + 45);
+    doc.y = boxY + 70;
     
-    doc.font('Helvetica-Bold').text('Important Notes:');
+    doc.moveDown(1);
+    
+    doc.fillColor('#333333').font('Helvetica-Bold').fontSize(11).text('Important Notes:');
     doc.font('Helvetica');
     doc.moveDown(0.5);
     
