@@ -701,6 +701,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
+                <label>Description</label>
+                <input
+                  type="text"
+                  value={formData.description || ''}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Brief project description or notes"
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
                 <label>Status</label>
                 <select
                   value={formData.status}
