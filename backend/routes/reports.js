@@ -724,4 +724,100 @@ router.get('/project/:projectId/json', authenticateDownload, async (req, res) =>
   }
 });
 
+// Import project from JSON backup
+router.post('/import', authenticateDownload, async (req, res) => {
+  try {
+    const { project: projectData, devices: devicesData } = req.body;
+    
+    if (!projectData || !devicesData) {
+      return res.status(400).json({ error: 'Invalid backup file format. Expected project and devices data.' });
+    }
+
+    // Create new project (remove _id and timestamps to create fresh)
+    const { _id, createdAt, updatedAt, createdBy, ...projectFields } = projectData;
+    
+    // Append "(Imported)" to name to distinguish from original
+    projectFields.name = `${projectFields.name} (Imported)`;
+    projectFields.createdBy = req.userId;
+    
+    const newProject = await Project.create(projectFields);
+    
+    // Map old device IDs to new device IDs for switch bindings
+    const deviceIdMap = {};
+    const devicesToCreate = [];
+    
+    // First pass: prepare devices without bindings
+    for (const deviceData of devicesData) {
+      const { _id: oldId, createdAt: dCreatedAt, updatedAt: dUpdatedAt, projectId, boundToSwitch, boundToNVR, boundToProcessor, ...deviceFields } = deviceData;
+      
+      deviceIdMap[oldId] = null; // Will be filled after creation
+      
+      devicesToCreate.push({
+        ...deviceFields,
+        projectId: newProject._id,
+        // Store old binding IDs temporarily for second pass
+        _oldBoundToSwitch: boundToSwitch,
+        _oldBoundToNVR: boundToNVR,
+        _oldBoundToProcessor: boundToProcessor,
+        _oldId: oldId,
+      });
+    }
+    
+    // Create all devices
+    const createdDevices = [];
+    for (const deviceData of devicesToCreate) {
+      const { _oldBoundToSwitch, _oldBoundToNVR, _oldBoundToProcessor, _oldId, ...cleanDeviceData } = deviceData;
+      const newDevice = await Device.create(cleanDeviceData);
+      deviceIdMap[_oldId] = newDevice._id;
+      createdDevices.push({
+        device: newDevice,
+        oldBoundToSwitch: _oldBoundToSwitch,
+        oldBoundToNVR: _oldBoundToNVR,
+        oldBoundToProcessor: _oldBoundToProcessor,
+      });
+    }
+    
+    // Second pass: update bindings with new IDs
+    for (const { device, oldBoundToSwitch, oldBoundToNVR, oldBoundToProcessor } of createdDevices) {
+      const updates = {};
+      
+      if (oldBoundToSwitch) {
+        const oldSwitchId = typeof oldBoundToSwitch === 'object' ? oldBoundToSwitch._id : oldBoundToSwitch;
+        if (deviceIdMap[oldSwitchId]) {
+          updates.boundToSwitch = deviceIdMap[oldSwitchId];
+        }
+      }
+      
+      if (oldBoundToNVR) {
+        const oldNvrId = typeof oldBoundToNVR === 'object' ? oldBoundToNVR._id : oldBoundToNVR;
+        if (deviceIdMap[oldNvrId]) {
+          updates.boundToNVR = deviceIdMap[oldNvrId];
+        }
+      }
+      
+      if (oldBoundToProcessor) {
+        const oldProcId = typeof oldBoundToProcessor === 'object' ? oldBoundToProcessor._id : oldBoundToProcessor;
+        if (deviceIdMap[oldProcId]) {
+          updates.boundToProcessor = deviceIdMap[oldProcId];
+        }
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        await Device.findByIdAndUpdate(device._id, updates);
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Project imported successfully with ${createdDevices.length} devices`,
+      projectId: newProject._id,
+      projectName: newProject.name,
+    });
+
+  } catch (error) {
+    console.error('JSON import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { User, Project } from '../types'
-import { projectsAPI } from '../services/apiService'
+import { projectsAPI, reportsAPI } from '../services/apiService'
 import { SetupWizardModal } from './SetupWizardModal'
 import { ProjectDetail } from './ProjectDetail'
 
@@ -37,6 +37,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // WiFi QR code modal
   const [qrProject, setQrProject] = useState<Project | null>(null)
   const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null)
+  
+  // Import from JSON
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadProjects()
@@ -63,6 +67,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const handleProjectDeleted = (projectId: string) => {
     setProjects(projects.filter(p => p._id !== projectId))
     setSelectedProject(null)
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Reset file input so same file can be selected again
+    e.target.value = ''
+
+    try {
+      setImporting(true)
+      setError('')
+
+      // Read file content
+      const text = await file.text()
+      const backupData = JSON.parse(text)
+
+      // Validate structure
+      if (!backupData.project || !backupData.devices) {
+        throw new Error('Invalid backup file. Expected project and devices data.')
+      }
+
+      // Import
+      const result = await reportsAPI.importJSON(backupData)
+      
+      // Reload projects to show the new one
+      await loadProjects()
+      
+      alert(`✅ ${result.message}\n\nProject "${result.projectName}" has been created.`)
+
+    } catch (err: any) {
+      if (err instanceof SyntaxError) {
+        setError('Invalid JSON file. Please select a valid backup file.')
+      } else {
+        setError(err.message || 'Failed to import project')
+      }
+    } finally {
+      setImporting(false)
+    }
   }
 
   // Calculate statistics
@@ -200,13 +247,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
           {/* New Project Button */}
           {user.role !== 'technician' && (
-            <button 
-              className="btn btn-primary" 
-              onClick={() => setShowWizard(true)}
-              style={{ fontSize: '1rem' }}
-            >
-              🚀 New Project
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setShowWizard(true)}
+                style={{ fontSize: '1rem' }}
+              >
+                🚀 New Project
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleImportClick}
+                disabled={importing}
+                style={{ fontSize: '1rem' }}
+                title="Import project from JSON backup"
+              >
+                {importing ? '⏳ Importing...' : '📥 Import'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportFile}
+                style={{ display: 'none' }}
+              />
+            </div>
           )}
         </div>
       </div>

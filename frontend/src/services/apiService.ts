@@ -469,6 +469,19 @@ export const reportsAPI = {
     const token = getToken();
     window.open(`${API_BASE_URL}/reports/project/${projectId}/csv?token=${token}`, '_blank');
   },
+
+  importJSON: async (backupData: any): Promise<{ success: boolean; message: string; projectId: string; projectName: string }> => {
+    const response = await fetch(`${API_BASE_URL}/reports/import`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(backupData),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to import project');
+    }
+    return response.json();
+  },
 };
 
 // ============ USERS ============
