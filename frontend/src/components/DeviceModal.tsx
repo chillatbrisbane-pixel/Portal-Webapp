@@ -55,6 +55,11 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   partitionCount: 1,
   userCodeCount: 0,
   sirenCount: 0,
+  // Dialler fields
+  diallerInstalled: false,
+  diallerType: '',
+  diallerLocation: '',
+  diallerSerial: '',
   // Users arrays
   nvrUsers: [],
   alarmUsers: [],
@@ -1977,6 +1982,62 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* ============ ALARM DIALLER ============ */}
+                <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#fef3c7', borderRadius: '6px', border: '1px solid #fbbf24' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 600 }}>
+                    <input
+                      type="checkbox"
+                      name="diallerInstalled"
+                      checked={formData.diallerInstalled || false}
+                      onChange={(e) => setFormData({ ...formData, diallerInstalled: e.target.checked })}
+                      disabled={viewOnly}
+                    />
+                    📡 Alarm Dialler Installed
+                  </label>
+                  
+                  {formData.diallerInstalled && (
+                    <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Dialler Type</label>
+                        <select
+                          name="diallerType"
+                          value={formData.diallerType || ''}
+                          onChange={handleInputChange}
+                          disabled={viewOnly}
+                          style={{ width: '100%' }}
+                        >
+                          <option value="">Select...</option>
+                          <option value="T4000">T4000</option>
+                          <option value="Permaconn">Permaconn</option>
+                          <option value="Custom">Custom</option>
+                        </select>
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Dialler Location</label>
+                        <input
+                          type="text"
+                          name="diallerLocation"
+                          value={formData.diallerLocation || ''}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Comms Rack"
+                          disabled={viewOnly}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Dialler Serial</label>
+                        <input
+                          type="text"
+                          name="diallerSerial"
+                          value={formData.diallerSerial || ''}
+                          onChange={handleInputChange}
+                          placeholder="Serial number"
+                          disabled={viewOnly}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* ============ LOCATION & STATUS (for Security devices) ============ */}
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>

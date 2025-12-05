@@ -86,6 +86,12 @@ const deviceSchema = new mongoose.Schema(
     userCodeCount: { type: Number, default: 0 },    // Number of user codes (legacy)
     sirenCount: { type: Number, default: 0 },       // Internal/external sirens
     
+    // Alarm dialler fields
+    diallerInstalled: { type: Boolean, default: false },
+    diallerType: String,         // T4000, Permaconn, Custom
+    diallerLocation: String,
+    diallerSerial: String,
+    
     // Alarm user codes with access permissions
     alarmUsers: [{
       name: String,
