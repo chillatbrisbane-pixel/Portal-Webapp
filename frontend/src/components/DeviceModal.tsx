@@ -2079,16 +2079,107 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                               >
                                 {(user as any)._showCode ? '🙈 Hide' : '👁️ Show'}
                               </button>
-                              <code style={{ 
-                                background: '#e5e7eb', 
-                                padding: '0.2rem 0.5rem', 
-                                borderRadius: '3px', 
-                                fontSize: '0.85rem',
-                                fontFamily: 'monospace',
-                                letterSpacing: '0.1rem',
-                              }}>
-                                {(user as any)._showCode ? user.code : '••••'}
-                              </code>
+                              {/* Editable code section */}
+                              {(user as any)._editCode ? (
+                                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                  <input
+                                    type="text"
+                                    value={user.code}
+                                    maxLength={8}
+                                    onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], code: e.target.value }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }}
+                                    style={{
+                                      width: '80px',
+                                      padding: '0.25rem 0.5rem',
+                                      borderRadius: '4px',
+                                      border: '1px solid #3b82f6',
+                                      fontFamily: 'monospace',
+                                      fontSize: '0.9rem',
+                                      textAlign: 'center',
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const existingCode = user.code?.trim()
+                                      if (existingCode && !window.confirm('A code already exists. Do you want to replace it?')) {
+                                        return
+                                      }
+                                      const newCode = String(Math.floor(1000 + Math.random() * 9000))
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], code: newCode }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      background: '#0066cc',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.75rem',
+                                    }}
+                                    title="Generate random 4-digit code"
+                                  >
+                                    🎲
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], _editCode: false }
+                                      setFormData({ ...formData, alarmUsers: updated as any })
+                                    }}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      background: '#10b981',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.75rem',
+                                    }}
+                                  >
+                                    ✓
+                                  </button>
+                                </div>
+                              ) : (
+                                <>
+                                  <code style={{ 
+                                    background: '#e5e7eb', 
+                                    padding: '0.2rem 0.5rem', 
+                                    borderRadius: '3px', 
+                                    fontSize: '0.85rem',
+                                    fontFamily: 'monospace',
+                                    letterSpacing: '0.1rem',
+                                  }}>
+                                    {(user as any)._showCode ? user.code : '••••'}
+                                  </code>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], _editCode: true, _showCode: true }
+                                      setFormData({ ...formData, alarmUsers: updated as any })
+                                    }}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      background: '#dbeafe',
+                                      color: '#1e40af',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '0.75rem',
+                                    }}
+                                    title="Edit code"
+                                  >
+                                    ✏️
+                                  </button>
+                                </>
+                              )}
                               <button
                                 type="button"
                                 onClick={(e) => copyToClipboard(user.code, e)}
@@ -2151,13 +2242,38 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           id="new-alarm-name"
                           style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
-                        <input
-                          type="text"
-                          placeholder="Code (e.g. 1234)"
-                          id="new-alarm-code"
-                          maxLength={8}
-                          style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                        />
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            type="text"
+                            placeholder="Code (e.g. 1234)"
+                            id="new-alarm-code"
+                            maxLength={8}
+                            style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const codeInput = document.getElementById('new-alarm-code') as HTMLInputElement
+                              const existingCode = codeInput.value.trim()
+                              if (existingCode && !window.confirm('A code already exists. Do you want to replace it?')) {
+                                return
+                              }
+                              codeInput.value = String(Math.floor(1000 + Math.random() * 9000))
+                            }}
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              background: '#0066cc',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                            }}
+                            title="Generate random 4-digit code"
+                          >
+                            🎲
+                          </button>
+                        </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <input

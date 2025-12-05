@@ -6,6 +6,28 @@ const { authenticateToken } = require('../middleware/auth');
 const { generatePassword } = require('../utils/passwordGenerator');
 const { getNextAvailableIP, checkIPConflict, getDefaultVLAN, IP_CONFIG } = require('../utils/ipAssignment');
 
+// Helper function to auto-update project skytunnel link from Inception device
+async function updateProjectSkytunnelFromDevice(device) {
+  try {
+    // Only proceed if this is an Inception alarm panel with a serial number
+    if (device.deviceType === 'alarm-panel' && 
+        device.panelType === 'inception' && 
+        device.serialNumber) {
+      const skytunnelLink = `https://skytunnel.cloud/${device.serialNumber}`;
+      
+      // Update the project's skytunnel link
+      await Project.findByIdAndUpdate(device.projectId, {
+        skytunnelLink: skytunnelLink
+      });
+      
+      console.log(`Auto-updated project skytunnel link: ${skytunnelLink}`);
+    }
+  } catch (error) {
+    console.error('Error updating skytunnel link:', error);
+    // Don't throw - this is a non-critical operation
+  }
+}
+
 // ============ UTILITY ENDPOINTS ============
 
 // Generate password
@@ -182,6 +204,9 @@ router.post('/', authenticateToken, async (req, res) => {
     const device = new Device(deviceData);
     await device.save();
     
+    // Auto-update project skytunnel link if this is an Inception alarm panel
+    await updateProjectSkytunnelFromDevice(device);
+    
     // Populate references before returning
     await device.populate('boundToSwitch', 'name');
     await device.populate('boundToNVR', 'name');
@@ -215,6 +240,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     Object.assign(device, req.body);
     await device.save();
+    
+    // Auto-update project skytunnel link if this is an Inception alarm panel
+    await updateProjectSkytunnelFromDevice(device);
     
     await device.populate('boundToSwitch', 'name');
     await device.populate('boundToNVR', 'name');
