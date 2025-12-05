@@ -2712,19 +2712,34 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                             {(airkey as any)._editing ? (
                               /* ===== EDIT MODE ===== */
                               <div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                   <input type="text" placeholder="Airkey Name" value={airkey.name} onChange={(e) => {
                                     const updated = [...(formData.airkeys || [])]
                                     updated[idx] = { ...updated[idx], name: e.target.value }
                                     setFormData({ ...formData, airkeys: updated })
                                   }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <input type="text" placeholder="Serial Number" value={airkey.serialNumber || ''} onChange={(e) => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated[idx] = { ...updated[idx], serialNumber: e.target.value }
+                                    setFormData({ ...formData, airkeys: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <select value={airkey.buttonConfig || ''} onChange={(e) => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated[idx] = { ...updated[idx], buttonConfig: e.target.value }
+                                    setFormData({ ...formData, airkeys: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
+                                    <option value="">Button Config...</option>
+                                    <option value="2">2 Button</option>
+                                    <option value="4">4 Button</option>
+                                    <option value="6">6 Button</option>
+                                  </select>
                                 </div>
                                 <div style={{ marginBottom: '0.75rem' }}>
-                                  <textarea placeholder="Notes" value={airkey.notes || ''} onChange={(e) => {
+                                  <textarea placeholder="Button Notes (e.g., Button 1: Arm, Button 2: Disarm...)" value={airkey.notes || ''} onChange={(e) => {
                                     const updated = [...(formData.airkeys || [])]
                                     updated[idx] = { ...updated[idx], notes: e.target.value }
                                     setFormData({ ...formData, airkeys: updated })
-                                  }} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', resize: 'vertical' }} />
+                                  }} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', resize: 'vertical' }} />
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                   <button type="button" onClick={() => {
@@ -2743,8 +2758,13 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                             ) : (
                               /* ===== VIEW MODE ===== */
                               <>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                                   <strong style={{ flex: 1 }}>{airkey.name}</strong>
+                                  {airkey.buttonConfig && (
+                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: '#dbeafe', color: '#1e40af' }}>
+                                      {airkey.buttonConfig} Button
+                                    </span>
+                                  )}
                                   <button type="button" onClick={() => {
                                     const updated = [...(formData.airkeys || [])]
                                     updated[idx] = { ...updated[idx], _editing: true }
@@ -2757,9 +2777,12 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, airkeys: updated })
                                   }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
                                 </div>
+                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                                  {airkey.serialNumber && <span>🔢 {airkey.serialNumber}</span>}
+                                </div>
                                 {airkey.notes && (
-                                  <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>
-                                    📝 {airkey.notes}
+                                  <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#4b5563', background: '#f3f4f6', padding: '0.5rem', borderRadius: '4px', whiteSpace: 'pre-wrap' }}>
+                                    {airkey.notes}
                                   </div>
                                 )}
                               </>
@@ -2769,21 +2792,28 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                       </div>
                     )}
                     
-                    {/* Add new airkey form - simplified to just name + notes */}
+                    {/* Add new airkey form */}
                     <div style={{ 
                       padding: '1rem',
                       background: '#ede9fe',
                       borderRadius: '6px',
                       border: '1px dashed #8b5cf6',
                     }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <input type="text" placeholder="Airkey Name" id="new-airkey-name" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Serial Number" id="new-airkey-serial" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <select id="new-airkey-buttons" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
+                          <option value="">Button Config...</option>
+                          <option value="2">2 Button</option>
+                          <option value="4">4 Button</option>
+                          <option value="6">6 Button</option>
+                        </select>
                       </div>
                       <div style={{ marginBottom: '0.75rem' }}>
                         <textarea 
-                          placeholder="Notes" 
+                          placeholder="Button Notes (e.g., Button 1: Arm, Button 2: Disarm, Button 3: Panic...)" 
                           id="new-airkey-notes" 
-                          rows={2}
+                          rows={3}
                           style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', resize: 'vertical' }} 
                         />
                       </div>
@@ -2794,10 +2824,14 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           if (!name) { alert('Airkey name is required'); return }
                           const newAirkey = {
                             name,
+                            serialNumber: (document.getElementById('new-airkey-serial') as HTMLInputElement).value.trim(),
+                            buttonConfig: (document.getElementById('new-airkey-buttons') as HTMLSelectElement).value as '2' | '4' | '6' | '',
                             notes: (document.getElementById('new-airkey-notes') as HTMLTextAreaElement).value.trim(),
                           }
                           setFormData({ ...formData, airkeys: [...(formData.airkeys || []), newAirkey] })
                           ;(document.getElementById('new-airkey-name') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-serial') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-buttons') as HTMLSelectElement).value = ''
                           ;(document.getElementById('new-airkey-notes') as HTMLTextAreaElement).value = ''
                         }}
                         style={{ padding: '0.5rem 1rem', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
@@ -3037,26 +3071,31 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             )}
 
             {/* ============ LOCATION & STATUS ============ */}
-            <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-              📍 Location & Status
-            </h4>
+            {/* Hide for security alarm panels - they have their own Location & Status section above */}
+            {!(formData.category === 'security' && formData.deviceType === 'alarm-panel') && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  📍 Location & Status
+                </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Location</label>
-                <input name="location" type="text" value={formData.location} onChange={handleInputChange} placeholder="e.g., Server Rack" />
-              </div>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Status</label>
-                <select name="status" value={formData.status} onChange={handleInputChange}>
-                  <option value="not-installed">Not Installed</option>
-                  <option value="installed">Installed</option>
-                  <option value="configured">Configured</option>
-                  <option value="tested">Tested</option>
-                  <option value="commissioned">Commissioned</option>
-                </select>
-              </div>
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Location</label>
+                    <input name="location" type="text" value={formData.location} onChange={handleInputChange} placeholder="e.g., Server Rack" />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Status</label>
+                    <select name="status" value={formData.status} onChange={handleInputChange}>
+                      <option value="not-installed">Not Installed</option>
+                      <option value="installed">Installed</option>
+                      <option value="configured">Configured</option>
+                      <option value="tested">Tested</option>
+                      <option value="commissioned">Commissioned</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* ============ NOTES ============ */}
             <div className="form-group" style={{ marginTop: '1rem' }}>
