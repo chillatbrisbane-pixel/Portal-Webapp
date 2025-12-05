@@ -569,7 +569,8 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       drawSectionHeader(doc, 'Switch Port Allocations');
       
       switches.forEach(sw => {
-        if (doc.y > 600) doc.addPage();
+        // Start each switch on a new page to keep it together
+        doc.addPage();
         
         drawSubsectionHeader(doc, `${sw.name} (${sw.portCount || 24} ports)`);
         
@@ -584,44 +585,100 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
           return switchId === sw._id.toString();
         });
         
-        // Port table header
-        doc.fontSize(8).font('Helvetica-Bold');
-        const headerY = doc.y;
-        doc.text('Port', 55, headerY, { width: 35 });
-        doc.text('Device', 95, headerY, { width: 110 });
-        doc.text('IP Address', 210, headerY, { width: 90 });
-        doc.text('MAC Address', 305, headerY, { width: 110 });
-        doc.text('VLAN', 420, headerY, { width: 40 });
-        doc.moveDown(0.3);
-        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
-        doc.moveDown(0.3);
-        
-        doc.font('Helvetica');
-        
         const portCount = sw.portCount || 24;
-        for (let port = 1; port <= portCount; port++) {
-          if (doc.y > 750) {
-            doc.addPage();
-            doc.y = 50;
+        const useTwoColumns = portCount > 24;
+        
+        if (useTwoColumns) {
+          // Two-column layout for 48 port switches
+          const col1X = 50;
+          const col2X = 300;
+          const portsPerCol = Math.ceil(portCount / 2);
+          
+          // Headers for both columns
+          doc.fontSize(7).font('Helvetica-Bold');
+          const headerY = doc.y;
+          
+          // Column 1 header
+          doc.text('Port', col1X, headerY, { width: 25 });
+          doc.text('Device', col1X + 28, headerY, { width: 85 });
+          doc.text('IP Address', col1X + 115, headerY, { width: 70 });
+          doc.text('VLAN', col1X + 188, headerY, { width: 30 });
+          
+          // Column 2 header
+          doc.text('Port', col2X, headerY, { width: 25 });
+          doc.text('Device', col2X + 28, headerY, { width: 85 });
+          doc.text('IP Address', col2X + 115, headerY, { width: 70 });
+          doc.text('VLAN', col2X + 188, headerY, { width: 30 });
+          
+          doc.moveDown(0.25);
+          doc.moveTo(col1X, doc.y).lineTo(col1X + 220, doc.y).strokeColor('#e5e7eb').stroke();
+          doc.moveTo(col2X, doc.y).lineTo(col2X + 220, doc.y).strokeColor('#e5e7eb').stroke();
+          doc.moveDown(0.2);
+          
+          doc.font('Helvetica').fontSize(7);
+          
+          for (let i = 0; i < portsPerCol; i++) {
+            const port1 = i + 1;
+            const port2 = i + 1 + portsPerCol;
+            const device1 = boundDevices.find(d => d.switchPort === port1);
+            const device2 = port2 <= portCount ? boundDevices.find(d => d.switchPort === port2) : null;
+            
+            const y = doc.y;
+            
+            // Column 1
+            doc.fillColor(device1 ? '#059669' : '#9ca3af');
+            doc.text(port1.toString(), col1X, y, { width: 25 });
+            doc.fillColor('#333333');
+            doc.text(device1 ? device1.name : '-', col1X + 28, y, { width: 85 });
+            doc.text(device1 ? (device1.ipAddress || '-') : '-', col1X + 115, y, { width: 70 });
+            doc.text(device1 ? (device1.vlan || '-').toString() : '-', col1X + 188, y, { width: 30 });
+            
+            // Column 2
+            if (port2 <= portCount) {
+              doc.fillColor(device2 ? '#059669' : '#9ca3af');
+              doc.text(port2.toString(), col2X, y, { width: 25 });
+              doc.fillColor('#333333');
+              doc.text(device2 ? device2.name : '-', col2X + 28, y, { width: 85 });
+              doc.text(device2 ? (device2.ipAddress || '-') : '-', col2X + 115, y, { width: 70 });
+              doc.text(device2 ? (device2.vlan || '-').toString() : '-', col2X + 188, y, { width: 30 });
+            }
+            
+            doc.y = y + 13;
           }
+        } else {
+          // Single column layout for 24 ports or less
+          doc.fontSize(8).font('Helvetica-Bold');
+          const headerY = doc.y;
+          doc.text('Port', 55, headerY, { width: 35 });
+          doc.text('Device', 95, headerY, { width: 110 });
+          doc.text('IP Address', 210, headerY, { width: 90 });
+          doc.text('MAC Address', 305, headerY, { width: 110 });
+          doc.text('VLAN', 420, headerY, { width: 40 });
+          doc.moveDown(0.3);
+          doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').stroke();
+          doc.moveDown(0.3);
           
-          const device = boundDevices.find(d => d.switchPort === port);
-          const y = doc.y;
+          doc.font('Helvetica');
           
-          if (device) {
-            doc.fillColor('#059669');
-          } else {
-            doc.fillColor('#9ca3af');
+          for (let port = 1; port <= portCount; port++) {
+            const device = boundDevices.find(d => d.switchPort === port);
+            const y = doc.y;
+            
+            if (device) {
+              doc.fillColor('#059669');
+            } else {
+              doc.fillColor('#9ca3af');
+            }
+            
+            doc.text(port.toString(), 55, y, { width: 35 });
+            doc.fillColor('#333333');
+            doc.text(device ? device.name : '-', 95, y, { width: 110 });
+            doc.text(device ? (device.ipAddress || '-') : '-', 210, y, { width: 90 });
+            doc.fontSize(7).text(device ? (device.macAddress || '-') : '-', 305, y, { width: 110 });
+            doc.fontSize(8).text(device ? (device.vlan || '-').toString() : '-', 420, y, { width: 40 });
+            
+            doc.moveDown(0.35);
           }
-          
-          doc.text(port.toString(), 55, y, { width: 35 });
-          doc.fillColor('#333333');
-          doc.text(device ? device.name : '-', 95, y, { width: 110 });
-          doc.text(device ? (device.ipAddress || '-') : '-', 210, y, { width: 90 });
-          doc.fontSize(7).text(device ? (device.macAddress || '-') : '-', 305, y, { width: 110 });
-          doc.fontSize(8).text(device ? (device.vlan || '-').toString() : '-', 420, y, { width: 40 });
-          
-          doc.moveDown(0.4);
         }
         
         doc.moveDown(1);
