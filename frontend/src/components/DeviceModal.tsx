@@ -1978,6 +1978,27 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   </div>
                 )}
 
+                {/* ============ LOCATION & STATUS (for Security devices) ============ */}
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  📍 Location & Status
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Location</label>
+                    <input name="location" type="text" value={formData.location} onChange={handleInputChange} placeholder="e.g., Comms Rack, Entry Cupboard" disabled={viewOnly} />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Status</label>
+                    <select name="status" value={formData.status} onChange={handleInputChange} disabled={viewOnly}>
+                      <option value="not-installed">Not Installed</option>
+                      <option value="installed">Installed</option>
+                      <option value="configured">Configured</option>
+                      <option value="tested">Tested</option>
+                      <option value="commissioned">Commissioned</option>
+                    </select>
+                  </div>
+                </div>
+
                 {/* ============ ALARM USER CODES ============ */}
                 {!bulkMode && (
                   <>
@@ -2144,6 +2165,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      if (!window.confirm(`Delete user "${user.name}"?`)) return
                                       const updated = [...(formData.alarmUsers || [])]
                                       updated.splice(idx, 1)
                                       setFormData({ ...formData, alarmUsers: updated })
@@ -2186,6 +2208,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      if (!window.confirm(`Delete user "${user.name}"?`)) return
                                       const updated = [...(formData.alarmUsers || [])]
                                       updated.splice(idx, 1)
                                       setFormData({ ...formData, alarmUsers: updated })
@@ -2440,6 +2463,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, securityFobs: updated as any })
                                   }} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✓ Done</button>
                                   <button type="button" onClick={() => {
+                                    if (!window.confirm(`Delete fob "${fob.name}"?`)) return
                                     const updated = [...(formData.securityFobs || [])]
                                     updated.splice(idx, 1)
                                     setFormData({ ...formData, securityFobs: updated })
@@ -2457,6 +2481,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, securityFobs: updated as any })
                                   }} style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} title="Edit fob">✏️ Edit</button>
                                   <button type="button" onClick={() => {
+                                    if (!window.confirm(`Delete fob "${fob.name}"?`)) return
                                     const updated = [...(formData.securityFobs || [])]
                                     updated.splice(idx, 1)
                                     setFormData({ ...formData, securityFobs: updated })
@@ -2582,6 +2607,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, proxTags: updated as any })
                                   }} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✓ Done</button>
                                   <button type="button" onClick={() => {
+                                    if (!window.confirm(`Delete prox tag "${tag.name}"?`)) return
                                     const updated = [...(formData.proxTags || [])]
                                     updated.splice(idx, 1)
                                     setFormData({ ...formData, proxTags: updated })
@@ -2599,6 +2625,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, proxTags: updated as any })
                                   }} style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} title="Edit tag">✏️ Edit</button>
                                   <button type="button" onClick={() => {
+                                    if (!window.confirm(`Delete prox tag "${tag.name}"?`)) return
                                     const updated = [...(formData.proxTags || [])]
                                     updated.splice(idx, 1)
                                     setFormData({ ...formData, proxTags: updated })
@@ -2706,6 +2733,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, airkeys: updated as any })
                                   }} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✓ Done</button>
                                   <button type="button" onClick={() => {
+                                    if (!window.confirm(`Delete airkey "${airkey.name}"?`)) return
                                     const updated = [...(formData.airkeys || [])]
                                     updated.splice(idx, 1)
                                     setFormData({ ...formData, airkeys: updated })
@@ -2723,6 +2751,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                                     setFormData({ ...formData, airkeys: updated as any })
                                   }} style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} title="Edit airkey">✏️ Edit</button>
                                   <button type="button" onClick={() => {
+                                    if (!window.confirm(`Delete airkey "${airkey.name}"?`)) return
                                     const updated = [...(formData.airkeys || [])]
                                     updated.splice(idx, 1)
                                     setFormData({ ...formData, airkeys: updated })
