@@ -6,6 +6,7 @@ import { DeviceModal } from './DeviceModal'
 interface DeviceListProps {
   projectId: string
   onDevicesChanged?: () => void
+  onProjectUpdate?: (updates: { skytunnelLink?: string }) => void
 }
 
 const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color: string }> = {
@@ -38,7 +39,7 @@ const sortByName = (devices: Device[]): Device[] => {
   return [...devices].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
 }
 
-export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChanged }) => {
+export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChanged, onProjectUpdate }) => {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -93,6 +94,14 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
   const handleDeviceCreated = (newDevice: Device | Device[]) => {
     // Handle both single device and array of devices (from bulk add)
     const devicesToAdd = Array.isArray(newDevice) ? newDevice : [newDevice]
+    
+    // Check for project updates (e.g., skytunnel link from Inception device)
+    for (const dev of devicesToAdd) {
+      const deviceWithMeta = dev as any
+      if (deviceWithMeta._projectUpdate && onProjectUpdate) {
+        onProjectUpdate(deviceWithMeta._projectUpdate)
+      }
+    }
     
     setDevices(prev => {
       const updated = [...prev]

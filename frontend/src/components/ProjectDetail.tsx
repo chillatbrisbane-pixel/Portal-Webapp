@@ -462,6 +462,15 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const handleExportJSON = () => reportsAPI.downloadJSON(project._id)
   const handleExportCSV = () => reportsAPI.downloadCSV(project._id)
 
+  // Handle project updates from device saves (e.g., skytunnel link from Inception)
+  const handleProjectUpdate = (updates: { skytunnelLink?: string }) => {
+    if (updates.skytunnelLink) {
+      const updatedProject = { ...project, skytunnelLink: updates.skytunnelLink }
+      setFormData(prev => ({ ...prev, skytunnelLink: updates.skytunnelLink }))
+      onProjectUpdated(updatedProject)
+    }
+  }
+
   // Port export functions
   const exportPortsToCSV = () => {
     if (!selectedSwitch) return
@@ -1141,7 +1150,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
       {/* Tab Content */}
       {activeTab === 'devices' && (
-        <DeviceList projectId={project._id} onDevicesChanged={loadDevices} />
+        <DeviceList 
+          projectId={project._id} 
+          onDevicesChanged={loadDevices} 
+          onProjectUpdate={handleProjectUpdate}
+        />
       )}
 
       {activeTab === 'wifi' && (

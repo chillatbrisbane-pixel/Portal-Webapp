@@ -7,6 +7,7 @@ const { generatePassword } = require('../utils/passwordGenerator');
 const { getNextAvailableIP, checkIPConflict, getDefaultVLAN, IP_CONFIG } = require('../utils/ipAssignment');
 
 // Helper function to auto-update project skytunnel link from Inception device
+// Returns the skytunnel link if it was updated, null otherwise
 async function updateProjectSkytunnelFromDevice(device) {
   try {
     // Only proceed if this is an Inception alarm panel with a serial number
@@ -21,10 +22,12 @@ async function updateProjectSkytunnelFromDevice(device) {
       });
       
       console.log(`Auto-updated project skytunnel link: ${skytunnelLink}`);
+      return skytunnelLink;
     }
+    return null;
   } catch (error) {
     console.error('Error updating skytunnel link:', error);
-    // Don't throw - this is a non-critical operation
+    return null;
   }
 }
 
@@ -205,13 +208,19 @@ router.post('/', authenticateToken, async (req, res) => {
     await device.save();
     
     // Auto-update project skytunnel link if this is an Inception alarm panel
-    await updateProjectSkytunnelFromDevice(device);
+    const updatedSkytunnelLink = await updateProjectSkytunnelFromDevice(device);
     
     // Populate references before returning
     await device.populate('boundToSwitch', 'name');
     await device.populate('boundToNVR', 'name');
     
-    res.status(201).json(device);
+    // Include skytunnel update info in response
+    const response = device.toObject();
+    if (updatedSkytunnelLink) {
+      response._projectUpdate = { skytunnelLink: updatedSkytunnelLink };
+    }
+    
+    res.status(201).json(response);
   } catch (error) {
     console.error('Create device error:', error);
     res.status(500).json({ error: error.message });
@@ -242,13 +251,19 @@ router.put('/:id', authenticateToken, async (req, res) => {
     await device.save();
     
     // Auto-update project skytunnel link if this is an Inception alarm panel
-    await updateProjectSkytunnelFromDevice(device);
+    const updatedSkytunnelLink = await updateProjectSkytunnelFromDevice(device);
     
     await device.populate('boundToSwitch', 'name');
     await device.populate('boundToNVR', 'name');
     await device.populate('boundToProcessor', 'name');
     
-    res.json(device);
+    // Include skytunnel update info in response
+    const response = device.toObject();
+    if (updatedSkytunnelLink) {
+      response._projectUpdate = { skytunnelLink: updatedSkytunnelLink };
+    }
+    
+    res.json(response);
   } catch (error) {
     console.error('Update device error:', error);
     res.status(500).json({ error: error.message });
