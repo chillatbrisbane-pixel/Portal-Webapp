@@ -14,7 +14,7 @@ async function updateProjectSkytunnelFromDevice(device) {
     if (device.deviceType === 'alarm-panel' && 
         device.panelType === 'inception' && 
         device.serialNumber) {
-      const skytunnelLink = `https://skytunnel.cloud/${device.serialNumber}`;
+      const skytunnelLink = `https://skytunnel.com.au/inception/${device.serialNumber}`;
       
       // Update the project's skytunnel link
       await Project.findByIdAndUpdate(device.projectId, {
