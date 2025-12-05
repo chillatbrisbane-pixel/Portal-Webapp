@@ -63,8 +63,7 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   control4TempPass: '',
   control4AccountName: '',
   // Araknis / OvrC fields
-  ovrcUsername: '',
-  ovrcPassword: '',
+  ovrcAccountName: '',
   localAdminUser: '',
   localAdminPass: '',
   // Audio matrix / multiroom amp
@@ -94,6 +93,15 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   // Dynalite Lighting
   dynalitePdegPort: '',
   dynaliteControlPort: '',
+  // HVAC Control
+  hvacUnitLocations: '',  // Newline-separated list of unit locations
+  hvacUnitBrands: '',     // Newline-separated list of unit brands  
+  hvacUnitModels: '',     // Newline-separated list of unit models
+  hvacUnitIPs: '',        // Newline-separated list of unit IPs
+  hvacUnitCount: 0,
+  // PDU Ports
+  pduPortCount: 8,
+  pduPortNames: '',       // Newline-separated list of port names
 }
 
 // Default device names by type
@@ -126,6 +134,7 @@ const getDefaultDeviceName = (deviceType: string, existingCount: number) => {
     'fan': 'Fan',
     'irrigation': 'Irrigation',
     'hvac': 'HVAC',
+    'hvac-controller': 'HVAC Controller',
     'relay': 'Relay',
     'fireplace': 'Fireplace',
     'shade': 'Shade',
@@ -686,8 +695,23 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit}>
+          <fieldset disabled={viewOnly} style={{ border: 'none', padding: 0, margin: 0 }}>
           <div className="modal-body">
             {error && <div className="alert alert-error">{error}</div>}
+            
+            {viewOnly && (
+              <div style={{ 
+                background: '#fef3c7', 
+                padding: '0.75rem 1rem', 
+                borderRadius: '6px', 
+                marginBottom: '1rem',
+                border: '1px solid #fcd34d',
+              }}>
+                <p style={{ margin: 0, color: '#92400e', fontSize: '0.9rem' }}>
+                  👁️ View mode - fields are read-only. Click Edit to make changes.
+                </p>
+              </div>
+            )}
 
             {/* ============ CATEGORY & TYPE FIRST ============ */}
             <h4 style={{ color: '#333', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
@@ -705,6 +729,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   <option value="lighting">💡 Lighting</option>
                   <option value="av">📺 AV</option>
                   <option value="power">🔌 Power</option>
+                  <option value="hvac">❄️ HVAC Control</option>
                   <option value="other">📦 Other</option>
                 </select>
               </div>
@@ -1823,23 +1848,13 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     </h5>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label>OvrC Username</label>
+                        <label>OvrC Account Name</label>
                         <input
-                          name="ovrcUsername"
+                          name="ovrcAccountName"
                           type="text"
-                          value={formData.ovrcUsername || ''}
+                          value={formData.ovrcAccountName || ''}
                           onChange={handleInputChange}
-                          placeholder="OvrC account email"
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>OvrC Password</label>
-                        <input
-                          name="ovrcPassword"
-                          type="text"
-                          value={formData.ovrcPassword || ''}
-                          onChange={handleInputChange}
-                          placeholder="OvrC password"
+                          placeholder="OvrC account name"
                         />
                       </div>
                     </div>
@@ -2290,6 +2305,123 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </>
             )}
 
+            {/* HVAC CONTROL */}
+            {formData.category === 'hvac' && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  ❄️ HVAC Units Configuration
+                </h4>
+                <div className="form-group" style={{ margin: '0 0 1rem' }}>
+                  <label>Number of AC Units</label>
+                  <input
+                    name="hvacUnitCount"
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={formData.hvacUnitCount || ''}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 4"
+                    style={{ width: '100px' }}
+                  />
+                </div>
+                {(formData.hvacUnitCount || 0) > 0 && (
+                  <div style={{ 
+                    background: '#f0fdfa', 
+                    padding: '1rem', 
+                    borderRadius: '8px',
+                    border: '1px solid #99f6e4',
+                  }}>
+                    <p style={{ fontSize: '0.85rem', color: '#0d9488', marginBottom: '0.75rem' }}>
+                      Enter details for each AC unit (one per line)
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.85rem' }}>Unit Locations</label>
+                        <textarea
+                          name="hvacUnitLocations"
+                          value={formData.hvacUnitLocations || ''}
+                          onChange={handleInputChange}
+                          placeholder="Living Room&#10;Master Bedroom&#10;Kitchen&#10;..."
+                          rows={Math.min(formData.hvacUnitCount || 4, 6)}
+                          style={{ resize: 'vertical', fontSize: '0.9rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.85rem' }}>Unit Brands</label>
+                        <textarea
+                          name="hvacUnitBrands"
+                          value={formData.hvacUnitBrands || ''}
+                          onChange={handleInputChange}
+                          placeholder="Daikin&#10;Mitsubishi&#10;Fujitsu&#10;..."
+                          rows={Math.min(formData.hvacUnitCount || 4, 6)}
+                          style={{ resize: 'vertical', fontSize: '0.9rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.85rem' }}>Unit Models</label>
+                        <textarea
+                          name="hvacUnitModels"
+                          value={formData.hvacUnitModels || ''}
+                          onChange={handleInputChange}
+                          placeholder="FXMQ-P&#10;MSZ-AP50&#10;ASYG09KMCC&#10;..."
+                          rows={Math.min(formData.hvacUnitCount || 4, 6)}
+                          style={{ resize: 'vertical', fontSize: '0.9rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ fontSize: '0.85rem' }}>Unit IP Addresses</label>
+                        <textarea
+                          name="hvacUnitIPs"
+                          value={formData.hvacUnitIPs || ''}
+                          onChange={handleInputChange}
+                          placeholder="192.168.210.30&#10;192.168.210.31&#10;192.168.210.32&#10;..."
+                          rows={Math.min(formData.hvacUnitCount || 4, 6)}
+                          style={{ resize: 'vertical', fontSize: '0.9rem' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* PDU PORT CONFIGURATION */}
+            {formData.deviceType === 'pdu' && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  🔌 PDU Port Configuration
+                </h4>
+                <div className="form-group" style={{ margin: '0 0 1rem' }}>
+                  <label>Number of Ports</label>
+                  <input
+                    name="pduPortCount"
+                    type="number"
+                    min="1"
+                    max="24"
+                    value={formData.pduPortCount || 8}
+                    onChange={handleInputChange}
+                    style={{ width: '100px' }}
+                  />
+                </div>
+                {(formData.pduPortCount || 8) > 0 && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label style={{ fontSize: '0.85rem' }}>Port Names (one per line)</label>
+                    <textarea
+                      name="pduPortNames"
+                      value={formData.pduPortNames || ''}
+                      onChange={handleInputChange}
+                      placeholder="Router&#10;Switch&#10;NVR&#10;Access Point&#10;Processor&#10;..."
+                      rows={Math.min(formData.pduPortCount || 8, 10)}
+                      style={{ resize: 'vertical', fontSize: '0.9rem' }}
+                    />
+                    <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                      Enter {formData.pduPortCount || 8} port names, one per line
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+
             {/* AV EQUIPMENT */}
             {formData.category === 'av' && (
               <>
@@ -2354,6 +2486,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               />
             </div>
           </div>
+          </fieldset>
 
           <div className="modal-footer" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>

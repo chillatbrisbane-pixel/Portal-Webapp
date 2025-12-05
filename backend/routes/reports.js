@@ -31,6 +31,7 @@ const CATEGORY_INFO = {
   'lighting': { label: 'Lighting Control', color: '#eab308' },
   'av': { label: 'Audio Visual', color: '#10b981' },
   'power': { label: 'Power Distribution', color: '#dc2626' },
+  'hvac': { label: 'HVAC Control', color: '#06b6d4' },
   'other': { label: 'Other Devices', color: '#6b7280' }
 };
 

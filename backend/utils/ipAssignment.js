@@ -117,6 +117,12 @@ const IP_CONFIG = {
     range: { start: 30, end: 30 },
     subnet: '192.168.210'
   },
+  'hvac-controller': {
+    vlan: 1,
+    defaultIP: '192.168.210.30',
+    range: { start: 30, end: 39 },
+    subnet: '192.168.210'
+  },
   relay: {
     vlan: 1,
     defaultIP: '192.168.210.51',

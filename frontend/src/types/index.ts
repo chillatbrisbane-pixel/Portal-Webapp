@@ -142,6 +142,7 @@ export type DeviceCategory =
   | 'lighting'
   | 'av'
   | 'power'
+  | 'hvac'
   | 'other';
 
 // Device Types
@@ -160,6 +161,8 @@ export type DeviceType =
   | 'receiver' | 'tv' | 'projector' | 'audio-matrix' | 'video-matrix' | 'amplifier' | 'soundbar' | 'media-player'
   // Power
   | 'pdu' | 'ups'
+  // HVAC
+  | 'hvac-controller'
   // Other
   | 'fan' | 'irrigation' | 'hvac' | 'relay' | 'fireplace' | 'shade' | 'pool' | 'generic';
 
@@ -400,6 +403,9 @@ export const BRAND_OPTIONS = {
     pdu: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Panamax', 'Custom'],
     ups: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Custom'],
   },
+  hvac: {
+    'hvac-controller': ['Coolmaster', 'Intesis', 'Daikin', 'Mitsubishi', 'Fujitsu', 'ActronAir', 'Custom'],
+  },
   other: {
     fan: ['Haiku', 'Hunter', 'Custom'],
     hvac: ['Coolmaster', 'Intesis', 'Custom'],
@@ -450,6 +456,9 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
   power: [
     { value: 'pdu', label: '🔌 Power Distribution Unit (PDU)' },
     { value: 'ups', label: '🔋 UPS / Battery Backup' },
+  ],
+  hvac: [
+    { value: 'hvac-controller', label: '❄️ HVAC Controller' },
   ],
   other: [
     { value: 'fan', label: '🌀 Smart Fan' },
@@ -524,6 +533,9 @@ export const DEVICE_CONNECTION_CONFIG: Record<string, {
   // Power devices
   'pdu': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
   'ups': { options: ['wired', 'wifi', 'none'], default: 'wired', requiresSwitch: true },
+  
+  // HVAC
+  'hvac-controller': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
 };
 
 // Helper to get connection config for a device type

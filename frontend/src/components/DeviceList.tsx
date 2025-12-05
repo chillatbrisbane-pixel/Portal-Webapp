@@ -16,6 +16,7 @@ const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color
   lighting: { icon: '💡', label: 'Lighting', color: '#eab308' },
   av: { icon: '📺', label: 'AV Equipment', color: '#10b981' },
   power: { icon: '🔌', label: 'Power', color: '#dc2626' },
+  hvac: { icon: '❄️', label: 'HVAC Control', color: '#06b6d4' },
   other: { icon: '📦', label: 'Other Devices', color: '#6b7280' },
 }
 

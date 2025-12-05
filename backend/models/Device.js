@@ -122,8 +122,7 @@ const deviceSchema = new mongoose.Schema(
     control4AccountName: String,
     
     // ============ ARAKNIS / OVRC ============
-    ovrcUsername: String,
-    ovrcPassword: String,
+    ovrcAccountName: String,
     localAdminUser: String,
     localAdminPass: String,
     
@@ -158,6 +157,17 @@ const deviceSchema = new mongoose.Schema(
     // ============ DYNALITE LIGHTING ============
     dynalitePdegPort: Number,
     dynaliteControlPort: Number,
+    
+    // ============ HVAC CONTROL ============
+    hvacUnitCount: { type: Number, default: 0 },
+    hvacUnitLocations: String,   // Newline-separated list
+    hvacUnitBrands: String,      // Newline-separated list
+    hvacUnitModels: String,      // Newline-separated list
+    hvacUnitIPs: String,         // Newline-separated list
+    
+    // ============ PDU PORTS ============
+    pduPortCount: { type: Number, default: 8 },
+    pduPortNames: String,        // Newline-separated list
     
     // Switch/Port Binding
     switchPort: Number,
