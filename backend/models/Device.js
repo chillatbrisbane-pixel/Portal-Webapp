@@ -102,6 +102,36 @@ const deviceSchema = new mongoose.Schema(
       isRestApiUser: { type: Boolean, default: false },
     }],
     
+    // Security Fobs
+    securityFobs: [{
+      name: String,
+      model: String,
+      serialNumber: String,
+      permissionGroup: String,
+      notes: String,
+    }],
+    
+    // Prox Tags
+    proxTags: [{
+      name: String,
+      model: String,
+      serialNumber: String,
+      facultyCode: String,
+      permissionGroup: String,
+      notes: String,
+    }],
+    
+    // Airkeys
+    airkeys: [{
+      name: String,
+      model: String,
+      serialNumber: String,
+      buttonConfig: { type: String, enum: ['2', '4', '6', ''], default: '' },
+      buttonNotes: String,
+      permissionGroup: String,
+      notes: String,
+    }],
+    
     // ============ NVR SPECIFIC ============
     // Extra NVR users (beyond main credentials)
     nvrUsers: [{

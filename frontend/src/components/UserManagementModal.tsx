@@ -25,7 +25,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     email: '',
     password: '',
     currentPassword: '',
-    role: 'technician',
+    role: 'viewer',
   })
   
   // Invite link state
@@ -86,7 +86,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleAddUser = () => {
     setEditingUser(null)
-    setFormData({ name: '', email: '', password: '', currentPassword: '', role: 'technician' })
+    setFormData({ name: '', email: '', password: '', currentPassword: '', role: 'viewer' })
     setShowForm(true)
     setPasswordMode(false)
     setSelfPasswordMode(false)
@@ -508,11 +508,11 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                     borderRadius: '12px',
                                     fontSize: '0.8rem',
                                     fontWeight: 600,
-                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'manager' ? '#dbeafe' : '#e0f2fe',
-                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'manager' ? '#1e40af' : '#0369a1',
+                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'tech' ? '#dbeafe' : '#e0f2fe',
+                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'tech' ? '#1e40af' : '#0369a1',
                                   }}
                                 >
-                                  {user.role}
+                                  {user.role === 'admin' ? 'Admin' : user.role === 'tech' ? 'Tech' : 'Viewer'}
                                 </span>
                                 {user.lastLogin && (
                                   <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
@@ -819,9 +819,9 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                           disabled={loading}
                         >
-                          <option value="technician">Technician</option>
-                          <option value="manager">Manager</option>
-                          <option value="admin">Admin</option>
+                          <option value="viewer">Viewer (View Only)</option>
+                          <option value="tech">Tech (Full Access)</option>
+                          <option value="admin">Admin (Full + User Management)</option>
                         </select>
                       </div>
                     )}

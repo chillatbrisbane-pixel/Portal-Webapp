@@ -246,7 +246,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
 
           {/* New Project Button */}
-          {user.role !== 'technician' && (
+          {user.role !== 'viewer' && (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button 
                 className="btn btn-primary" 
@@ -371,7 +371,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       ) : projects.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#6b7280' }}>
           <p style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>No projects yet</p>
-          {user.role !== 'technician' && (
+          {user.role !== 'viewer' && (
             <button 
               className="btn btn-primary"
               onClick={() => setShowWizard(true)}

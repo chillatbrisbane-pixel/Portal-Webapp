@@ -213,6 +213,10 @@ export interface AlarmUser {
   canArm: boolean;
   canDisarm: boolean;
   isAdmin: boolean;
+  webUsername?: string;
+  webPassword?: string;
+  userGroup?: string;
+  isRestApiUser?: boolean;
 }
 
 export interface NVRUser {
@@ -220,6 +224,36 @@ export interface NVRUser {
   username: string;
   password: string;
   role: 'admin' | 'operator' | 'viewer';
+  notes: string;
+}
+
+export interface SecurityFob {
+  _id?: string;
+  name: string;
+  model: string;
+  serialNumber: string;
+  permissionGroup: string;
+  notes: string;
+}
+
+export interface ProxTag {
+  _id?: string;
+  name: string;
+  model: string;
+  serialNumber: string;
+  facultyCode: string;
+  permissionGroup: string;
+  notes: string;
+}
+
+export interface Airkey {
+  _id?: string;
+  name: string;
+  model: string;
+  serialNumber: string;
+  buttonConfig: '2' | '4' | '6' | '';
+  buttonNotes: string;
+  permissionGroup: string;
   notes: string;
 }
 
@@ -264,6 +298,15 @@ export interface Device {
   
   // Alarm user codes with access permissions
   alarmUsers: AlarmUser[];
+  
+  // Security Fobs
+  securityFobs: SecurityFob[];
+  
+  // Prox Tags
+  proxTags: ProxTag[];
+  
+  // Airkeys
+  airkeys: Airkey[];
   
   // NVR extra users
   nvrUsers: NVRUser[];

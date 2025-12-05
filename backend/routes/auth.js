@@ -59,7 +59,7 @@ router.post('/invite', authenticateToken, authorizeRole(['admin']), async (req, 
       email: email.toLowerCase(),
       password: crypto.randomBytes(32).toString('hex'), // Random placeholder, can't be used to login
       name,
-      role: role || 'technician',
+      role: role || 'viewer',
       createdBy: req.userId,
       accountStatus: 'pending',
       inviteToken,

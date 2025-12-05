@@ -58,6 +58,9 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   // Users arrays
   nvrUsers: [],
   alarmUsers: [],
+  securityFobs: [],
+  proxTags: [],
+  airkeys: [],
   // Control4 temp login
   control4TempUser: '',
   control4TempPass: '',
@@ -1945,85 +1948,34 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   </div>
                 </div>
 
-                {/* Inception specific fields */}
-                {formData.panelType === 'inception' && (
-                  <>
-                    <h5 style={{ color: '#1e40af', margin: '1.5rem 0 0.75rem', fontSize: '0.95rem' }}>
-                      🔷 Inception Hardware
-                    </h5>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>SLAMs</label>
-                        <input 
-                          name="slamCount" 
-                          type="number" 
-                          value={formData.slamCount || 0} 
-                          onChange={handleInputChange} 
-                          min={0} 
-                          title="Siren, Lighting, Automation Modules"
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>Input Expanders</label>
-                        <input 
-                          name="inputExpanderCount" 
-                          type="number" 
-                          value={formData.inputExpanderCount || 0} 
-                          onChange={handleInputChange} 
-                          min={0}
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>Output Expanders</label>
-                        <input 
-                          name="outputExpanderCount" 
-                          type="number" 
-                          value={formData.outputExpanderCount || 0} 
-                          onChange={handleInputChange} 
-                          min={0}
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label>Card Readers</label>
-                        <input 
-                          name="readerCount" 
-                          type="number" 
-                          value={formData.readerCount || 0} 
-                          onChange={handleInputChange} 
-                          min={0}
-                        />
-                      </div>
+                {/* SkyTunnel link for Inception panels */}
+                {formData.panelType === 'inception' && formData.serialNumber && (
+                  <div className="form-group" style={{ marginTop: '1rem' }}>
+                    <label>SkyTunnel Link</label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
+                        readOnly
+                        style={{ flex: 1, background: '#f3f4f6' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => copyToClipboard(`https://skytunnel.com.au/inception/${formData.serialNumber}`, e)}
+                        style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        📋
+                      </button>
+                      <a
+                        href={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ padding: '0.5rem', background: '#3b82f6', color: 'white', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem' }}
+                      >
+                        🔗 Open
+                      </a>
                     </div>
-
-                    {formData.serialNumber && (
-                      <div className="form-group" style={{ marginTop: '1rem' }}>
-                        <label>SkyTunnel Link</label>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            value={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
-                            readOnly
-                            style={{ flex: 1, background: '#f3f4f6' }}
-                          />
-                          <button
-                            type="button"
-                            onClick={(e) => copyToClipboard(`https://skytunnel.com.au/inception/${formData.serialNumber}`, e)}
-                            style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                          >
-                            📋
-                          </button>
-                          <a
-                            href={`https://skytunnel.com.au/inception/${formData.serialNumber}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ padding: '0.5rem', background: '#3b82f6', color: 'white', borderRadius: '4px', textDecoration: 'none', fontSize: '0.85rem' }}
-                          >
-                            🔗 Open
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
 
                 {/* ============ ALARM USER CODES ============ */}
@@ -2318,7 +2270,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <input
                           type="text"
-                          placeholder="User Group (e.g. Operators)"
+                          placeholder="Permission Group (e.g. Operators)"
                           id="new-alarm-group"
                           style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                         />
@@ -2400,6 +2352,331 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         >
                           ➕ Add User
                         </button>
+                    </div>
+
+                    {/* ============ SECURITY FOBS ============ */}
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      🔑 Fobs
+                    </h4>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      Manage security fobs and key fobs.
+                    </p>
+                    
+                    {/* Existing fobs list */}
+                    {(formData.securityFobs || []).length > 0 && (
+                      <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {formData.securityFobs?.map((fob, idx) => (
+                          <div key={idx} style={{ 
+                            padding: '0.75rem',
+                            background: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                              <strong style={{ flex: 1 }}>{fob.name}</strong>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(formData.securityFobs || [])]
+                                  updated.splice(idx, 1)
+                                  setFormData({ ...formData, securityFobs: updated })
+                                }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: '#fee2e2',
+                                  color: '#991b1b',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                              {fob.model && <span>📦 {fob.model}</span>}
+                              {fob.serialNumber && <span>🔢 {fob.serialNumber}</span>}
+                              {fob.permissionGroup && <span>👥 {fob.permissionGroup}</span>}
+                              {fob.notes && <span>📝 {fob.notes}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Add new fob form */}
+                    <div style={{ 
+                      padding: '1rem',
+                      background: '#ecfdf5',
+                      borderRadius: '6px',
+                      border: '1px dashed #10b981',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Fob Name" id="new-fob-name" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Model" id="new-fob-model" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Serial Number" id="new-fob-serial" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Permission Group" id="new-fob-permission" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Notes" id="new-fob-notes" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = (document.getElementById('new-fob-name') as HTMLInputElement).value.trim()
+                          if (!name) { alert('Fob name is required'); return }
+                          const newFob = {
+                            name,
+                            model: (document.getElementById('new-fob-model') as HTMLInputElement).value.trim(),
+                            serialNumber: (document.getElementById('new-fob-serial') as HTMLInputElement).value.trim(),
+                            permissionGroup: (document.getElementById('new-fob-permission') as HTMLInputElement).value.trim(),
+                            notes: (document.getElementById('new-fob-notes') as HTMLInputElement).value.trim(),
+                          }
+                          setFormData({ ...formData, securityFobs: [...(formData.securityFobs || []), newFob] })
+                          ;(document.getElementById('new-fob-name') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-fob-model') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-fob-serial') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-fob-permission') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-fob-notes') as HTMLInputElement).value = ''
+                        }}
+                        style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        ➕ Add Fob
+                      </button>
+                    </div>
+
+                    {/* ============ PROX TAGS ============ */}
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      🏷️ Prox Tags
+                    </h4>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      Manage proximity tags and cards.
+                    </p>
+                    
+                    {/* Existing prox tags list */}
+                    {(formData.proxTags || []).length > 0 && (
+                      <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {formData.proxTags?.map((tag, idx) => (
+                          <div key={idx} style={{ 
+                            padding: '0.75rem',
+                            background: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                              <strong style={{ flex: 1 }}>{tag.name}</strong>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(formData.proxTags || [])]
+                                  updated.splice(idx, 1)
+                                  setFormData({ ...formData, proxTags: updated })
+                                }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: '#fee2e2',
+                                  color: '#991b1b',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                              {tag.model && <span>📦 {tag.model}</span>}
+                              {tag.serialNumber && <span>🔢 {tag.serialNumber}</span>}
+                              {tag.facultyCode && <span>🏢 FC: {tag.facultyCode}</span>}
+                              {tag.permissionGroup && <span>👥 {tag.permissionGroup}</span>}
+                              {tag.notes && <span>📝 {tag.notes}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Add new prox tag form */}
+                    <div style={{ 
+                      padding: '1rem',
+                      background: '#fef3c7',
+                      borderRadius: '6px',
+                      border: '1px dashed #f59e0b',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Tag Name" id="new-prox-name" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Model" id="new-prox-model" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Serial Number" id="new-prox-serial" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Faculty Code" id="new-prox-faculty" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Permission Group" id="new-prox-permission" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Notes" id="new-prox-notes" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = (document.getElementById('new-prox-name') as HTMLInputElement).value.trim()
+                          if (!name) { alert('Tag name is required'); return }
+                          const newTag = {
+                            name,
+                            model: (document.getElementById('new-prox-model') as HTMLInputElement).value.trim(),
+                            serialNumber: (document.getElementById('new-prox-serial') as HTMLInputElement).value.trim(),
+                            facultyCode: (document.getElementById('new-prox-faculty') as HTMLInputElement).value.trim(),
+                            permissionGroup: (document.getElementById('new-prox-permission') as HTMLInputElement).value.trim(),
+                            notes: (document.getElementById('new-prox-notes') as HTMLInputElement).value.trim(),
+                          }
+                          setFormData({ ...formData, proxTags: [...(formData.proxTags || []), newTag] })
+                          ;(document.getElementById('new-prox-name') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-prox-model') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-prox-serial') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-prox-faculty') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-prox-permission') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-prox-notes') as HTMLInputElement).value = ''
+                        }}
+                        style={{ padding: '0.5rem 1rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        ➕ Add Prox Tag
+                      </button>
+                    </div>
+
+                    {/* ============ AIRKEYS ============ */}
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      📱 Airkeys
+                    </h4>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      Manage Airkey remote controls.
+                    </p>
+                    
+                    {/* Existing airkeys list */}
+                    {(formData.airkeys || []).length > 0 && (
+                      <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {formData.airkeys?.map((airkey, idx) => (
+                          <div key={idx} style={{ 
+                            padding: '0.75rem',
+                            background: '#f9fafb',
+                            borderRadius: '6px',
+                            border: '1px solid #e5e7eb',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                              <strong style={{ flex: 1 }}>{airkey.name}</strong>
+                              {airkey.buttonConfig && (
+                                <span style={{ 
+                                  padding: '0.2rem 0.5rem',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  background: '#dbeafe',
+                                  color: '#1e40af',
+                                }}>
+                                  {airkey.buttonConfig} Button
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(formData.airkeys || [])]
+                                  updated.splice(idx, 1)
+                                  setFormData({ ...formData, airkeys: updated })
+                                }}
+                                style={{
+                                  padding: '0.25rem 0.5rem',
+                                  background: '#fee2e2',
+                                  color: '#991b1b',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '0.8rem',
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                              {airkey.model && <span>📦 {airkey.model}</span>}
+                              {airkey.serialNumber && <span>🔢 {airkey.serialNumber}</span>}
+                              {airkey.permissionGroup && <span>👥 {airkey.permissionGroup}</span>}
+                            </div>
+                            {airkey.buttonNotes && (
+                              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4b5563', background: '#f3f4f6', padding: '0.5rem', borderRadius: '4px' }}>
+                                <strong>Button Config:</strong> {airkey.buttonNotes}
+                              </div>
+                            )}
+                            {airkey.notes && (
+                              <div style={{ marginTop: '0.25rem', fontSize: '0.8rem', color: '#6b7280' }}>
+                                📝 {airkey.notes}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Add new airkey form */}
+                    <div style={{ 
+                      padding: '1rem',
+                      background: '#ede9fe',
+                      borderRadius: '6px',
+                      border: '1px dashed #8b5cf6',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Airkey Name" id="new-airkey-name" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Model" id="new-airkey-model" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                        <input type="text" placeholder="Serial Number" id="new-airkey-serial" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                        <select id="new-airkey-buttons" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
+                          <option value="">Button Config...</option>
+                          <option value="2">2 Button</option>
+                          <option value="4">4 Button</option>
+                          <option value="6">6 Button</option>
+                        </select>
+                        <input type="text" placeholder="Permission Group" id="new-airkey-permission" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <textarea 
+                          placeholder="Button Notes (e.g., Button 1: Arm, Button 2: Disarm, Button 3: Panic...)" 
+                          id="new-airkey-buttonnotes" 
+                          rows={2}
+                          style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', resize: 'vertical' }} 
+                        />
+                      </div>
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <input type="text" placeholder="Additional Notes" id="new-airkey-notes" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = (document.getElementById('new-airkey-name') as HTMLInputElement).value.trim()
+                          if (!name) { alert('Airkey name is required'); return }
+                          const newAirkey = {
+                            name,
+                            model: (document.getElementById('new-airkey-model') as HTMLInputElement).value.trim(),
+                            serialNumber: (document.getElementById('new-airkey-serial') as HTMLInputElement).value.trim(),
+                            buttonConfig: (document.getElementById('new-airkey-buttons') as HTMLSelectElement).value as '2' | '4' | '6' | '',
+                            buttonNotes: (document.getElementById('new-airkey-buttonnotes') as HTMLTextAreaElement).value.trim(),
+                            permissionGroup: (document.getElementById('new-airkey-permission') as HTMLInputElement).value.trim(),
+                            notes: (document.getElementById('new-airkey-notes') as HTMLInputElement).value.trim(),
+                          }
+                          setFormData({ ...formData, airkeys: [...(formData.airkeys || []), newAirkey] })
+                          ;(document.getElementById('new-airkey-name') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-model') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-serial') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-buttons') as HTMLSelectElement).value = ''
+                          ;(document.getElementById('new-airkey-buttonnotes') as HTMLTextAreaElement).value = ''
+                          ;(document.getElementById('new-airkey-permission') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-notes') as HTMLInputElement).value = ''
+                        }}
+                        style={{ padding: '0.5rem 1rem', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        ➕ Add Airkey
+                      </button>
                     </div>
                   </>
                 )}

@@ -166,6 +166,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create device with auto-IP assignment
 router.post('/', authenticateToken, async (req, res) => {
   try {
+    // Viewers cannot create devices
+    if (req.userRole === 'viewer') {
+      return res.status(403).json({ error: 'Viewers cannot create devices' });
+    }
+    
     const { projectId, autoAssignIP } = req.body;
 
     const project = await Project.findById(projectId);
@@ -173,7 +178,7 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // All authenticated users can create devices
+    // Tech and admin users can create devices
     let deviceData = { ...req.body };
     
     // Auto-assign IP if requested and no IP provided
@@ -230,12 +235,17 @@ router.post('/', authenticateToken, async (req, res) => {
 // Update device
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    // Viewers cannot update devices
+    if (req.userRole === 'viewer') {
+      return res.status(403).json({ error: 'Viewers cannot edit devices' });
+    }
+    
     const device = await Device.findById(req.params.id);
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // All authenticated users can update devices
+    // Tech and admin users can update devices
     // Check for IP conflict if IP is being changed
     if (req.body.ipAddress && req.body.ipAddress !== device.ipAddress) {
       const conflict = await checkIPConflict(device.projectId, req.body.ipAddress, device._id, Device);
@@ -273,12 +283,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // Delete device
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
+    // Viewers cannot delete devices
+    if (req.userRole === 'viewer') {
+      return res.status(403).json({ error: 'Viewers cannot delete devices' });
+    }
+    
     const device = await Device.findById(req.params.id);
     if (!device) {
       return res.status(404).json({ error: 'Device not found' });
     }
 
-    // All authenticated users can delete devices
+    // Tech and admin users can delete devices
     await Device.findByIdAndDelete(req.params.id);
     res.json({ message: 'Device deleted successfully' });
   } catch (error) {
@@ -290,6 +305,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 // Bulk create devices
 router.post('/bulk', authenticateToken, async (req, res) => {
   try {
+    // Viewers cannot create devices
+    if (req.userRole === 'viewer') {
+      return res.status(403).json({ error: 'Viewers cannot create devices' });
+    }
+    
     const { projectId, devices: deviceList } = req.body;
 
     const project = await Project.findById(projectId);
@@ -297,7 +317,7 @@ router.post('/bulk', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // All authenticated users can bulk create devices
+    // Tech and admin users can bulk create devices
     const createdDevices = [];
     const errors = [];
 

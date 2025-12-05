@@ -86,9 +86,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new project - SIMPLIFIED (no populate)
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    // Only managers and admins can create projects
-    if (!['manager', 'admin'].includes(req.userRole)) {
-      return res.status(403).json({ error: 'Only managers and admins can create projects' });
+    // Only tech and admins can create projects
+    if (!['tech', 'admin'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Only techs and admins can create projects' });
     }
 
     const projectData = {
@@ -113,9 +113,14 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Update project (all users can edit)
+// Update project (tech and admin only)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
+    // Viewers cannot update projects
+    if (req.userRole === 'viewer') {
+      return res.status(403).json({ error: 'Viewers cannot edit projects' });
+    }
+    
     const project = await Project.findById(req.params.id);
 
     if (!project) {
