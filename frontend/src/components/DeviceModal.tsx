@@ -1994,188 +1994,215 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         {formData.alarmUsers?.map((user, idx) => (
                           <div key={idx} style={{ 
                             padding: '0.75rem',
-                            background: '#f9fafb',
+                            background: (user as any)._editing ? '#fef3c7' : '#f9fafb',
                             borderRadius: '6px',
-                            border: '1px solid #e5e7eb',
+                            border: (user as any)._editing ? '2px solid #f59e0b' : '1px solid #e5e7eb',
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                              {user.isAdmin && (
-                                <span style={{ 
-                                  padding: '0.2rem 0.5rem',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  background: '#fee2e2',
-                                  color: '#991b1b',
-                                }}>
-                                  ADMIN
-                                </span>
-                              )}
-                              <strong style={{ flex: 1 }}>{user.name}</strong>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const current = formData.alarmUsers || []
-                                  const updated = current.map((u, i) => 
-                                    i === idx ? { ...u, _showCode: !u._showCode } : u
-                                  )
-                                  setFormData({ ...formData, alarmUsers: updated as any })
-                                }}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  background: '#e5e7eb',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                }}
-                              >
-                                {(user as any)._showCode ? '🙈 Hide' : '👁️ Show'}
-                              </button>
-                              {/* Editable code section */}
-                              {(user as any)._editCode ? (
-                                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                            {(user as any)._editing ? (
+                              /* ===== EDIT MODE ===== */
+                              <div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                                   <input
                                     type="text"
-                                    value={user.code}
-                                    maxLength={8}
+                                    placeholder="User Name"
+                                    value={user.name}
                                     onChange={(e) => {
                                       const updated = [...(formData.alarmUsers || [])]
-                                      updated[idx] = { ...updated[idx], code: e.target.value }
+                                      updated[idx] = { ...updated[idx], name: e.target.value }
                                       setFormData({ ...formData, alarmUsers: updated })
                                     }}
-                                    style={{
-                                      width: '80px',
-                                      padding: '0.25rem 0.5rem',
-                                      borderRadius: '4px',
-                                      border: '1px solid #3b82f6',
-                                      fontFamily: 'monospace',
-                                      fontSize: '0.9rem',
-                                      textAlign: 'center',
-                                    }}
+                                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                                   />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const existingCode = user.code?.trim()
-                                      if (existingCode && !window.confirm('A code already exists. Do you want to replace it?')) {
-                                        return
-                                      }
-                                      const newCode = String(Math.floor(1000 + Math.random() * 9000))
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <input
+                                      type="text"
+                                      placeholder="Code"
+                                      value={user.code}
+                                      maxLength={8}
+                                      onChange={(e) => {
+                                        const updated = [...(formData.alarmUsers || [])]
+                                        updated[idx] = { ...updated[idx], code: e.target.value }
+                                        setFormData({ ...formData, alarmUsers: updated })
+                                      }}
+                                      style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', fontFamily: 'monospace' }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newCode = String(Math.floor(1000 + Math.random() * 9000))
+                                        const updated = [...(formData.alarmUsers || [])]
+                                        updated[idx] = { ...updated[idx], code: newCode }
+                                        setFormData({ ...formData, alarmUsers: updated })
+                                      }}
+                                      style={{ padding: '0.5rem', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                      title="Generate random code"
+                                    >🎲</button>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input
+                                    type="text"
+                                    placeholder="Web Username"
+                                    value={user.webUsername || ''}
+                                    onChange={(e) => {
                                       const updated = [...(formData.alarmUsers || [])]
-                                      updated[idx] = { ...updated[idx], code: newCode }
+                                      updated[idx] = { ...updated[idx], webUsername: e.target.value }
                                       setFormData({ ...formData, alarmUsers: updated })
                                     }}
-                                    style={{
-                                      padding: '0.25rem 0.5rem',
-                                      background: '#0066cc',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      fontSize: '0.75rem',
+                                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                                  />
+                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <input
+                                      type="text"
+                                      placeholder="Web Password"
+                                      value={user.webPassword || ''}
+                                      onChange={(e) => {
+                                        const updated = [...(formData.alarmUsers || [])]
+                                        updated[idx] = { ...updated[idx], webPassword: e.target.value }
+                                        setFormData({ ...formData, alarmUsers: updated })
+                                      }}
+                                      style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        const { password } = await devicesAPI.generatePassword()
+                                        const updated = [...(formData.alarmUsers || [])]
+                                        updated[idx] = { ...updated[idx], webPassword: password }
+                                        setFormData({ ...formData, alarmUsers: updated })
+                                      }}
+                                      style={{ padding: '0.5rem', background: '#e5e7eb', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                      title="Generate password"
+                                    >🎲</button>
+                                  </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input
+                                    type="text"
+                                    placeholder="Permission Group"
+                                    value={user.userGroup || ''}
+                                    onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], userGroup: e.target.value }
+                                      setFormData({ ...formData, alarmUsers: updated })
                                     }}
-                                    title="Generate random 4-digit code"
-                                  >
-                                    🎲
-                                  </button>
+                                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Access Areas (comma-separated)"
+                                    value={(user.accessAreas || []).join(', ')}
+                                    onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      const areas = e.target.value.split(',').map(a => a.trim()).filter(a => a)
+                                      updated[idx] = { ...updated[idx], accessAreas: areas }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }}
+                                    style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
+                                  />
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                                    <input type="checkbox" checked={user.canArm} onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], canArm: e.target.checked }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }} /> Can Arm
+                                  </label>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                                    <input type="checkbox" checked={user.canDisarm} onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], canDisarm: e.target.checked }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }} /> Can Disarm
+                                  </label>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                                    <input type="checkbox" checked={user.isAdmin} onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], isAdmin: e.target.checked }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }} /> Admin
+                                  </label>
+                                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem' }}>
+                                    <input type="checkbox" checked={user.isRestApiUser || false} onChange={(e) => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], isRestApiUser: e.target.checked }
+                                      setFormData({ ...formData, alarmUsers: updated })
+                                    }} /> REST API User
+                                  </label>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const updated = [...(formData.alarmUsers || [])]
-                                      updated[idx] = { ...updated[idx], _editCode: false }
+                                      updated[idx] = { ...updated[idx], _editing: false }
                                       setFormData({ ...formData, alarmUsers: updated as any })
                                     }}
-                                    style={{
-                                      padding: '0.25rem 0.5rem',
-                                      background: '#10b981',
-                                      color: 'white',
-                                      border: 'none',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      fontSize: '0.75rem',
+                                    style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                  >✓ Done</button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated.splice(idx, 1)
+                                      setFormData({ ...formData, alarmUsers: updated })
                                     }}
-                                  >
-                                    ✓
-                                  </button>
+                                    style={{ padding: '0.5rem 1rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                  >🗑️ Delete</button>
                                 </div>
-                              ) : (
-                                <>
-                                  <code style={{ 
-                                    background: '#e5e7eb', 
-                                    padding: '0.2rem 0.5rem', 
-                                    borderRadius: '3px', 
-                                    fontSize: '0.85rem',
-                                    fontFamily: 'monospace',
-                                    letterSpacing: '0.1rem',
-                                  }}>
+                              </div>
+                            ) : (
+                              /* ===== VIEW MODE ===== */
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                  {user.isAdmin && (
+                                    <span style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600, background: '#fee2e2', color: '#991b1b' }}>ADMIN</span>
+                                  )}
+                                  <strong style={{ flex: 1 }}>{user.name}</strong>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated[idx] = { ...updated[idx], _showCode: !(user as any)._showCode }
+                                      setFormData({ ...formData, alarmUsers: updated as any })
+                                    }}
+                                    style={{ padding: '0.25rem 0.5rem', background: '#e5e7eb', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                  >{(user as any)._showCode ? '🙈 Hide' : '👁️ Show'}</button>
+                                  <code style={{ background: '#e5e7eb', padding: '0.2rem 0.5rem', borderRadius: '3px', fontSize: '0.85rem', fontFamily: 'monospace', letterSpacing: '0.1rem' }}>
                                     {(user as any)._showCode ? user.code : '••••'}
                                   </code>
+                                  <button type="button" onClick={(e) => copyToClipboard(user.code, e)} style={{ padding: '0.25rem 0.5rem', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📋</button>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const updated = [...(formData.alarmUsers || [])]
-                                      updated[idx] = { ...updated[idx], _editCode: true, _showCode: true }
+                                      updated[idx] = { ...updated[idx], _editing: true }
                                       setFormData({ ...formData, alarmUsers: updated as any })
                                     }}
-                                    style={{
-                                      padding: '0.25rem 0.5rem',
-                                      background: '#dbeafe',
-                                      color: '#1e40af',
-                                      border: 'none',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      fontSize: '0.75rem',
+                                    style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+                                    title="Edit user"
+                                  >✏️ Edit</button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = [...(formData.alarmUsers || [])]
+                                      updated.splice(idx, 1)
+                                      setFormData({ ...formData, alarmUsers: updated })
                                     }}
-                                    title="Edit code"
-                                  >
-                                    ✏️
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                type="button"
-                                onClick={(e) => copyToClipboard(user.code, e)}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  background: 'transparent',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                }}
-                              >
-                                📋
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...(formData.alarmUsers || [])]
-                                  updated.splice(idx, 1)
-                                  setFormData({ ...formData, alarmUsers: updated })
-                                }}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  background: '#fee2e2',
-                                  color: '#991b1b',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
-                              <span>{user.canArm ? '✅ Arm' : '❌ Arm'}</span>
-                              <span>{user.canDisarm ? '✅ Disarm' : '❌ Disarm'}</span>
-                              {user.isRestApiUser && <span>🔌 API</span>}
-                              {user.webUsername && <span>🌐 Web: {user.webUsername}</span>}
-                              {user.userGroup && <span>👥 {user.userGroup}</span>}
-                              {user.accessAreas?.length > 0 && (
-                                <span>📍 Areas: {user.accessAreas.join(', ')}</span>
-                              )}
-                            </div>
+                                    style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                  >✕</button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                                  <span>{user.canArm ? '✅ Arm' : '❌ Arm'}</span>
+                                  <span>{user.canDisarm ? '✅ Disarm' : '❌ Disarm'}</span>
+                                  {user.isRestApiUser && <span>🔌 API</span>}
+                                  {user.webUsername && <span>🌐 Web: {user.webUsername}</span>}
+                                  {user.userGroup && <span>👥 {user.userGroup}</span>}
+                                  {user.accessAreas?.length > 0 && <span>📍 Areas: {user.accessAreas.join(', ')}</span>}
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -2368,38 +2395,81 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         {formData.securityFobs?.map((fob, idx) => (
                           <div key={idx} style={{ 
                             padding: '0.75rem',
-                            background: '#f9fafb',
+                            background: (fob as any)._editing ? '#ecfdf5' : '#f9fafb',
                             borderRadius: '6px',
-                            border: '1px solid #e5e7eb',
+                            border: (fob as any)._editing ? '2px solid #10b981' : '1px solid #e5e7eb',
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                              <strong style={{ flex: 1 }}>{fob.name}</strong>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...(formData.securityFobs || [])]
-                                  updated.splice(idx, 1)
-                                  setFormData({ ...formData, securityFobs: updated })
-                                }}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  background: '#fee2e2',
-                                  color: '#991b1b',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
-                              {fob.model && <span>📦 {fob.model}</span>}
-                              {fob.serialNumber && <span>🔢 {fob.serialNumber}</span>}
-                              {fob.permissionGroup && <span>👥 {fob.permissionGroup}</span>}
-                              {fob.notes && <span>📝 {fob.notes}</span>}
-                            </div>
+                            {(fob as any)._editing ? (
+                              /* ===== EDIT MODE ===== */
+                              <div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Fob Name" value={fob.name} onChange={(e) => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], name: e.target.value }
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <input type="text" placeholder="Model" value={fob.model || ''} onChange={(e) => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], model: e.target.value }
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Serial Number" value={fob.serialNumber || ''} onChange={(e) => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], serialNumber: e.target.value }
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <input type="text" placeholder="Permission Group" value={fob.permissionGroup || ''} onChange={(e) => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], permissionGroup: e.target.value }
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Notes" value={fob.notes || ''} onChange={(e) => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], notes: e.target.value }
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], _editing: false }
+                                    setFormData({ ...formData, securityFobs: updated as any })
+                                  }} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✓ Done</button>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated.splice(idx, 1)
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ padding: '0.5rem 1rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️ Delete</button>
+                                </div>
+                              </div>
+                            ) : (
+                              /* ===== VIEW MODE ===== */
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                  <strong style={{ flex: 1 }}>{fob.name}</strong>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated[idx] = { ...updated[idx], _editing: true }
+                                    setFormData({ ...formData, securityFobs: updated as any })
+                                  }} style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} title="Edit fob">✏️ Edit</button>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.securityFobs || [])]
+                                    updated.splice(idx, 1)
+                                    setFormData({ ...formData, securityFobs: updated })
+                                  }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                                  {fob.model && <span>📦 {fob.model}</span>}
+                                  {fob.serialNumber && <span>🔢 {fob.serialNumber}</span>}
+                                  {fob.permissionGroup && <span>👥 {fob.permissionGroup}</span>}
+                                  {fob.notes && <span>📝 {fob.notes}</span>}
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -2462,39 +2532,87 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         {formData.proxTags?.map((tag, idx) => (
                           <div key={idx} style={{ 
                             padding: '0.75rem',
-                            background: '#f9fafb',
+                            background: (tag as any)._editing ? '#fef3c7' : '#f9fafb',
                             borderRadius: '6px',
-                            border: '1px solid #e5e7eb',
+                            border: (tag as any)._editing ? '2px solid #f59e0b' : '1px solid #e5e7eb',
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                              <strong style={{ flex: 1 }}>{tag.name}</strong>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...(formData.proxTags || [])]
-                                  updated.splice(idx, 1)
-                                  setFormData({ ...formData, proxTags: updated })
-                                }}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  background: '#fee2e2',
-                                  color: '#991b1b',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
-                              {tag.model && <span>📦 {tag.model}</span>}
-                              {tag.serialNumber && <span>🔢 {tag.serialNumber}</span>}
-                              {tag.facultyCode && <span>🏢 FC: {tag.facultyCode}</span>}
-                              {tag.permissionGroup && <span>👥 {tag.permissionGroup}</span>}
-                              {tag.notes && <span>📝 {tag.notes}</span>}
-                            </div>
+                            {(tag as any)._editing ? (
+                              /* ===== EDIT MODE ===== */
+                              <div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Tag Name" value={tag.name} onChange={(e) => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], name: e.target.value }
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <input type="text" placeholder="Model" value={tag.model || ''} onChange={(e) => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], model: e.target.value }
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Serial Number" value={tag.serialNumber || ''} onChange={(e) => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], serialNumber: e.target.value }
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <input type="text" placeholder="Faculty Code" value={tag.facultyCode || ''} onChange={(e) => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], facultyCode: e.target.value }
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Permission Group" value={tag.permissionGroup || ''} onChange={(e) => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], permissionGroup: e.target.value }
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                  <input type="text" placeholder="Notes" value={tag.notes || ''} onChange={(e) => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], notes: e.target.value }
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], _editing: false }
+                                    setFormData({ ...formData, proxTags: updated as any })
+                                  }} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✓ Done</button>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated.splice(idx, 1)
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.5rem 1rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️ Delete</button>
+                                </div>
+                              </div>
+                            ) : (
+                              /* ===== VIEW MODE ===== */
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                  <strong style={{ flex: 1 }}>{tag.name}</strong>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated[idx] = { ...updated[idx], _editing: true }
+                                    setFormData({ ...formData, proxTags: updated as any })
+                                  }} style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} title="Edit tag">✏️ Edit</button>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.proxTags || [])]
+                                    updated.splice(idx, 1)
+                                    setFormData({ ...formData, proxTags: updated })
+                                  }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
+                                  {tag.model && <span>📦 {tag.model}</span>}
+                                  {tag.serialNumber && <span>🔢 {tag.serialNumber}</span>}
+                                  {tag.facultyCode && <span>🏢 FC: {tag.facultyCode}</span>}
+                                  {tag.permissionGroup && <span>👥 {tag.permissionGroup}</span>}
+                                  {tag.notes && <span>📝 {tag.notes}</span>}
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -2560,95 +2678,85 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         {formData.airkeys?.map((airkey, idx) => (
                           <div key={idx} style={{ 
                             padding: '0.75rem',
-                            background: '#f9fafb',
+                            background: (airkey as any)._editing ? '#ede9fe' : '#f9fafb',
                             borderRadius: '6px',
-                            border: '1px solid #e5e7eb',
+                            border: (airkey as any)._editing ? '2px solid #8b5cf6' : '1px solid #e5e7eb',
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                              <strong style={{ flex: 1 }}>{airkey.name}</strong>
-                              {airkey.buttonConfig && (
-                                <span style={{ 
-                                  padding: '0.2rem 0.5rem',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  background: '#dbeafe',
-                                  color: '#1e40af',
-                                }}>
-                                  {airkey.buttonConfig} Button
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...(formData.airkeys || [])]
-                                  updated.splice(idx, 1)
-                                  setFormData({ ...formData, airkeys: updated })
-                                }}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  background: '#fee2e2',
-                                  color: '#991b1b',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '0.8rem',
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </div>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.8rem', color: '#6b7280', flexWrap: 'wrap' }}>
-                              {airkey.model && <span>📦 {airkey.model}</span>}
-                              {airkey.serialNumber && <span>🔢 {airkey.serialNumber}</span>}
-                              {airkey.permissionGroup && <span>👥 {airkey.permissionGroup}</span>}
-                            </div>
-                            {airkey.buttonNotes && (
-                              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#4b5563', background: '#f3f4f6', padding: '0.5rem', borderRadius: '4px' }}>
-                                <strong>Button Config:</strong> {airkey.buttonNotes}
+                            {(airkey as any)._editing ? (
+                              /* ===== EDIT MODE ===== */
+                              <div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                  <input type="text" placeholder="Airkey Name" value={airkey.name} onChange={(e) => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated[idx] = { ...updated[idx], name: e.target.value }
+                                    setFormData({ ...formData, airkeys: updated })
+                                  }} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
+                                </div>
+                                <div style={{ marginBottom: '0.75rem' }}>
+                                  <textarea placeholder="Notes" value={airkey.notes || ''} onChange={(e) => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated[idx] = { ...updated[idx], notes: e.target.value }
+                                    setFormData({ ...formData, airkeys: updated })
+                                  }} rows={2} style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', resize: 'vertical' }} />
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated[idx] = { ...updated[idx], _editing: false }
+                                    setFormData({ ...formData, airkeys: updated as any })
+                                  }} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✓ Done</button>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated.splice(idx, 1)
+                                    setFormData({ ...formData, airkeys: updated })
+                                  }} style={{ padding: '0.5rem 1rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️ Delete</button>
+                                </div>
                               </div>
-                            )}
-                            {airkey.notes && (
-                              <div style={{ marginTop: '0.25rem', fontSize: '0.8rem', color: '#6b7280' }}>
-                                📝 {airkey.notes}
-                              </div>
+                            ) : (
+                              /* ===== VIEW MODE ===== */
+                              <>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                  <strong style={{ flex: 1 }}>{airkey.name}</strong>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated[idx] = { ...updated[idx], _editing: true }
+                                    setFormData({ ...formData, airkeys: updated as any })
+                                  }} style={{ padding: '0.25rem 0.5rem', background: '#dbeafe', color: '#1e40af', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }} title="Edit airkey">✏️ Edit</button>
+                                  <button type="button" onClick={() => {
+                                    const updated = [...(formData.airkeys || [])]
+                                    updated.splice(idx, 1)
+                                    setFormData({ ...formData, airkeys: updated })
+                                  }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
+                                </div>
+                                {airkey.notes && (
+                                  <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                                    📝 {airkey.notes}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         ))}
                       </div>
                     )}
                     
-                    {/* Add new airkey form */}
+                    {/* Add new airkey form - simplified to just name + notes */}
                     <div style={{ 
                       padding: '1rem',
                       background: '#ede9fe',
                       borderRadius: '6px',
                       border: '1px dashed #8b5cf6',
                     }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
                         <input type="text" placeholder="Airkey Name" id="new-airkey-name" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
-                        <input type="text" placeholder="Model" id="new-airkey-model" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
-                        <input type="text" placeholder="Serial Number" id="new-airkey-serial" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                        <select id="new-airkey-buttons" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}>
-                          <option value="">Button Config...</option>
-                          <option value="2">2 Button</option>
-                          <option value="4">4 Button</option>
-                          <option value="6">6 Button</option>
-                        </select>
-                        <input type="text" placeholder="Permission Group" id="new-airkey-permission" style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
                       </div>
                       <div style={{ marginBottom: '0.75rem' }}>
                         <textarea 
-                          placeholder="Button Notes (e.g., Button 1: Arm, Button 2: Disarm, Button 3: Panic...)" 
-                          id="new-airkey-buttonnotes" 
+                          placeholder="Notes" 
+                          id="new-airkey-notes" 
                           rows={2}
                           style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', resize: 'vertical' }} 
                         />
-                      </div>
-                      <div style={{ marginBottom: '0.75rem' }}>
-                        <input type="text" placeholder="Additional Notes" id="new-airkey-notes" style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
                       </div>
                       <button
                         type="button"
@@ -2657,21 +2765,11 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           if (!name) { alert('Airkey name is required'); return }
                           const newAirkey = {
                             name,
-                            model: (document.getElementById('new-airkey-model') as HTMLInputElement).value.trim(),
-                            serialNumber: (document.getElementById('new-airkey-serial') as HTMLInputElement).value.trim(),
-                            buttonConfig: (document.getElementById('new-airkey-buttons') as HTMLSelectElement).value as '2' | '4' | '6' | '',
-                            buttonNotes: (document.getElementById('new-airkey-buttonnotes') as HTMLTextAreaElement).value.trim(),
-                            permissionGroup: (document.getElementById('new-airkey-permission') as HTMLInputElement).value.trim(),
-                            notes: (document.getElementById('new-airkey-notes') as HTMLInputElement).value.trim(),
+                            notes: (document.getElementById('new-airkey-notes') as HTMLTextAreaElement).value.trim(),
                           }
                           setFormData({ ...formData, airkeys: [...(formData.airkeys || []), newAirkey] })
                           ;(document.getElementById('new-airkey-name') as HTMLInputElement).value = ''
-                          ;(document.getElementById('new-airkey-model') as HTMLInputElement).value = ''
-                          ;(document.getElementById('new-airkey-serial') as HTMLInputElement).value = ''
-                          ;(document.getElementById('new-airkey-buttons') as HTMLSelectElement).value = ''
-                          ;(document.getElementById('new-airkey-buttonnotes') as HTMLTextAreaElement).value = ''
-                          ;(document.getElementById('new-airkey-permission') as HTMLInputElement).value = ''
-                          ;(document.getElementById('new-airkey-notes') as HTMLInputElement).value = ''
+                          ;(document.getElementById('new-airkey-notes') as HTMLTextAreaElement).value = ''
                         }}
                         style={{ padding: '0.5rem 1rem', background: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                       >
@@ -2938,9 +3036,9 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 name="configNotes"
                 value={formData.configNotes}
                 onChange={handleInputChange}
-                rows={3}
-                placeholder="Any additional notes..."
-                style={{ fontFamily: 'inherit' }}
+                rows={12}
+                placeholder="Paste hardware reports, configuration details, or any additional notes here..."
+                style={{ fontFamily: 'monospace', fontSize: '0.85rem', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}
                 disabled={viewOnly}
               />
             </div>
