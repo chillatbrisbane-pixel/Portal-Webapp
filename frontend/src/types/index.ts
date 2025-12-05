@@ -115,6 +115,7 @@ export interface Project {
   clientPhone: string;
   address: string;
   sharePointLink: string;
+  skytunnelLink: string;
   status: 'planning' | 'in-progress' | 'completed';
   startDate: string;
   completionDate: string;

@@ -695,8 +695,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit}>
-          <fieldset disabled={viewOnly} style={{ border: 'none', padding: 0, margin: 0 }}>
-          <div className="modal-body">
+          <div className="modal-body" style={viewOnly ? { pointerEvents: 'auto' } : {}}>
             {error && <div className="alert alert-error">{error}</div>}
             
             {viewOnly && (
@@ -708,10 +707,26 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 border: '1px solid #fcd34d',
               }}>
                 <p style={{ margin: 0, color: '#92400e', fontSize: '0.9rem' }}>
-                  👁️ View mode - fields are read-only. Click Edit to make changes.
+                  👁️ View mode - fields are read-only. Copy buttons still work.
                 </p>
               </div>
             )}
+            
+            {/* Apply styles to make form appear disabled in view mode */}
+            <style>{`
+              .view-mode-form input:not([type="button"]),
+              .view-mode-form select,
+              .view-mode-form textarea {
+                background-color: #f3f4f6 !important;
+                pointer-events: none !important;
+                opacity: 0.8;
+              }
+              .view-mode-form input[type="checkbox"] {
+                pointer-events: none !important;
+              }
+            `}</style>
+            
+            <div className={viewOnly ? 'view-mode-form' : ''}>
 
             {/* ============ CATEGORY & TYPE FIRST ============ */}
             <h4 style={{ color: '#333', marginBottom: '1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
@@ -2486,7 +2501,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               />
             </div>
           </div>
-          </fieldset>
+          </div>
 
           <div className="modal-footer" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>

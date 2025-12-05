@@ -73,6 +73,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [wifiPasswordWarning, setWifiPasswordWarning] = useState(false)
   const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null)
   const [showSharePointQR, setShowSharePointQR] = useState(false)
+  const [showSkytunnelQR, setShowSkytunnelQR] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   
   // Devices
@@ -225,6 +226,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         clientPhone: formData.clientPhone,
         address: formData.address,
         sharePointLink: formData.sharePointLink,
+        skytunnelLink: formData.skytunnelLink,
         status: formData.status,
         notes: formData.notes,
       }
@@ -767,6 +769,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   placeholder="https://company.sharepoint.com/..."
                 />
               </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>🔗 Skytunnel Link</label>
+                <input
+                  type="url"
+                  value={formData.skytunnelLink || ''}
+                  onChange={(e) => setFormData({ ...formData, skytunnelLink: e.target.value })}
+                  placeholder="https://skytunnel.com/..."
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -908,6 +920,126 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     style={{
                       padding: '0.5rem 0.75rem',
                       background: '#0078d4',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      flex: 1,
+                      minWidth: '60px',
+                    }}
+                    title="Open in new tab"
+                  >
+                    🔗 Open
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Skytunnel Link */}
+            {project.skytunnelLink && (
+              <div 
+                className="skytunnel-bar"
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.75rem',
+                  marginBottom: '1.5rem',
+                  padding: '0.75rem 1rem',
+                  background: '#f5f3ff',
+                  borderRadius: '8px',
+                  border: '1px solid #c4b5fd',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: '1.25rem' }}>🔗</span>
+                <a 
+                  href={project.skytunnelLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ 
+                    flex: 1,
+                    minWidth: '150px',
+                    color: '#6d28d9', 
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                    textDecoration: 'none',
+                  }}
+                >
+                  {project.name} - Skytunnel Link
+                </a>
+                <div className="skytunnel-buttons" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      try {
+                        await navigator.clipboard.writeText(project.skytunnelLink)
+                        setCopyFeedback('skytunnel')
+                        setTimeout(() => setCopyFeedback(null), 2000)
+                      } catch (err) {
+                        const textarea = document.createElement('textarea')
+                        textarea.value = project.skytunnelLink
+                        document.body.appendChild(textarea)
+                        textarea.select()
+                        document.execCommand('copy')
+                        document.body.removeChild(textarea)
+                        setCopyFeedback('skytunnel')
+                        setTimeout(() => setCopyFeedback(null), 2000)
+                      }
+                    }}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: copyFeedback === 'skytunnel' ? '#10b981' : '#e5e7eb',
+                      color: copyFeedback === 'skytunnel' ? 'white' : '#374151',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.2s',
+                      flex: 1,
+                      minWidth: '70px',
+                    }}
+                    title="Copy link"
+                  >
+                    {copyFeedback === 'skytunnel' ? '✓ Copied!' : '📋 Copy'}
+                  </button>
+                  <button
+                    onClick={() => setShowSkytunnelQR(true)}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: '#7c3aed',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.25rem',
+                      flex: 1,
+                      minWidth: '60px',
+                    }}
+                    title="Show QR code"
+                  >
+                    📱 QR
+                  </button>
+                  <a
+                    href={project.skytunnelLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: '#6d28d9',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',
@@ -1882,6 +2014,95 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                 className="btn btn-primary"
                 style={{ 
                   background: '#0078d4',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                }}
+              >
+                🔗 Open
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Skytunnel QR Code Modal */}
+      {showSkytunnelQR && project.skytunnelLink && (
+        <div className="modal-overlay" onClick={() => setShowSkytunnelQR(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header" style={{ background: '#f5f3ff' }}>
+              <h3>🔗 Skytunnel</h3>
+              <button className="close-btn" onClick={() => setShowSkytunnelQR(false)}>✕</button>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ marginBottom: '1rem', fontWeight: 600, color: '#6d28d9' }}>
+                {project.name} - Skytunnel Access
+              </p>
+              
+              {/* QR Code */}
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(project.skytunnelLink)}`}
+                alt="Skytunnel QR Code"
+                style={{ 
+                  border: '2px solid #c4b5fd', 
+                  borderRadius: '12px',
+                  padding: '1rem',
+                  background: 'white',
+                }}
+              />
+              
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#6b7280' }}>
+                Scan to access Skytunnel on your device
+              </p>
+              
+              <div style={{ 
+                marginTop: '1rem', 
+                padding: '0.75rem', 
+                background: '#f5f3ff', 
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                wordBreak: 'break-all',
+                color: '#6d28d9',
+                border: '1px solid #c4b5fd',
+              }}>
+                {project.skytunnelLink}
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+              <button className="btn btn-secondary" onClick={() => setShowSkytunnelQR(false)}>Close</button>
+              <button 
+                className="btn btn-primary"
+                style={{ 
+                  background: copyFeedback === 'skytunnelModal' ? '#10b981' : '#7c3aed',
+                  transition: 'background 0.2s',
+                }}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(project.skytunnelLink)
+                    setCopyFeedback('skytunnelModal')
+                    setTimeout(() => setCopyFeedback(null), 2000)
+                  } catch (err) {
+                    const textarea = document.createElement('textarea')
+                    textarea.value = project.skytunnelLink
+                    document.body.appendChild(textarea)
+                    textarea.select()
+                    document.execCommand('copy')
+                    document.body.removeChild(textarea)
+                    setCopyFeedback('skytunnelModal')
+                    setTimeout(() => setCopyFeedback(null), 2000)
+                  }
+                }}
+              >
+                {copyFeedback === 'skytunnelModal' ? '✓ Copied!' : '📋 Copy Link'}
+              </button>
+              <a
+                href={project.skytunnelLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ 
+                  background: '#6d28d9',
                   textDecoration: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',

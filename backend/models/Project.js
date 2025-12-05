@@ -31,6 +31,10 @@ const projectSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    skytunnelLink: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['planning', 'in-progress', 'completed'],

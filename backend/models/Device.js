@@ -24,6 +24,7 @@ const deviceSchema = new mongoose.Schema(
         'lighting',
         'av',
         'power',
+        'hvac',
         'other'
       ],
       required: true,
@@ -45,6 +46,8 @@ const deviceSchema = new mongoose.Schema(
         'receiver', 'tv', 'projector', 'audio-matrix', 'video-matrix', 'amplifier', 'soundbar', 'media-player',
         // Power
         'pdu', 'ups',
+        // HVAC
+        'hvac-controller',
         // Other
         'fan', 'irrigation', 'hvac', 'relay', 'fireplace', 'shade', 'pool', 'generic'
       ],
