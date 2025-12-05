@@ -240,6 +240,14 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     });
     
     tocItems.push({ title: 'Switch Port Allocations', page: pageNum });
+    
+    // Check if there are PDUs or powerboards
+    const hasPowerDevices = devices.some(d => d.deviceType === 'pdu' || d.deviceType === 'powerboard');
+    if (hasPowerDevices) {
+      pageNum++;
+      tocItems.push({ title: 'Power Distribution', page: pageNum });
+    }
+    
     tocItems.push({ title: 'Support Information', page: pageNum + 1 });
     
     tocItems.forEach((item, i) => {
@@ -573,6 +581,70 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
           doc.text(device ? (device.ipAddress || '-') : '-', 210, y, { width: 90 });
           doc.fontSize(7).text(device ? (device.macAddress || '-') : '-', 305, y, { width: 110 });
           doc.fontSize(8).text(device ? (device.vlan || '-').toString() : '-', 420, y, { width: 40 });
+          
+          doc.moveDown(0.4);
+        }
+        
+        doc.moveDown(1);
+      });
+    }
+    
+    // ============================================================
+    // PDU / POWERBOARD PORT ALLOCATIONS
+    // ============================================================
+    const powerDevices = devices.filter(d => d.deviceType === 'pdu' || d.deviceType === 'powerboard');
+    
+    if (powerDevices.length > 0) {
+      doc.addPage();
+      drawSectionHeader(doc, 'Power Distribution');
+      
+      powerDevices.forEach(pdu => {
+        if (doc.y > 600) doc.addPage();
+        
+        const deviceLabel = pdu.deviceType === 'pdu' ? 'PDU' : 'Powerboard';
+        drawSubsectionHeader(doc, `${pdu.name} (${pdu.pduPortCount || 8} outlets)`);
+        
+        if (pdu.ipAddress || pdu.manufacturer || pdu.model) {
+          const info = [];
+          if (pdu.ipAddress) info.push(`IP: ${pdu.ipAddress}`);
+          if (pdu.manufacturer || pdu.model) info.push([pdu.manufacturer, pdu.model].filter(Boolean).join(' '));
+          doc.fontSize(9).text(info.join('  |  '));
+          doc.moveDown(0.5);
+        }
+        
+        // Parse port names
+        const portNames = (pdu.pduPortNames || '').split('\n').map(n => n.trim());
+        
+        // Port table header
+        doc.fontSize(8).font('Helvetica-Bold');
+        const headerY = doc.y;
+        doc.text('Outlet', 55, headerY, { width: 50 });
+        doc.text('Connected Device', 110, headerY, { width: 200 });
+        doc.moveDown(0.3);
+        doc.moveTo(50, doc.y).lineTo(350, doc.y).strokeColor('#e5e7eb').stroke();
+        doc.moveDown(0.3);
+        
+        doc.font('Helvetica');
+        
+        const portCount = pdu.pduPortCount || 8;
+        for (let port = 1; port <= portCount; port++) {
+          if (doc.y > 750) {
+            doc.addPage();
+            doc.y = 50;
+          }
+          
+          const portName = portNames[port - 1] || '';
+          const y = doc.y;
+          
+          if (portName) {
+            doc.fillColor('#059669');
+          } else {
+            doc.fillColor('#9ca3af');
+          }
+          
+          doc.text(port.toString(), 55, y, { width: 50 });
+          doc.fillColor('#333333');
+          doc.text(portName || '-', 110, y, { width: 200 });
           
           doc.moveDown(0.4);
         }

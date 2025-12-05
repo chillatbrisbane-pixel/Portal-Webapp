@@ -161,7 +161,7 @@ export type DeviceType =
   // AV
   | 'receiver' | 'tv' | 'projector' | 'audio-matrix' | 'video-matrix' | 'amplifier' | 'soundbar' | 'media-player'
   // Power
-  | 'pdu' | 'ups'
+  | 'pdu' | 'ups' | 'powerboard'
   // HVAC
   | 'hvac-controller'
   // Other
@@ -403,6 +403,7 @@ export const BRAND_OPTIONS = {
   power: {
     pdu: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Panamax', 'Custom'],
     ups: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Custom'],
+    powerboard: ['HPM', 'Clipsal', 'Belkin', 'Custom'],
   },
   hvac: {
     'hvac-controller': ['Coolmaster', 'Intesis', 'Daikin', 'Mitsubishi', 'Fujitsu', 'ActronAir', 'Custom'],
@@ -457,6 +458,7 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
   power: [
     { value: 'pdu', label: '🔌 Power Distribution Unit (PDU)' },
     { value: 'ups', label: '🔋 UPS / Battery Backup' },
+    { value: 'powerboard', label: '🔌 Powerboard / Power Strip' },
   ],
   hvac: [
     { value: 'hvac-controller', label: '❄️ HVAC Controller' },
@@ -534,6 +536,7 @@ export const DEVICE_CONNECTION_CONFIG: Record<string, {
   // Power devices
   'pdu': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },
   'ups': { options: ['wired', 'wifi', 'none'], default: 'wired', requiresSwitch: true },
+  'powerboard': { options: ['none'], default: 'none', requiresSwitch: false },
   
   // HVAC
   'hvac-controller': { options: ['wired', 'wifi'], default: 'wired', requiresSwitch: true },

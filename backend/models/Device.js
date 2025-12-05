@@ -45,7 +45,7 @@ const deviceSchema = new mongoose.Schema(
         // AV
         'receiver', 'tv', 'projector', 'audio-matrix', 'video-matrix', 'amplifier', 'soundbar', 'media-player',
         // Power
-        'pdu', 'ups',
+        'pdu', 'ups', 'powerboard',
         // HVAC
         'hvac-controller',
         // Other

@@ -143,6 +143,7 @@ const getDefaultDeviceName = (deviceType: string, existingCount: number) => {
     'cloudkey': 'Cloudkey',
     'pdu': 'PDU',
     'ups': 'UPS',
+    'powerboard': 'Powerboard',
     'generic': 'Device',
   }
   const baseName = names[deviceType] || 'Device'
@@ -2516,38 +2517,88 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </>
             )}
 
-            {/* PDU PORT CONFIGURATION */}
-            {formData.deviceType === 'pdu' && (
+            {/* PDU / POWERBOARD PORT CONFIGURATION */}
+            {(formData.deviceType === 'pdu' || formData.deviceType === 'powerboard') && (
               <>
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-                  🔌 PDU Port Configuration
+                  🔌 {formData.deviceType === 'pdu' ? 'PDU' : 'Powerboard'} Port Configuration
                 </h4>
                 <div className="form-group" style={{ margin: '0 0 1rem' }}>
-                  <label>Number of Ports</label>
+                  <label>Number of Outlets</label>
                   <input
                     name="pduPortCount"
                     type="number"
                     min="1"
                     max="24"
                     value={formData.pduPortCount || 8}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      const newCount = parseInt(e.target.value) || 8
+                      // Preserve existing port names when count changes
+                      const currentNames = (formData.pduPortNames || '').split('\n')
+                      while (currentNames.length < newCount) currentNames.push('')
+                      setFormData(prev => ({
+                        ...prev,
+                        pduPortCount: newCount,
+                        pduPortNames: currentNames.slice(0, newCount).join('\n')
+                      }))
+                    }}
                     style={{ width: '100px' }}
                   />
                 </div>
                 {(formData.pduPortCount || 8) > 0 && (
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label style={{ fontSize: '0.85rem' }}>Port Names (one per line)</label>
-                    <textarea
-                      name="pduPortNames"
-                      value={formData.pduPortNames || ''}
-                      onChange={handleInputChange}
-                      placeholder="Router&#10;Switch&#10;NVR&#10;Access Point&#10;Processor&#10;..."
-                      rows={Math.min(formData.pduPortCount || 8, 10)}
-                      style={{ resize: 'vertical', fontSize: '0.9rem' }}
-                    />
-                    <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                      Enter {formData.pduPortCount || 8} port names, one per line
+                  <div style={{ 
+                    background: '#f8fafc', 
+                    padding: '1rem', 
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                  }}>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
+                      Enter what's connected to each outlet:
                     </p>
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      {Array.from({ length: formData.pduPortCount || 8 }).map((_, idx) => {
+                        const portNames = (formData.pduPortNames || '').split('\n')
+                        return (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ 
+                              width: '32px', 
+                              height: '32px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#e2e8f0',
+                              borderRadius: '6px',
+                              fontWeight: 600,
+                              fontSize: '0.9rem',
+                              color: '#475569',
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={portNames[idx] || ''}
+                              onChange={(e) => {
+                                const newNames = [...portNames]
+                                while (newNames.length <= idx) newNames.push('')
+                                newNames[idx] = e.target.value
+                                setFormData(prev => ({
+                                  ...prev,
+                                  pduPortNames: newNames.join('\n')
+                                }))
+                              }}
+                              placeholder={`Outlet ${idx + 1} - e.g., Router, Switch, NVR...`}
+                              style={{ 
+                                flex: 1, 
+                                padding: '0.5rem 0.75rem', 
+                                borderRadius: '6px', 
+                                border: '1px solid #d1d5db',
+                                fontSize: '0.9rem',
+                              }}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
               </>
