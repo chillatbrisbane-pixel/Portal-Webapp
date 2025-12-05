@@ -73,6 +73,27 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   isAmplified: false,
   audioInputNames: '',
   audioOutputNames: '',
+  // Router DDNS
+  ddnsProvider: '',
+  ddnsHostname: '',
+  // Router VLANs
+  vlan20Enabled: false,
+  vlan20Subnet: '192.168.220.0/24',
+  vlan20DhcpStart: '192.168.220.15',
+  vlan20DhcpEnd: '192.168.220.120',
+  vlan30Enabled: false,
+  vlan30Subnet: '192.168.230.0/24',
+  vlan30DhcpStart: '192.168.230.140',
+  vlan30DhcpEnd: '192.168.230.240',
+  // Router VPN
+  vpnServerMode: '',
+  vpnDdnsAddress: '',
+  vpnSubnet: '192.168.200.0',
+  vpnNetmask: '255.255.255.0',
+  vpnClientName: '',
+  // Dynalite Lighting
+  dynalitePdegPort: '',
+  dynaliteControlPort: '',
 }
 
 // Default device names by type
@@ -1602,6 +1623,198 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                   </div>
                 </div>
 
+                {/* DDNS Configuration */}
+                <h5 style={{ color: '#1e40af', margin: '1.5rem 0 0.75rem', fontSize: '0.95rem' }}>
+                  🌍 DDNS Configuration
+                </h5>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>DDNS Provider</label>
+                    <select name="ddnsProvider" value={formData.ddnsProvider || ''} onChange={handleInputChange}>
+                      <option value="">None</option>
+                      <option value="araknis">Araknis DNS</option>
+                      <option value="dyndns">DynDNS</option>
+                      <option value="noip">No-IP</option>
+                      <option value="duckdns">DuckDNS</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>DDNS Hostname</label>
+                    <input
+                      name="ddnsHostname"
+                      type="text"
+                      value={formData.ddnsHostname || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., yourname.AraknisDNS.com"
+                    />
+                  </div>
+                </div>
+
+                {/* VLANs Configuration */}
+                <h5 style={{ color: '#1e40af', margin: '1.5rem 0 0.75rem', fontSize: '0.95rem' }}>
+                  🔀 VLAN Configuration
+                </h5>
+                <div style={{ 
+                  background: '#f8fafc', 
+                  padding: '1rem', 
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                }}>
+                  {/* VLAN 20 - Cameras */}
+                  <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.vlan20Enabled || false}
+                        onChange={(e) => setFormData(prev => ({ ...prev, vlan20Enabled: e.target.checked }))}
+                      />
+                      <strong>VLAN 20 - Cameras</strong>
+                    </label>
+                    {formData.vlan20Enabled && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginLeft: '1.5rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '0.85rem' }}>Subnet</label>
+                          <input
+                            name="vlan20Subnet"
+                            type="text"
+                            value={formData.vlan20Subnet || '192.168.220.0/24'}
+                            onChange={handleInputChange}
+                            style={{ fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '0.85rem' }}>DHCP Start</label>
+                          <input
+                            name="vlan20DhcpStart"
+                            type="text"
+                            value={formData.vlan20DhcpStart || '192.168.220.15'}
+                            onChange={handleInputChange}
+                            style={{ fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '0.85rem' }}>DHCP End</label>
+                          <input
+                            name="vlan20DhcpEnd"
+                            type="text"
+                            value={formData.vlan20DhcpEnd || '192.168.220.120'}
+                            onChange={handleInputChange}
+                            style={{ fontSize: '0.9rem' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* VLAN 30 - Guest */}
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.vlan30Enabled || false}
+                        onChange={(e) => setFormData(prev => ({ ...prev, vlan30Enabled: e.target.checked }))}
+                      />
+                      <strong>VLAN 30 - Guest</strong>
+                    </label>
+                    {formData.vlan30Enabled && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginLeft: '1.5rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '0.85rem' }}>Subnet</label>
+                          <input
+                            name="vlan30Subnet"
+                            type="text"
+                            value={formData.vlan30Subnet || '192.168.230.0/24'}
+                            onChange={handleInputChange}
+                            style={{ fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '0.85rem' }}>DHCP Start</label>
+                          <input
+                            name="vlan30DhcpStart"
+                            type="text"
+                            value={formData.vlan30DhcpStart || '192.168.230.140'}
+                            onChange={handleInputChange}
+                            style={{ fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label style={{ fontSize: '0.85rem' }}>DHCP End</label>
+                          <input
+                            name="vlan30DhcpEnd"
+                            type="text"
+                            value={formData.vlan30DhcpEnd || '192.168.230.240'}
+                            onChange={handleInputChange}
+                            style={{ fontSize: '0.9rem' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* VPN Configuration */}
+                <h5 style={{ color: '#1e40af', margin: '1.5rem 0 0.75rem', fontSize: '0.95rem' }}>
+                  🔐 VPN Configuration
+                </h5>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>VPN Server Mode</label>
+                    <select name="vpnServerMode" value={formData.vpnServerMode || ''} onChange={handleInputChange}>
+                      <option value="">Disabled</option>
+                      <option value="openvpn">OpenVPN</option>
+                      <option value="wireguard">WireGuard</option>
+                      <option value="ipsec">IPSec</option>
+                      <option value="l2tp">L2TP</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Local DDNS Address</label>
+                    <input
+                      name="vpnDdnsAddress"
+                      type="text"
+                      value={formData.vpnDdnsAddress || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., yoursite.AraknisDNS.com"
+                    />
+                  </div>
+                </div>
+                {formData.vpnServerMode && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>VPN Subnet</label>
+                      <input
+                        name="vpnSubnet"
+                        type="text"
+                        value={formData.vpnSubnet || '192.168.200.0'}
+                        onChange={handleInputChange}
+                        placeholder="192.168.200.0"
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Netmask</label>
+                      <input
+                        name="vpnNetmask"
+                        type="text"
+                        value={formData.vpnNetmask || '255.255.255.0'}
+                        onChange={handleInputChange}
+                        placeholder="255.255.255.0"
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Client Name</label>
+                      <input
+                        name="vpnClientName"
+                        type="text"
+                        value={formData.vpnClientName || ''}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Client_Name"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {/* Araknis specific - OvrC and extra logins */}
                 {formData.manufacturer === 'Araknis' && (
                   <>
@@ -2043,6 +2256,37 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                     </div>
                   </>
                 )}
+              </>
+            )}
+
+            {/* LIGHTING - DYNALITE */}
+            {formData.category === 'lighting' && formData.manufacturer === 'Dynalite' && (
+              <>
+                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                  💡 Dynalite Configuration
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>PDEG Programming Port</label>
+                    <input
+                      name="dynalitePdegPort"
+                      type="number"
+                      value={formData.dynalitePdegPort || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 50000"
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Control Port</label>
+                    <input
+                      name="dynaliteControlPort"
+                      type="number"
+                      value={formData.dynaliteControlPort || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 12345"
+                    />
+                  </div>
+                </div>
               </>
             )}
 

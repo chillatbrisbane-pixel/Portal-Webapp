@@ -377,13 +377,12 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
         return parseIP(a.ipAddress) - parseIP(b.ipAddress);
       });
       
-      // Device table header
+      // Device table header - no credentials in summary
       doc.fontSize(9).font('Helvetica-Bold').fillColor('#64748b');
-      doc.text('Device', 55, doc.y, { width: 120 });
-      doc.text('IP Address', 175, doc.y - 11, { width: 90 });
-      doc.text('Make/Model', 265, doc.y - 11, { width: 120 });
-      doc.text('Location', 385, doc.y - 11, { width: 100 });
-      doc.text('Credentials', 485, doc.y - 11, { width: 70 });
+      doc.text('Device', 55, doc.y, { width: 140 });
+      doc.text('IP Address', 200, doc.y - 11, { width: 100 });
+      doc.text('Make/Model', 305, doc.y - 11, { width: 140 });
+      doc.text('Location', 450, doc.y - 11, { width: 100 });
       doc.moveDown(0.5);
       doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e5e7eb').lineWidth(1).stroke();
       doc.moveDown(0.5);
@@ -397,7 +396,7 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
         }
         
         const y = doc.y;
-        const rowHeight = 24;
+        const rowHeight = 20;
         
         // Alternate row background
         if (index % 2 === 0) {
@@ -407,25 +406,17 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
         doc.fillColor('#333333').fontSize(9);
         
         // Device name
-        doc.font('Helvetica-Bold').text(device.name, 55, y, { width: 115 });
+        doc.font('Helvetica-Bold').text(device.name, 55, y, { width: 140 });
         
         // IP
-        doc.font('Helvetica').text(device.ipAddress || '-', 175, y, { width: 85 });
+        doc.font('Helvetica').text(device.ipAddress || '-', 200, y, { width: 100 });
         
         // Make/Model
         const makeModel = [device.manufacturer, device.model].filter(Boolean).join(' ');
-        doc.text(makeModel || '-', 265, y, { width: 115 });
+        doc.text(makeModel || '-', 305, y, { width: 140 });
         
         // Location
-        doc.text(device.location || '-', 385, y, { width: 95 });
-        
-        // Credentials
-        if (device.username && device.password && !device.hideCredentials) {
-          doc.fontSize(7).text(`${device.username}`, 485, y, { width: 65 });
-          doc.text(`${device.password}`, 485, y + 8, { width: 65 });
-        } else {
-          doc.fontSize(9).text('-', 485, y);
-        }
+        doc.text(device.location || '-', 450, y, { width: 95 });
         
         doc.y = y + rowHeight;
       });

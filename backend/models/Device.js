@@ -134,6 +134,31 @@ const deviceSchema = new mongoose.Schema(
     audioInputNames: String,    // Newline-separated list
     audioOutputNames: String,   // Newline-separated list
     
+    // ============ ROUTER DDNS ============
+    ddnsProvider: String,
+    ddnsHostname: String,
+    
+    // ============ ROUTER VLANS ============
+    vlan20Enabled: { type: Boolean, default: false },
+    vlan20Subnet: String,
+    vlan20DhcpStart: String,
+    vlan20DhcpEnd: String,
+    vlan30Enabled: { type: Boolean, default: false },
+    vlan30Subnet: String,
+    vlan30DhcpStart: String,
+    vlan30DhcpEnd: String,
+    
+    // ============ ROUTER VPN ============
+    vpnServerMode: String,
+    vpnDdnsAddress: String,
+    vpnSubnet: String,
+    vpnNetmask: String,
+    vpnClientName: String,
+    
+    // ============ DYNALITE LIGHTING ============
+    dynalitePdegPort: Number,
+    dynaliteControlPort: Number,
+    
     // Switch/Port Binding
     switchPort: Number,
     boundToSwitch: {
