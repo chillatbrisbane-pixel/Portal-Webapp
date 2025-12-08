@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { User, Project } from '../types'
-import { projectsAPI, reportsAPI } from '../services/apiService'
+import { projectsAPI, reportsAPI, tasksAPI } from '../services/apiService'
 import { SetupWizardModal } from './SetupWizardModal'
 import { ProjectDetail } from './ProjectDetail'
 
@@ -14,6 +14,17 @@ interface WiFiNetwork {
   password: string
   vlan: number
   band: string
+}
+
+interface MyTask {
+  _id: string
+  title: string
+  description?: string
+  project: { _id: string; name: string }
+  stage: string
+  priority: 'low' | 'medium' | 'high'
+  dueDate?: string
+  completed: boolean
 }
 
 const STATUS_OPTIONS = [
@@ -34,6 +45,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState<'alpha' | 'created' | 'modified'>('alpha')
   
+  // My Tasks
+  const [myTasks, setMyTasks] = useState<MyTask[]>([])
+  const [loadingTasks, setLoadingTasks] = useState(true)
+  
   // WiFi QR code modal
   const [qrProject, setQrProject] = useState<Project | null>(null)
   const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null)
@@ -44,6 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   useEffect(() => {
     loadProjects()
+    loadMyTasks()
   }, [])
 
   const loadProjects = async () => {
@@ -55,6 +71,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadMyTasks = async () => {
+    try {
+      setLoadingTasks(true)
+      const data = await tasksAPI.getMyTasks()
+      setMyTasks(data)
+    } catch (err: any) {
+      console.error('Failed to load my tasks:', err)
+    } finally {
+      setLoadingTasks(false)
     }
   }
 
@@ -146,7 +174,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     return (
       <ProjectDetail
         project={selectedProject}
-        onBack={() => setSelectedProject(null)}
+        onBack={() => {
+          setSelectedProject(null)
+          loadMyTasks() // Refresh tasks in case any were completed
+        }}
         onProjectUpdated={(updated) => {
           setProjects(projects.map(p => p._id === updated._id ? updated : p))
           setSelectedProject(updated) // Also update the selected project!
@@ -200,6 +231,85 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           >
             <p style={{ color: '#166534', margin: '0 0 0.25rem 0', fontSize: '0.8rem' }}>Completed</p>
             <h3 style={{ color: '#166534', margin: 0, fontSize: '1.75rem' }}>{completedCount}</h3>
+          </div>
+        </div>
+      )}
+
+      {/* My Tasks Section */}
+      {myTasks.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>📋 My Tasks</h3>
+            <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>{myTasks.length} assigned to you</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {myTasks.slice(0, 5).map((task) => {
+              const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
+              const priorityColors: Record<string, { bg: string; color: string }> = {
+                high: { bg: '#fee2e2', color: '#991b1b' },
+                medium: { bg: '#fef3c7', color: '#92400e' },
+                low: { bg: '#dcfce7', color: '#166534' },
+              }
+              const priority = priorityColors[task.priority] || priorityColors.medium
+              
+              return (
+                <div
+                  key={task._id}
+                  onClick={() => {
+                    const project = projects.find(p => p._id === task.project._id)
+                    if (project) setSelectedProject(project)
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    background: '#f9fafb',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = '#f9fafb'}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: '0.9rem', color: '#111827', marginBottom: '0.25rem' }}>
+                      {task.title}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      {task.project.name}
+                    </div>
+                  </div>
+                  {task.priority === 'high' && (
+                    <span style={{ 
+                      padding: '0.15rem 0.4rem', 
+                      background: priority.bg, 
+                      color: priority.color, 
+                      borderRadius: '4px', 
+                      fontSize: '0.7rem', 
+                      fontWeight: 600 
+                    }}>
+                      HIGH
+                    </span>
+                  )}
+                  {task.dueDate && (
+                    <span style={{ 
+                      fontSize: '0.8rem', 
+                      color: isOverdue ? '#dc2626' : '#6b7280',
+                      fontWeight: isOverdue ? 600 : 400,
+                    }}>
+                      📅 {new Date(task.dueDate).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                      {isOverdue && ' ⚠️'}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+            {myTasks.length > 5 && (
+              <div style={{ textAlign: 'center', padding: '0.5rem', color: '#6b7280', fontSize: '0.85rem' }}>
+                +{myTasks.length - 5} more tasks
+              </div>
+            )}
           </div>
         </div>
       )}

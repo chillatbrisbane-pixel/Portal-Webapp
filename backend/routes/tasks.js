@@ -8,6 +8,23 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Tasks route is working', timestamp: new Date().toISOString() });
 });
 
+// Get tasks assigned to current user (across all projects)
+router.get('/my-tasks', authenticateToken, async (req, res) => {
+  try {
+    const tasks = await Task.find({ 
+      assignee: req.userId,
+      completed: false 
+    })
+      .populate('project', 'name')
+      .populate('assignee', 'name email')
+      .populate('createdBy', 'name email')
+      .sort({ dueDate: 1, priority: -1, createdAt: -1 });
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get all tasks for a project
 router.get('/project/:projectId', authenticateToken, async (req, res) => {
   try {

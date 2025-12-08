@@ -673,6 +673,14 @@ export const tasksAPI = {
     return response.json();
   },
 
+  getMyTasks: async () => {
+    const response = await fetch(`${API_BASE_URL}/tasks/my-tasks`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch my tasks');
+    return response.json();
+  },
+
   getById: async (id: string) => {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
       headers: getHeaders(),
