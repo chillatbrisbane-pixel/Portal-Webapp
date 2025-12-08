@@ -44,7 +44,14 @@ const DEFAULT_STAGES: Stage[] = [
 ]
 
 const STAGE_COLORS = [
-  '#e5e7eb', '#fee2e2', '#fef3c7', '#d1fae5', '#dbeafe', '#e0e7ff', '#fce7f3', '#f3e8ff'
+  { value: '#e5e7eb', name: 'Grey' },
+  { value: '#fee2e2', name: 'Red' },
+  { value: '#fef3c7', name: 'Yellow' },
+  { value: '#d1fae5', name: 'Green' },
+  { value: '#dbeafe', name: 'Blue' },
+  { value: '#e0e7ff', name: 'Indigo' },
+  { value: '#fce7f3', name: 'Pink' },
+  { value: '#f3e8ff', name: 'Purple' },
 ]
 
 export default function TaskList({ projectId }: TaskListProps) {
@@ -202,7 +209,7 @@ export default function TaskList({ projectId }: TaskListProps) {
     const newStage: Stage = {
       id: newId + '-' + Date.now(),
       label: newStageName.trim(),
-      color: STAGE_COLORS[editingStages.length % STAGE_COLORS.length],
+      color: STAGE_COLORS[editingStages.length % STAGE_COLORS.length].value,
       order: editingStages.length,
     }
     setEditingStages([...editingStages, newStage])
@@ -404,8 +411,8 @@ export default function TaskList({ projectId }: TaskListProps) {
                     <button onClick={() => moveStageDown(idx)} disabled={idx === editingStages.length - 1} style={{ padding: '0', width: '20px', height: '14px', border: 'none', background: 'rgba(255,255,255,0.7)', borderRadius: '2px', cursor: idx === editingStages.length - 1 ? 'default' : 'pointer', opacity: idx === editingStages.length - 1 ? 0.3 : 1, fontSize: '0.6rem' }}>▼</button>
                   </div>
                   <input type="text" value={stage.label} onChange={(e) => updateStageLabel(idx, e.target.value)} style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }} />
-                  <select value={stage.color} onChange={(e) => updateStageColor(idx, e.target.value)} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', background: stage.color }}>
-                    {STAGE_COLORS.map(c => <option key={c} value={c} style={{ background: c }}>{c === stage.color ? '● ' : ''}{c}</option>)}
+                  <select value={stage.color} onChange={(e) => updateStageColor(idx, e.target.value)} style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', background: stage.color, minWidth: '100px' }}>
+                    {STAGE_COLORS.map(c => <option key={c.value} value={c.value} style={{ background: c.value }}>⬤ {c.name}</option>)}
                   </select>
                   <button onClick={() => deleteStage(idx)} style={{ padding: '0.5rem', background: '#fee2e2', color: '#991b1b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>🗑️</button>
                 </div>
