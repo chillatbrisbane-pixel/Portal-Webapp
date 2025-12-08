@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Test endpoint
 router.get('/test', (req, res) => {
@@ -9,7 +9,7 @@ router.get('/test', (req, res) => {
 });
 
 // Get all tasks for a project
-router.get('/project/:projectId', auth, async (req, res) => {
+router.get('/project/:projectId', authenticateToken, async (req, res) => {
   try {
     const tasks = await Task.find({ project: req.params.projectId })
       .populate('assignee', 'name email')
@@ -24,7 +24,7 @@ router.get('/project/:projectId', auth, async (req, res) => {
 });
 
 // Get single task
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate('assignee', 'name email')
@@ -40,7 +40,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Create task
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     console.log('Creating task with body:', JSON.stringify(req.body));
     const { project, title, description, assignee, stage, priority, dueDate } = req.body;
@@ -92,7 +92,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Update task
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { title, description, assignee, stage, completed, priority, dueDate } = req.body;
     
@@ -150,7 +150,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Toggle task completion
-router.patch('/:id/toggle', auth, async (req, res) => {
+router.patch('/:id/toggle', authenticateToken, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) {
@@ -182,7 +182,7 @@ router.patch('/:id/toggle', auth, async (req, res) => {
 });
 
 // Move task to different stage
-router.patch('/:id/stage', auth, async (req, res) => {
+router.patch('/:id/stage', authenticateToken, async (req, res) => {
   try {
     const { stage } = req.body;
     
@@ -206,7 +206,7 @@ router.patch('/:id/stage', auth, async (req, res) => {
 });
 
 // Add comment to task
-router.post('/:id/comments', auth, async (req, res) => {
+router.post('/:id/comments', authenticateToken, async (req, res) => {
   try {
     const { text } = req.body;
     
@@ -234,7 +234,7 @@ router.post('/:id/comments', auth, async (req, res) => {
 });
 
 // Delete task
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);
     if (!task) {
@@ -247,7 +247,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // Reorder tasks
-router.post('/reorder', auth, async (req, res) => {
+router.post('/reorder', authenticateToken, async (req, res) => {
   try {
     const { taskIds } = req.body;
     
