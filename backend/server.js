@@ -74,7 +74,15 @@ const manufacturerRoutes = require('./routes/manufacturers');
 const deviceTemplateRoutes = require('./routes/deviceTemplates');
 const deviceRoutes = require('./routes/devices');
 const reportRoutes = require('./routes/reports');
-const taskRoutes = require('./routes/tasks');
+
+// Optional: Task routes (new feature)
+let taskRoutes = null;
+try {
+  taskRoutes = require('./routes/tasks');
+  console.log('✅ Task routes loaded');
+} catch (err) {
+  console.log('⚠️ Task routes not available:', err.message);
+}
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -96,7 +104,9 @@ app.use('/api/manufacturers', manufacturerRoutes);
 app.use('/api/device-templates', deviceTemplateRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/tasks', taskRoutes);
+if (taskRoutes) {
+  app.use('/api/tasks', taskRoutes);
+}
 
 // 404 handler
 app.use((req, res) => {
