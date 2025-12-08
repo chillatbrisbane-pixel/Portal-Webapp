@@ -1297,31 +1297,25 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
               </div>
             )}
 
-            {/* NVR: QR Code for quick access */}
-            {formData.deviceType === 'nvr' && device && formData.ipAddress && (
+            {/* NVR: QR Code for serial number */}
+            {formData.deviceType === 'nvr' && device && formData.serialNumber && (
               <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #86efac' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.9rem', color: '#166534' }}>
-                    📱 Quick access QR code for NVR web interface
+                    📱 QR code for NVR serial number
                   </span>
                   <button
                     type="button"
                     onClick={() => {
-                      const nvrUrl = `http://${formData.ipAddress}`
-                      const qrData = formData.username && formData.password 
-                        ? `NVR: ${formData.name || 'NVR'}\nURL: ${nvrUrl}\nUser: ${formData.username}\nPass: ${formData.password}`
-                        : nvrUrl
                       const qrModal = document.createElement('div')
                       qrModal.id = 'nvr-qr-modal'
                       qrModal.innerHTML = `
                         <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
                           <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; max-width: 350px;" onclick="event.stopPropagation()">
-                            <h3 style="margin: 0 0 1rem;">📹 ${formData.name || 'NVR'} Access</h3>
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(nvrUrl)}" alt="NVR QR Code" style="margin-bottom: 1rem;" />
-                            <div style="text-align: left; background: #f3f4f6; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; font-family: monospace;">
-                              <div><strong>URL:</strong> ${nvrUrl}</div>
-                              ${formData.username ? `<div><strong>User:</strong> ${formData.username}</div>` : ''}
-                              ${formData.password ? `<div><strong>Pass:</strong> ${formData.password}</div>` : ''}
+                            <h3 style="margin: 0 0 1rem;">📹 ${formData.name || 'NVR'}</h3>
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(formData.serialNumber)}" alt="Serial QR Code" style="margin-bottom: 1rem;" />
+                            <div style="background: #f3f4f6; padding: 0.75rem; border-radius: 6px; font-size: 1rem; font-family: monospace;">
+                              ${formData.serialNumber}
                             </div>
                             <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
                           </div>
