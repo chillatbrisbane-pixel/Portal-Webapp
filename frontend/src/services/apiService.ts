@@ -682,14 +682,16 @@ export const tasksAPI = {
   },
 
   create: async (taskData: any) => {
+    console.log('Creating task with data:', taskData);
     const response = await fetch(`${API_BASE_URL}/tasks`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(taskData),
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create task');
+      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      console.error('Task creation failed:', response.status, errorData);
+      throw new Error(errorData.message || `Failed to create task (${response.status})`);
     }
     return response.json();
   },

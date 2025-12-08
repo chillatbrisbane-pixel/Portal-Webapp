@@ -3,12 +3,18 @@ const router = express.Router();
 const Task = require('../models/Task');
 const auth = require('../middleware/auth');
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ message: 'Tasks route is working', timestamp: new Date().toISOString() });
+});
+
 // Get all tasks for a project
 router.get('/project/:projectId', auth, async (req, res) => {
   try {
     const tasks = await Task.find({ project: req.params.projectId })
       .populate('assignee', 'name email')
       .populate('createdBy', 'name email')
+      .populate('completedBy', 'name email')
       .populate('comments.user', 'name email')
       .sort({ order: 1, createdAt: -1 });
     res.json(tasks);
@@ -36,13 +42,16 @@ router.get('/:id', auth, async (req, res) => {
 // Create task
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('Creating task with body:', JSON.stringify(req.body));
     const { project, title, description, assignee, stage, priority, dueDate } = req.body;
     
     // Validate required fields
     if (!project) {
+      console.log('Task creation failed: No project ID');
       return res.status(400).json({ message: 'Project ID is required' });
     }
     if (!title || !title.trim()) {
+      console.log('Task creation failed: No title');
       return res.status(400).json({ message: 'Task title is required' });
     }
     
@@ -50,7 +59,7 @@ router.post('/', auth, async (req, res) => {
     const lastTask = await Task.findOne({ project, stage: stage || 'planning' }).sort({ order: -1 });
     const order = lastTask ? lastTask.order + 1 : 0;
     
-    const task = new Task({
+    const taskData = {
       project,
       title: title.trim(),
       description: description || '',
@@ -61,9 +70,14 @@ router.post('/', auth, async (req, res) => {
       dueDate: dueDate && dueDate !== '' ? dueDate : null,
       createdBy: req.user._id,
       order
-    });
+    };
     
+    console.log('Task data to save:', JSON.stringify(taskData));
+    
+    const task = new Task(taskData);
     await task.save();
+    
+    console.log('Task saved with ID:', task._id);
     
     const populatedTask = await Task.findById(task._id)
       .populate('assignee', 'name email')
@@ -72,6 +86,7 @@ router.post('/', auth, async (req, res) => {
     res.status(201).json(populatedTask);
   } catch (error) {
     console.error('Task creation error:', error);
+    console.error('Error stack:', error.stack);
     res.status(400).json({ message: error.message });
   }
 });

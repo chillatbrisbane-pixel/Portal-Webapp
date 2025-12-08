@@ -140,6 +140,14 @@ const projectSchema = new mongoose.Schema(
       createdAt: { type: Date, default: Date.now },
     }],
     
+    // Task stages (customizable per project)
+    taskStages: [{
+      id: { type: String, required: true },
+      label: { type: String, required: true },
+      color: { type: String, default: '#e5e7eb' },
+      order: { type: Number, default: 0 },
+    }],
+    
     // Project handover document
     handoverDocument: {
       generatedDate: Date,

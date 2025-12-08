@@ -50,9 +50,4 @@ const taskSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient queries
-taskSchema.index({ project: 1, stage: 1 });
-taskSchema.index({ project: 1, assignee: 1 });
-taskSchema.index({ project: 1, completed: 1 });
-
 module.exports = mongoose.model('Task', taskSchema);
