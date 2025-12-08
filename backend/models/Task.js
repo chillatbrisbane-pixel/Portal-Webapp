@@ -1,0 +1,50 @@
+const mongoose = require('mongoose');
+
+const commentSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  text: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const taskSchema = new mongoose.Schema({
+  project: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Project',
+    required: true 
+  },
+  title: { 
+    type: String, 
+    required: true 
+  },
+  description: String,
+  assignee: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+  status: { 
+    type: String, 
+    enum: ['todo', 'in-progress', 'done'],
+    default: 'todo'
+  },
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium'
+  },
+  dueDate: Date,
+  comments: [commentSchema],
+  createdBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+  completedAt: Date,
+  order: { type: Number, default: 0 }
+}, {
+  timestamps: true
+});
+
+// Index for efficient queries
+taskSchema.index({ project: 1, status: 1 });
+taskSchema.index({ project: 1, assignee: 1 });
+
+module.exports = mongoose.model('Task', taskSchema);

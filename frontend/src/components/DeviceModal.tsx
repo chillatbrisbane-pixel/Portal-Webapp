@@ -1252,36 +1252,86 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             {/* NVR: Copy credentials to all cameras */}
             {formData.deviceType === 'nvr' && device && (formData.username || formData.password) && (
               <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '0.9rem', color: '#1e40af' }}>
                     📹 Copy these credentials to all cameras in this project?
                   </span>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const cameras = existingDevices.filter(d => d.deviceType === 'camera')
+                        if (cameras.length === 0) {
+                          alert('No cameras found in this project')
+                          return
+                        }
+                        if (!window.confirm(`Update credentials for ${cameras.length} camera(s)?`)) {
+                          return
+                        }
+                        try {
+                          for (const cam of cameras) {
+                            await devicesAPI.update(cam._id, {
+                              username: formData.username,
+                              password: formData.password,
+                            })
+                          }
+                          alert(`✅ Credentials copied to ${cameras.length} camera(s)`)
+                        } catch (err) {
+                          alert('Failed to update some cameras')
+                        }
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      📋 Copy to All Cameras
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* NVR: QR Code for quick access */}
+            {formData.deviceType === 'nvr' && device && formData.ipAddress && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #86efac' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#166534' }}>
+                    📱 Quick access QR code for NVR web interface
+                  </span>
                   <button
                     type="button"
-                    onClick={async () => {
-                      const cameras = existingDevices.filter(d => d.deviceType === 'camera')
-                      if (cameras.length === 0) {
-                        alert('No cameras found in this project')
-                        return
-                      }
-                      if (!window.confirm(`Update credentials for ${cameras.length} camera(s)?`)) {
-                        return
-                      }
-                      try {
-                        for (const cam of cameras) {
-                          await devicesAPI.update(cam._id, {
-                            username: formData.username,
-                            password: formData.password,
-                          })
-                        }
-                        alert(`✅ Credentials copied to ${cameras.length} camera(s)`)
-                      } catch (err) {
-                        alert('Failed to update some cameras')
-                      }
+                    onClick={() => {
+                      const nvrUrl = `http://${formData.ipAddress}`
+                      const qrData = formData.username && formData.password 
+                        ? `NVR: ${formData.name || 'NVR'}\nURL: ${nvrUrl}\nUser: ${formData.username}\nPass: ${formData.password}`
+                        : nvrUrl
+                      const qrModal = document.createElement('div')
+                      qrModal.id = 'nvr-qr-modal'
+                      qrModal.innerHTML = `
+                        <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
+                          <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; max-width: 350px;" onclick="event.stopPropagation()">
+                            <h3 style="margin: 0 0 1rem;">📹 ${formData.name || 'NVR'} Access</h3>
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(nvrUrl)}" alt="NVR QR Code" style="margin-bottom: 1rem;" />
+                            <div style="text-align: left; background: #f3f4f6; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; font-family: monospace;">
+                              <div><strong>URL:</strong> ${nvrUrl}</div>
+                              ${formData.username ? `<div><strong>User:</strong> ${formData.username}</div>` : ''}
+                              ${formData.password ? `<div><strong>Pass:</strong> ${formData.password}</div>` : ''}
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                          </div>
+                        </div>
+                      `
+                      document.body.appendChild(qrModal)
                     }}
                     style={{
                       padding: '0.5rem 1rem',
-                      background: '#3b82f6',
+                      background: '#10b981',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
@@ -1289,7 +1339,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                       fontSize: '0.85rem',
                     }}
                   >
-                    📋 Copy to All Cameras
+                    📱 Show QR Code
                   </button>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Project, Device, ProjectVersion, NoteEntry } from '../types'
 import { projectsAPI, reportsAPI, devicesAPI } from '../services/apiService'
 import { DeviceList } from './DeviceList'
+import TaskList from './TaskList'
 
 interface ProjectDetailProps {
   project: Project
@@ -40,7 +41,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState(project)
-  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes' | 'history'>('devices')
+  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes' | 'history' | 'tasks'>('devices')
   
   // Version history
   const [versions, setVersions] = useState<ProjectVersion[]>([])
@@ -1121,6 +1122,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         <div className="tabs" style={{ display: 'flex', gap: '0', minWidth: 'max-content' }}>
           {[
             { id: 'devices', label: '🎛️ Devices' },
+            { id: 'tasks', label: '📋 Tasks' },
             { id: 'wifi', label: '📶 WiFi' },
             { id: 'ports', label: '🔌 Ports' },
             { id: 'notes', label: '📝 Notes' },
@@ -1155,6 +1157,12 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           onDevicesChanged={loadDevices} 
           onProjectUpdate={handleProjectUpdate}
         />
+      )}
+
+      {activeTab === 'tasks' && (
+        <div className="card">
+          <TaskList projectId={project._id} />
+        </div>
       )}
 
       {activeTab === 'wifi' && (

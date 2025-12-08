@@ -662,6 +662,75 @@ export const healthCheck = async () => {
   }
 };
 
+// ============ TASKS ============
+
+export const tasksAPI = {
+  getByProject: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/project/${projectId}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch tasks');
+    return response.json();
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch task');
+    return response.json();
+  },
+
+  create: async (taskData: any) => {
+    const response = await fetch(`${API_BASE_URL}/tasks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(taskData),
+    });
+    if (!response.ok) throw new Error('Failed to create task');
+    return response.json();
+  },
+
+  update: async (id: string, taskData: any) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(taskData),
+    });
+    if (!response.ok) throw new Error('Failed to update task');
+    return response.json();
+  },
+
+  updateStatus: async (id: string, status: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}/status`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ status }),
+    });
+    if (!response.ok) throw new Error('Failed to update task status');
+    return response.json();
+  },
+
+  addComment: async (id: string, text: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}/comments`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ text }),
+    });
+    if (!response.ok) throw new Error('Failed to add comment');
+    return response.json();
+  },
+
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete task');
+    return response.json();
+  },
+};
+
 export default {
   authAPI,
   projectsAPI,
@@ -670,6 +739,7 @@ export default {
   usersAPI,
   manufacturersAPI,
   deviceTemplatesAPI,
+  tasksAPI,
   healthCheck,
   getToken,
   setToken,

@@ -74,6 +74,7 @@ const manufacturerRoutes = require('./routes/manufacturers');
 const deviceTemplateRoutes = require('./routes/deviceTemplates');
 const deviceRoutes = require('./routes/devices');
 const reportRoutes = require('./routes/reports');
+const taskRoutes = require('./routes/tasks');
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -95,6 +96,7 @@ app.use('/api/manufacturers', manufacturerRoutes);
 app.use('/api/device-templates', deviceTemplateRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // 404 handler
 app.use((req, res) => {
