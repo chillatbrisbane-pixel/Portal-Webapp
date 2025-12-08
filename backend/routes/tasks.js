@@ -68,7 +68,7 @@ router.post('/', authenticateToken, async (req, res) => {
       completed: false,
       priority: priority || 'medium',
       dueDate: dueDate && dueDate !== '' ? dueDate : null,
-      createdBy: req.user._id,
+      createdBy: req.userId,
       order
     };
     
@@ -122,7 +122,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       updateData.completed = completed;
       if (completed) {
         updateData.completedAt = new Date();
-        updateData.completedBy = req.user._id;
+        updateData.completedBy = req.userId;
       } else {
         updateData.completedAt = null;
         updateData.completedBy = null;
@@ -160,7 +160,7 @@ router.patch('/:id/toggle', authenticateToken, async (req, res) => {
     const updateData = { completed: !task.completed };
     if (!task.completed) {
       updateData.completedAt = new Date();
-      updateData.completedBy = req.user._id;
+      updateData.completedBy = req.userId;
     } else {
       updateData.completedAt = null;
       updateData.completedBy = null;
@@ -216,7 +216,7 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     }
     
     task.comments.push({
-      user: req.user._id,
+      user: req.userId,
       text
     });
     
