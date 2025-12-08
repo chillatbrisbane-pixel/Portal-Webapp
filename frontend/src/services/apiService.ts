@@ -687,7 +687,10 @@ export const tasksAPI = {
       headers: getHeaders(),
       body: JSON.stringify(taskData),
     });
-    if (!response.ok) throw new Error('Failed to create task');
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create task');
+    }
     return response.json();
   },
 
@@ -701,13 +704,22 @@ export const tasksAPI = {
     return response.json();
   },
 
-  updateStatus: async (id: string, status: string) => {
-    const response = await fetch(`${API_BASE_URL}/tasks/${id}/status`, {
+  toggleComplete: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}/toggle`, {
       method: 'PATCH',
       headers: getHeaders(),
-      body: JSON.stringify({ status }),
     });
-    if (!response.ok) throw new Error('Failed to update task status');
+    if (!response.ok) throw new Error('Failed to toggle task');
+    return response.json();
+  },
+
+  moveStage: async (id: string, stage: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}/stage`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ stage }),
+    });
+    if (!response.ok) throw new Error('Failed to move task');
     return response.json();
   },
 

@@ -441,6 +441,29 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
                             </code>
                           </a>
                           <button onClick={(e) => copyToClipboard(device.ipAddress, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}>📋</button>
+                          {device.deviceType === 'nvr' && device.serialNumber && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                const qrModal = document.createElement('div')
+                                qrModal.innerHTML = `
+                                  <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
+                                    <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; max-width: 350px;" onclick="event.stopPropagation()">
+                                      <h3 style="margin: 0 0 1rem;">📹 ${device.name || 'NVR'}</h3>
+                                      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(device.serialNumber)}" alt="Serial QR Code" style="margin-bottom: 1rem;" />
+                                      <div style="background: #f3f4f6; padding: 0.75rem; border-radius: 6px; font-size: 1rem; font-family: monospace;">
+                                        ${device.serialNumber}
+                                      </div>
+                                      <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                                    </div>
+                                  </div>
+                                `
+                                document.body.appendChild(qrModal)
+                              }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem' }}
+                              title="Show Serial QR Code"
+                            >📱</button>
+                          )}
                         </div>
                       ) : '-'}
                       {device.macAddress && (
@@ -591,6 +614,31 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
                                   >
                                     📋
                                   </button>
+                                  {device.deviceType === 'nvr' && device.serialNumber && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        const qrModal = document.createElement('div')
+                                        qrModal.innerHTML = `
+                                          <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;" onclick="this.remove()">
+                                            <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; max-width: 350px;" onclick="event.stopPropagation()">
+                                              <h3 style="margin: 0 0 1rem;">📹 ${device.name || 'NVR'}</h3>
+                                              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(device.serialNumber)}" alt="Serial QR Code" style="margin-bottom: 1rem;" />
+                                              <div style="background: #f3f4f6; padding: 0.75rem; border-radius: 6px; font-size: 1rem; font-family: monospace;">
+                                                ${device.serialNumber}
+                                              </div>
+                                              <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 1rem; padding: 0.5rem 1.5rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+                                            </div>
+                                          </div>
+                                        `
+                                        document.body.appendChild(qrModal)
+                                      }}
+                                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.125rem' }}
+                                      title="Show Serial QR Code"
+                                    >
+                                      📱
+                                    </button>
+                                  )}
                                 </span>
                               )}
                               {device.macAddress && (

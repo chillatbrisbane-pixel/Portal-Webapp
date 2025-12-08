@@ -21,10 +21,13 @@ const taskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 
   },
-  status: { 
-    type: String, 
-    enum: ['todo', 'in-progress', 'done'],
-    default: 'todo'
+  stage: {
+    type: String,
+    default: 'planning'
+  },
+  completed: {
+    type: Boolean,
+    default: false
   },
   priority: {
     type: String,
@@ -38,13 +41,18 @@ const taskSchema = new mongoose.Schema({
     ref: 'User' 
   },
   completedAt: Date,
+  completedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   order: { type: Number, default: 0 }
 }, {
   timestamps: true
 });
 
 // Index for efficient queries
-taskSchema.index({ project: 1, status: 1 });
+taskSchema.index({ project: 1, stage: 1 });
 taskSchema.index({ project: 1, assignee: 1 });
+taskSchema.index({ project: 1, completed: 1 });
 
 module.exports = mongoose.model('Task', taskSchema);

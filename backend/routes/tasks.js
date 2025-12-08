@@ -36,20 +36,29 @@ router.get('/:id', auth, async (req, res) => {
 // Create task
 router.post('/', auth, async (req, res) => {
   try {
-    const { project, title, description, assignee, status, priority, dueDate } = req.body;
+    const { project, title, description, assignee, stage, priority, dueDate } = req.body;
     
-    // Get the highest order number for this project
-    const lastTask = await Task.findOne({ project }).sort({ order: -1 });
+    // Validate required fields
+    if (!project) {
+      return res.status(400).json({ message: 'Project ID is required' });
+    }
+    if (!title || !title.trim()) {
+      return res.status(400).json({ message: 'Task title is required' });
+    }
+    
+    // Get the highest order number for this project and stage
+    const lastTask = await Task.findOne({ project, stage: stage || 'planning' }).sort({ order: -1 });
     const order = lastTask ? lastTask.order + 1 : 0;
     
     const task = new Task({
       project,
-      title,
-      description,
-      assignee: assignee || null,
-      status: status || 'todo',
+      title: title.trim(),
+      description: description || '',
+      assignee: assignee && assignee !== '' ? assignee : null,
+      stage: stage || 'planning',
+      completed: false,
       priority: priority || 'medium',
-      dueDate: dueDate || null,
+      dueDate: dueDate && dueDate !== '' ? dueDate : null,
       createdBy: req.user._id,
       order
     });
@@ -62,6 +71,7 @@ router.post('/', auth, async (req, res) => {
     
     res.status(201).json(populatedTask);
   } catch (error) {
+    console.error('Task creation error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -69,9 +79,9 @@ router.post('/', auth, async (req, res) => {
 // Update task
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title, description, assignee, status, priority, dueDate } = req.body;
+    const { title, description, assignee, stage, completed, priority, dueDate } = req.body;
     
-    const updateData = { title, description, priority, dueDate };
+    const updateData = { title, description, priority };
     
     // Handle assignee - allow null/unassigned
     if (assignee === '' || assignee === null) {
@@ -80,13 +90,27 @@ router.put('/:id', auth, async (req, res) => {
       updateData.assignee = assignee;
     }
     
-    // Handle status change
-    if (status) {
-      updateData.status = status;
-      if (status === 'done') {
+    // Handle stage change
+    if (stage !== undefined) {
+      updateData.stage = stage;
+    }
+    
+    // Handle dueDate
+    if (dueDate === '' || dueDate === null) {
+      updateData.dueDate = null;
+    } else if (dueDate) {
+      updateData.dueDate = dueDate;
+    }
+    
+    // Handle completion
+    if (completed !== undefined) {
+      updateData.completed = completed;
+      if (completed) {
         updateData.completedAt = new Date();
+        updateData.completedBy = req.user._id;
       } else {
         updateData.completedAt = null;
+        updateData.completedBy = null;
       }
     }
     
@@ -97,6 +121,7 @@ router.put('/:id', auth, async (req, res) => {
     )
       .populate('assignee', 'name email')
       .populate('createdBy', 'name email')
+      .populate('completedBy', 'name email')
       .populate('comments.user', 'name email');
     
     if (!task) {
@@ -109,25 +134,51 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Update task status (quick update)
-router.patch('/:id/status', auth, async (req, res) => {
+// Toggle task completion
+router.patch('/:id/toggle', auth, async (req, res) => {
   try {
-    const { status } = req.body;
-    
-    const updateData = { status };
-    if (status === 'done') {
-      updateData.completedAt = new Date();
-    } else {
-      updateData.completedAt = null;
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
     }
     
-    const task = await Task.findByIdAndUpdate(
+    const updateData = { completed: !task.completed };
+    if (!task.completed) {
+      updateData.completedAt = new Date();
+      updateData.completedBy = req.user._id;
+    } else {
+      updateData.completedAt = null;
+      updateData.completedBy = null;
+    }
+    
+    const updatedTask = await Task.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     )
       .populate('assignee', 'name email')
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'name email')
+      .populate('completedBy', 'name email');
+    
+    res.json(updatedTask);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Move task to different stage
+router.patch('/:id/stage', auth, async (req, res) => {
+  try {
+    const { stage } = req.body;
+    
+    const task = await Task.findByIdAndUpdate(
+      req.params.id,
+      { stage },
+      { new: true }
+    )
+      .populate('assignee', 'name email')
+      .populate('createdBy', 'name email')
+      .populate('completedBy', 'name email');
     
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
