@@ -93,12 +93,39 @@ export default function TaskList({ projectId }: TaskListProps) {
       setTasks(tasksData)
       setUsers(usersData)
       
+      console.log('Project taskStages from DB:', projectData.taskStages)
+      
       // Load stages from project or use defaults
+      let loadedStages: Stage[]
       if (projectData.taskStages && projectData.taskStages.length > 0) {
-        setStages(projectData.taskStages.sort((a: Stage, b: Stage) => a.order - b.order))
+        loadedStages = projectData.taskStages.sort((a: Stage, b: Stage) => a.order - b.order)
       } else {
-        setStages(DEFAULT_STAGES)
+        loadedStages = [...DEFAULT_STAGES]
       }
+      
+      // Check for orphaned tasks (tasks in stages that don't exist)
+      const stageIds = new Set(loadedStages.map(s => s.id))
+      const orphanedStageIds = new Set<string>()
+      tasksData.forEach((task: Task) => {
+        if (!stageIds.has(task.stage)) {
+          orphanedStageIds.add(task.stage)
+        }
+      })
+      
+      // Add orphaned stages so tasks are visible
+      if (orphanedStageIds.size > 0) {
+        console.log('Found orphaned stages:', Array.from(orphanedStageIds))
+        orphanedStageIds.forEach(stageId => {
+          loadedStages.push({
+            id: stageId,
+            label: `❓ ${stageId}`,
+            color: '#f3f4f6',
+            order: loadedStages.length,
+          })
+        })
+      }
+      
+      setStages(loadedStages)
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
@@ -117,7 +144,9 @@ export default function TaskList({ projectId }: TaskListProps) {
 
   const saveStages = async (newStages: Stage[]) => {
     try {
-      await projectsAPI.update(projectId, { taskStages: newStages })
+      console.log('Saving stages to project:', newStages)
+      const result = await projectsAPI.update(projectId, { taskStages: newStages })
+      console.log('Save result:', result)
       setStages(newStages)
     } catch (error) {
       console.error('Failed to save stages:', error)

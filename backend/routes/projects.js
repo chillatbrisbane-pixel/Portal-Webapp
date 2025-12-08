@@ -139,6 +139,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'clientPhone',
       'address',
       'sharePointLink',
+      'skytunnelLink',
       'status',
       'startDate',
       'completionDate',
@@ -152,6 +153,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       'notes',
       'handoverDocument',
       'devices',
+      'taskStages',
     ];
 
     allowedFields.forEach((field) => {
