@@ -14,10 +14,11 @@ interface TechConfig {
   deviceType: string
   defaultBrands: string[]
   defaultVlan: number
+  isComposite?: boolean  // For networking which has multiple device types
 }
 
 const TECH_CONFIGS: TechConfig[] = [
-  { key: 'network', label: 'Network Switches', icon: '🔀', deviceType: 'switch', defaultBrands: ['Ubiquiti', 'Araknis', 'Netgear'], defaultVlan: 1 },
+  { key: 'networking', label: 'Networking', icon: '🔗', deviceType: 'network', defaultBrands: ['Ubiquiti', 'Araknis', 'Netgear'], defaultVlan: 1, isComposite: true },
   { key: 'accessPoints', label: 'Wireless Access Points', icon: '📡', deviceType: 'access-point', defaultBrands: ['Ubiquiti', 'Araknis', 'Ruckus'], defaultVlan: 1 },
   { key: 'cameras', label: 'Security Cameras', icon: '📹', deviceType: 'camera', defaultBrands: ['Dahua', 'Hikvision', 'Luma'], defaultVlan: 20 },
   { key: 'nvr', label: 'NVR', icon: '💾', deviceType: 'nvr', defaultBrands: ['Dahua', 'Hikvision', 'Luma'], defaultVlan: 20 },
@@ -32,6 +33,9 @@ const TECH_CONFIGS: TechConfig[] = [
   { key: 'tvs', label: 'TVs/Displays', icon: '📺', deviceType: 'tv', defaultBrands: ['Samsung', 'LG', 'Sony'], defaultVlan: 1 },
   { key: 'power', label: 'Power / PDU', icon: '🔌', deviceType: 'pdu', defaultBrands: ['Wattbox', 'APC', 'CyberPower', 'Panamax'], defaultVlan: 1 },
 ]
+
+// Router brands for networking config
+const ROUTER_BRANDS = ['Ubiquiti', 'Araknis', 'Netgear', 'Cisco', 'MikroTik']
 
 // Device name mappings for proper singular names
 const DEVICE_SINGULAR_NAMES: Record<string, string> = {
@@ -63,6 +67,10 @@ interface DeviceSetup {
   cameraConnection?: 'switch' | 'nvr'
   // Per-device configurations for switches
   switchConfigs?: { portCount: number; poeType: string }[]
+  // Router config for networking
+  routerQuantity?: number
+  routerBrand?: string
+  routerModel?: string
 }
 
 export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onProjectCreated }) => {
@@ -178,7 +186,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
       const project = await projectsAPI.create({
         ...formData,
         technologies: {
-          network: selectedTechs.includes('network') || selectedTechs.includes('accessPoints'),
+          network: selectedTechs.includes('networking') || selectedTechs.includes('accessPoints'),
           security: selectedTechs.includes('security'),
           cameras: selectedTechs.includes('cameras') || selectedTechs.includes('nvr'),
           av: selectedTechs.includes('av') || selectedTechs.includes('tvs'),
@@ -192,7 +200,77 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
         const setup = deviceSetups[techKey]
         const techConfig = TECH_CONFIGS.find(t => t.key === techKey)
         
-        if (setup && techConfig && setup.quantity > 0) {
+        if (!setup || !techConfig) continue
+        
+        // Special handling for networking (routers + switches)
+        if (techConfig.isComposite && techKey === 'networking') {
+          const devices = []
+          
+          // Create routers
+          const routerQty = setup.routerQuantity || 0
+          for (let i = 0; i < routerQty; i++) {
+            devices.push({
+              name: `Router${routerQty > 1 ? ` ${i + 1}` : ''}`,
+              category: 'network',
+              deviceType: 'router',
+              manufacturer: setup.routerBrand || setup.brand,
+              model: setup.routerModel || '',
+              vlan: 1,
+              autoAssignIP: true,
+              status: 'not-installed',
+            })
+          }
+          
+          // Create switches
+          const switchQty = setup.quantity || 0
+          for (let i = 0; i < switchQty; i++) {
+            const deviceData: any = {
+              name: `Switch${switchQty > 1 ? ` ${i + 1}` : ''}`,
+              category: 'network',
+              deviceType: 'switch',
+              manufacturer: setup.brand,
+              model: setup.model,
+              vlan: 1,
+              autoAssignIP: true,
+              status: 'not-installed',
+            }
+            
+            // Check if we have per-switch configs
+            if (setup.switchConfigs && setup.switchConfigs[i]) {
+              deviceData.portCount = setup.switchConfigs[i].portCount
+              const poeType = setup.switchConfigs[i].poeType
+              if (poeType && poeType !== 'none') {
+                const poeLabels: Record<string, string> = {
+                  'af': 'PoE (802.3af)',
+                  'at': 'PoE+ (802.3at)',
+                  'bt': 'PoE++ (802.3bt)'
+                }
+                deviceData.notes = poeLabels[poeType] || ''
+              }
+            } else {
+              // Single switch or fallback
+              deviceData.portCount = setup.portCount || 24
+              if (setup.poeType && setup.poeType !== 'none') {
+                const poeLabels: Record<string, string> = {
+                  'af': 'PoE (802.3af)',
+                  'at': 'PoE+ (802.3at)',
+                  'bt': 'PoE++ (802.3bt)'
+                }
+                deviceData.notes = poeLabels[setup.poeType] || ''
+              }
+            }
+            
+            devices.push(deviceData)
+          }
+          
+          if (devices.length > 0) {
+            await devicesAPI.bulkCreate(project._id, devices)
+          }
+          continue
+        }
+        
+        // Normal device creation for non-composite techs
+        if (setup.quantity > 0) {
           const devices = []
           const baseName = DEVICE_SINGULAR_NAMES[techConfig.deviceType] || techConfig.label
           for (let i = 0; i < setup.quantity; i++) {
@@ -205,34 +283,6 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
               vlan: techConfig.defaultVlan,
               autoAssignIP: true,
               status: 'not-installed',
-            }
-            
-            // Add port count and poeType for switches
-            if (techConfig.deviceType === 'switch') {
-              // Check if we have per-switch configs
-              if (setup.switchConfigs && setup.switchConfigs[i]) {
-                deviceData.portCount = setup.switchConfigs[i].portCount
-                const poeType = setup.switchConfigs[i].poeType
-                if (poeType && poeType !== 'none') {
-                  const poeLabels: Record<string, string> = {
-                    'af': 'PoE (802.3af)',
-                    'at': 'PoE+ (802.3at)',
-                    'bt': 'PoE++ (802.3bt)'
-                  }
-                  deviceData.notes = poeLabels[poeType] || ''
-                }
-              } else {
-                // Single switch or fallback
-                deviceData.portCount = setup.portCount || 24
-                if (setup.poeType && setup.poeType !== 'none') {
-                  const poeLabels: Record<string, string> = {
-                    'af': 'PoE (802.3af)',
-                    'at': 'PoE+ (802.3at)',
-                    'bt': 'PoE++ (802.3bt)'
-                  }
-                  deviceData.notes = poeLabels[setup.poeType] || ''
-                }
-              }
             }
             
             // Add outlet count for PDUs (stored as portCount)
@@ -483,78 +533,96 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
               </h3>
               
               <div style={{ padding: '1.5rem', background: '#f9fafb', borderRadius: '8px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Quantity</label>
-                    <input
-                      type="number"
-                      value={deviceSetups[getCurrentTech()!.key]?.quantity || 1}
-                      onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'quantity', parseInt(e.target.value) || 1)}
-                      min={1}
-                      max={50}
-                    />
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Brand</label>
-                    <select
-                      value={deviceSetups[getCurrentTech()!.key]?.brand || ''}
-                      onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'brand', e.target.value)}
-                    >
-                      {getCurrentTech()?.defaultBrands.map(brand => (
-                        <option key={brand} value={brand}>{brand}</option>
-                      ))}
-                      <option value="Custom">Custom</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
-                    <label>Model (optional)</label>
-                    <input
-                      type="text"
-                      value={deviceSetups[getCurrentTech()!.key]?.model || ''}
-                      onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'model', e.target.value)}
-                      placeholder="e.g., IPC-HDW2831TM-AS-S2"
-                    />
-                  </div>
-
-                  {/* Port Count for Switches */}
-                  {getCurrentTech()?.deviceType === 'switch' && (
-                    <>
-                      {(deviceSetups[getCurrentTech()!.key]?.quantity || 1) === 1 ? (
-                        // Single switch - simple config
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', gridColumn: '1 / -1' }}>
-                          <div className="form-group" style={{ margin: 0 }}>
-                            <label>Port Count</label>
-                            <select
-                              value={deviceSetups[getCurrentTech()!.key]?.portCount || 24}
-                              onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
-                            >
-                              <option value={8}>8 Ports</option>
-                              <option value={16}>16 Ports</option>
-                              <option value={24}>24 Ports</option>
-                              <option value={48}>48 Ports</option>
-                            </select>
-                          </div>
-                          <div className="form-group" style={{ margin: 0 }}>
-                            <label>PoE Type</label>
-                            <select
-                              value={deviceSetups[getCurrentTech()!.key]?.poeType || 'none'}
-                              onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'poeType', e.target.value)}
-                            >
-                              <option value="none">No PoE</option>
-                              <option value="af">802.3af (PoE)</option>
-                              <option value="at">802.3at (PoE+)</option>
-                              <option value="bt">802.3bt (PoE++)</option>
-                            </select>
-                          </div>
+                {/* Special UI for Networking (Routers + Switches) */}
+                {getCurrentTech()?.isComposite && getCurrentTech()?.key === 'networking' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* Router Section */}
+                    <div style={{ padding: '1rem', background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                      <h4 style={{ margin: '0 0 1rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        🌐 Routers
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Quantity</label>
+                          <input
+                            type="number"
+                            value={deviceSetups[getCurrentTech()!.key]?.routerQuantity || 0}
+                            onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'routerQuantity', parseInt(e.target.value) || 0)}
+                            min={0}
+                            max={10}
+                          />
                         </div>
-                      ) : (
-                        // Multiple switches - per-switch config
-                        <div style={{ gridColumn: '1 / -1' }}>
-                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Configure Each Switch</label>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Brand</label>
+                          <select
+                            value={deviceSetups[getCurrentTech()!.key]?.routerBrand || 'Ubiquiti'}
+                            onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'routerBrand', e.target.value)}
+                          >
+                            {ROUTER_BRANDS.map(brand => (
+                              <option key={brand} value={brand}>{brand}</option>
+                            ))}
+                            <option value="Custom">Custom</option>
+                          </select>
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Model (optional)</label>
+                          <input
+                            type="text"
+                            value={deviceSetups[getCurrentTech()!.key]?.routerModel || ''}
+                            onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'routerModel', e.target.value)}
+                            placeholder="e.g., UDM-Pro"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Switch Section */}
+                    <div style={{ padding: '1rem', background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                      <h4 style={{ margin: '0 0 1rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        🔀 Switches
+                      </h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Quantity</label>
+                          <input
+                            type="number"
+                            value={deviceSetups[getCurrentTech()!.key]?.quantity || 0}
+                            onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'quantity', parseInt(e.target.value) || 0)}
+                            min={0}
+                            max={20}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Brand</label>
+                          <select
+                            value={deviceSetups[getCurrentTech()!.key]?.brand || 'Ubiquiti'}
+                            onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'brand', e.target.value)}
+                          >
+                            {getCurrentTech()?.defaultBrands.map(brand => (
+                              <option key={brand} value={brand}>{brand}</option>
+                            ))}
+                            <option value="Custom">Custom</option>
+                          </select>
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Model (optional)</label>
+                          <input
+                            type="text"
+                            value={deviceSetups[getCurrentTech()!.key]?.model || ''}
+                            onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'model', e.target.value)}
+                            placeholder="e.g., USW-Pro-24-PoE"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Per-switch configuration */}
+                      {(deviceSetups[getCurrentTech()!.key]?.quantity || 0) > 0 && (
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                            Configure Each Switch:
+                          </label>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {Array.from({ length: deviceSetups[getCurrentTech()!.key]?.quantity || 1 }, (_, i) => {
+                            {Array.from({ length: deviceSetups[getCurrentTech()!.key]?.quantity || 0 }, (_, i) => {
                               const configs = deviceSetups[getCurrentTech()!.key]?.switchConfigs || []
                               const config = configs[i] || { portCount: 24, poeType: 'none' }
                               return (
@@ -596,40 +664,77 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
                           </div>
                         </div>
                       )}
-                    </>
-                  )}
-
-                  {/* Outlet Count for PDUs */}
-                  {getCurrentTech()?.deviceType === 'pdu' && (
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard UI for other tech types */
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label>Outlet Count</label>
+                      <label>Quantity</label>
+                      <input
+                        type="number"
+                        value={deviceSetups[getCurrentTech()!.key]?.quantity || 1}
+                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'quantity', parseInt(e.target.value) || 1)}
+                        min={1}
+                        max={50}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Brand</label>
                       <select
-                        value={deviceSetups[getCurrentTech()!.key]?.portCount || 8}
-                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
+                        value={deviceSetups[getCurrentTech()!.key]?.brand || ''}
+                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'brand', e.target.value)}
                       >
-                        <option value={4}>4 Outlets</option>
-                        <option value={6}>6 Outlets</option>
-                        <option value={8}>8 Outlets</option>
-                        <option value={10}>10 Outlets</option>
-                        <option value={12}>12 Outlets</option>
+                        {getCurrentTech()?.defaultBrands.map(brand => (
+                          <option key={brand} value={brand}>{brand}</option>
+                        ))}
+                        <option value="Custom">Custom</option>
                       </select>
                     </div>
-                  )}
 
-                  {/* Camera Connection */}
-                  {getCurrentTech()?.deviceType === 'camera' && (
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label>Connected To</label>
-                      <select
-                        value={deviceSetups[getCurrentTech()!.key]?.cameraConnection || 'switch'}
-                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'cameraConnection', e.target.value)}
-                      >
-                        <option value="switch">Network Switch (PoE)</option>
-                        <option value="nvr">Direct to NVR</option>
-                      </select>
+                    <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                      <label>Model (optional)</label>
+                      <input
+                        type="text"
+                        value={deviceSetups[getCurrentTech()!.key]?.model || ''}
+                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'model', e.target.value)}
+                        placeholder="e.g., IPC-HDW2831TM-AS-S2"
+                      />
                     </div>
-                  )}
-                </div>
+
+                    {/* Outlet Count for PDUs */}
+                    {getCurrentTech()?.deviceType === 'pdu' && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Outlet Count</label>
+                        <select
+                          value={deviceSetups[getCurrentTech()!.key]?.portCount || 8}
+                          onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
+                        >
+                          <option value={4}>4 Outlets</option>
+                          <option value={6}>6 Outlets</option>
+                          <option value={8}>8 Outlets</option>
+                          <option value={10}>10 Outlets</option>
+                          <option value={12}>12 Outlets</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Camera Connection */}
+                    {getCurrentTech()?.deviceType === 'camera' && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Connected To</label>
+                        <select
+                          value={deviceSetups[getCurrentTech()!.key]?.cameraConnection || 'switch'}
+                          onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'cameraConnection', e.target.value)}
+                        >
+                          <option value="switch">Network Switch (PoE)</option>
+                          <option value="nvr">Direct to NVR</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#dbeafe', borderRadius: '6px', fontSize: '0.85rem' }}>
                   <strong>Auto-configured:</strong>
@@ -661,6 +766,66 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
                   const tech = TECH_CONFIGS.find(t => t.key === techKey)
                   const setup = deviceSetups[techKey]
                   if (!tech || !setup) return null
+                  
+                  // Special display for networking (routers + switches)
+                  if (tech.isComposite && techKey === 'networking') {
+                    const routerQty = setup.routerQuantity || 0
+                    const switchQty = setup.quantity || 0
+                    if (routerQty === 0 && switchQty === 0) return null
+                    
+                    return (
+                      <div key={techKey}>
+                        {routerQty > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '0.75rem',
+                              background: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              marginBottom: '0.5rem',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span>🌐</span>
+                              <span>Router</span>
+                            </div>
+                            <div style={{ textAlign: 'right', fontSize: '0.9rem' }}>
+                              <strong>{routerQty}x</strong> {setup.routerBrand || setup.brand}
+                              {setup.routerModel && <span style={{ color: '#6b7280' }}> ({setup.routerModel})</span>}
+                            </div>
+                          </div>
+                        )}
+                        {switchQty > 0 && (
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '0.75rem',
+                              background: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span>🔀</span>
+                              <span>Switch</span>
+                            </div>
+                            <div style={{ textAlign: 'right', fontSize: '0.9rem' }}>
+                              <strong>{switchQty}x</strong> {setup.brand}
+                              {setup.model && <span style={{ color: '#6b7280' }}> ({setup.model})</span>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+                  
+                  // Standard display for other tech types
+                  if (setup.quantity === 0) return null
                   
                   return (
                     <div

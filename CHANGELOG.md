@@ -1,12 +1,28 @@
-# Portal v23-fixed40 Changelog
+# Portal v23-fixed41 Changelog
 
 ## What's New in This Update
 
-### 🐛 Bug Fixes
-- **Touch Panels** now correctly go to **User Interfaces** category (was going to Control System)
+### 🔗 Networking Wizard - Now with Routers!
 
-### 📋 New Category Order
-Categories now display in this order:
+The "Network Switches" tile in the Project Wizard is now **"Networking"** and includes:
+
+**🌐 Routers Section:**
+- Quantity (0-10)
+- Brand (Ubiquiti, Araknis, Netgear, Cisco, MikroTik)
+- Model (optional)
+
+**🔀 Switches Section:**
+- Quantity (0-20)
+- Brand (Ubiquiti, Araknis, Netgear)
+- Model (optional)
+- Per-switch configuration: Port count + PoE type
+
+Both routers and switches are created in the Networking category.
+
+### 📱 Touch Panels Fixed (from v40)
+Touch Panels now correctly go to **User Interfaces** category
+
+### 📋 Category Order (from v40)
 1. 🔗 Networking
 2. 🔒 Security
 3. 📹 Cameras
@@ -19,47 +35,19 @@ Categories now display in this order:
 10. 📺 AV Equipment
 11. 📦 Other
 
-### ✅ Verified Wizard Device → Category Mappings
-
-| Wizard Option | Device Type | Category |
-|---------------|-------------|----------|
-| Network Switches | switch | Networking |
-| Wireless Access Points | access-point | Networking |
-| Security Cameras | camera | Cameras |
-| NVR | nvr | Cameras |
-| Security Panel | alarm-panel | Security |
-| Control System | control-processor | Control System |
-| Touch Panels | touch-panel | **User Interfaces** |
-| Lighting Gateway | lighting-gateway | Lighting |
-| HVAC Control | hvac-controller | HVAC |
-| AV Receivers | receiver | AV |
-| Multiroom Audio | audio-matrix | AV |
-| Video Distribution | video-matrix | AV |
-| TVs/Displays | tv | AV |
-| Power / PDU | pdu | Power |
-
-### 🔀 Network Device Order (within Networking)
-1. Router
-2. Cloudkey
-3. Switches
-4. WAPs
+### 🔀 Network Device Order
+Within Networking category: Router → Cloudkey → Switches → WAPs
 
 ---
 
-## Previous Fixes (v39)
-- Backup API uses relative URL (no more localhost error)
-- Enhanced switch config: per-switch port count & PoE type
-
----
-
-## ⚠️ How to Deploy
+## How to Deploy
 
 ```bash
 cd /home/app/Portal-Webapp
-unzip -o Portal-Webapp-v23-fixed40.zip
+unzip -o Portal-Webapp-v23-fixed41.zip
 pm2 restart all
 cd frontend && npm run build
 ```
 
-**Remember**: You MUST run `npm run build` for changes to take effect!
+**Remember**: Always run `npm run build` for frontend changes!
 
