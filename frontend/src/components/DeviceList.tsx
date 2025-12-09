@@ -13,6 +13,8 @@ const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color
   network: { icon: '🔗', label: 'Networking', color: '#3b82f6' },
   camera: { icon: '📹', label: 'Cameras', color: '#ef4444' },
   security: { icon: '🔒', label: 'Security', color: '#f59e0b' },
+  intercom: { icon: '🔔', label: 'Intercom', color: '#ec4899' },
+  'user-interface': { icon: '📱', label: 'User Interfaces', color: '#a855f7' },
   'control-system': { icon: '🎛️', label: 'Control System', color: '#8b5cf6' },
   lighting: { icon: '💡', label: 'Lighting', color: '#eab308' },
   av: { icon: '📺', label: 'AV Equipment', color: '#10b981' },
@@ -20,6 +22,15 @@ const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color
   hvac: { icon: '❄️', label: 'HVAC Control', color: '#06b6d4' },
   other: { icon: '📦', label: 'Other Devices', color: '#6b7280' },
 }
+
+// Category order for display
+const CATEGORY_ORDER: DeviceCategory[] = [
+  'network', 'camera', 'security', 'intercom', 'user-interface', 
+  'control-system', 'lighting', 'av', 'power', 'hvac', 'other'
+]
+
+// Device type order within network category
+const NETWORK_DEVICE_ORDER = ['router', 'switch', 'access-point', 'cloudkey']
 
 // Helper to parse IP address for sorting
 const parseIP = (ip: string): number => {
@@ -37,6 +48,17 @@ const sortByIP = (devices: Device[]): Device[] => {
 // Sort devices by name (alphabetical with numeric awareness)
 const sortByName = (devices: Device[]): Device[] => {
   return [...devices].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+}
+
+// Sort network devices by device type (router > switch > access-point > cloudkey)
+const sortNetworkDevices = (devices: Device[]): Device[] => {
+  return [...devices].sort((a, b) => {
+    const orderA = NETWORK_DEVICE_ORDER.indexOf(a.deviceType) === -1 ? 999 : NETWORK_DEVICE_ORDER.indexOf(a.deviceType)
+    const orderB = NETWORK_DEVICE_ORDER.indexOf(b.deviceType) === -1 ? 999 : NETWORK_DEVICE_ORDER.indexOf(b.deviceType)
+    if (orderA !== orderB) return orderA - orderB
+    // If same type, sort by IP
+    return parseIP(a.ipAddress || '') - parseIP(b.ipAddress || '')
+  })
 }
 
 export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChanged, onProjectUpdate }) => {
@@ -258,9 +280,10 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
             style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db', minWidth: '120px' }}
           >
             <option value="all">All Categories</option>
-            {Object.entries(CATEGORY_INFO).map(([key, info]) => (
-              <option key={key} value={key}>{info.icon} {info.label}</option>
-            ))}
+            {CATEGORY_ORDER.map((key) => {
+              const info = CATEGORY_INFO[key]
+              return <option key={key} value={key}>{info.icon} {info.label}</option>
+            })}
           </select>
 
           <div style={{ display: 'flex', gap: '0.25rem', background: '#f3f4f6', borderRadius: '6px', padding: '0.25rem' }}>
@@ -536,9 +559,15 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
       ) : (
         /* GROUPED VIEW */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {Object.entries(devicesByCategory)
-            .filter(([cat]) => filterCategory === 'all' || cat === filterCategory)
-            .map(([category, catDevices]) => {
+          {CATEGORY_ORDER
+            .filter(cat => devicesByCategory[cat]?.length > 0)
+            .filter(cat => filterCategory === 'all' || cat === filterCategory)
+            .map((category) => {
+              let catDevices = devicesByCategory[category] || []
+              // Sort network devices by device type order
+              if (category === 'network') {
+                catDevices = sortNetworkDevices(catDevices)
+              }
               const catInfo = CATEGORY_INFO[category as DeviceCategory] || CATEGORY_INFO.other
               return (
                 <div key={category} className="card" style={{ padding: 0, overflow: 'hidden' }}>

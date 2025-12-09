@@ -20,6 +20,8 @@ const deviceSchema = new mongoose.Schema(
         'network',
         'camera',
         'security',
+        'intercom',
+        'user-interface',
         'control-system',
         'lighting',
         'av',
@@ -38,8 +40,12 @@ const deviceSchema = new mongoose.Schema(
         'camera', 'nvr', 'dvr',
         // Security
         'alarm-panel', 'keypad', 'door-controller', 'ekey-reader',
+        // Intercom
+        'door-station',
+        // User Interface
+        'touch-panel', 'remote',
         // Control System
-        'control-processor', 'touch-panel', 'secondary-processor', 'door-station', 'remote',
+        'control-processor', 'secondary-processor',
         // Lighting
         'lighting-gateway', 'dali-gateway',
         // AV

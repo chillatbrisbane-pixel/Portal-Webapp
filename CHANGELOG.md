@@ -1,47 +1,45 @@
-# Portal v23-fixed37 Changelog
+# Portal v23-fixed38 Changelog
 
 ## What's New in This Update
 
-### New Device Categories
-- **Intercom** - New category for door communication systems
-  - Door Stations moved here from Control System
-  - Brands: 2N, Doorbird, Ubiquiti, Hikvision, Dahua, Control4, Crestron Home
+### Bug Fixes from v23-fixed37
+- **Backup API**: Fixed "failed to fetch" error - was pointing to localhost instead of production server
+- **Backend**: Added `intercom` and `user-interface` categories to Device model (was causing validation error)
+- **DVR Option**: Removed from Camera dropdown (kept in backend for existing data)
 
-- **User Interfaces** - New category for control interfaces
-  - Touch Panels moved here from Control System  
-  - Hand Held Remotes moved here from Control System
-  - Brands: Control4, Crestron Home, RTI
+### New Project Wizard Improvements
+- **Switch Port Count**: Now asks how many ports (8/16/24/48) when adding switches
+- **PDU Outlet Count**: Now asks how many outlets (4/6/8/10/12) when adding PDUs  
+- **Camera Connection**: Choose whether cameras connect to Network Switch or direct to NVR
+- **Fixed Categories**: PDU now goes to Power category, HVAC Controller to HVAC category
+- **Touch Panels**: Correctly added to Control System category
 
-### New Brand Options
-- **Cameras**: Added Ubiquiti
-- **Security > Alarm Panel**: Added Dahua and Ajax
+### Device List Improvements
+- **Category Order**: Network now appears at top, followed by Cameras, Security, etc.
+- **Network Device Order**: Within Networking, devices sorted: Router → Switches → WAPs → Cloudkey
+- **New Categories in Filter**: Intercom and User Interfaces now in dropdown
 
-### Project Improvements
-- **Address Fields**: Added State dropdown (NSW, VIC, QLD, etc.) and Postcode
-- **Team Display**: New green section in project header showing:
-  - 👔 Project Manager (name & phone)
-  - 🦺 Site Lead (name & phone)
-- **WiFi Security**: Passwords now hidden by default with 👁️ Show/🙈 Hide toggle
+### New Device Categories (from v37)
+- **🔔 Intercom** - Door Stations (Ubiquiti, 2N, Doorbird, Hikvision, Dahua)
+- **📱 User Interfaces** - Touch Panels & Hand Held Remotes
 
-### Dashboard Changes  
-- **Default View**: Now shows "In Progress" projects instead of all projects
-- **My Tasks**: Still shows your assigned tasks across all projects
+### New Brands Added (from v37)
+- **Cameras**: Ubiquiti
+- **Security > Alarm**: Dahua, Ajax
 
-### Task System (from previous update)
-- Custom stages (columns) you create are now saved correctly
-- Click ⚙️ Stages to add, rename, reorder, or delete columns
-- Friendly color names in the color picker (Grey, Red, Yellow, etc.)
+### Project Header (from v37)
+- **State & Postcode** fields for addresses
+- **Project Manager** name & phone (green banner)
+- **Site Lead** name & phone (green banner)
+- **WiFi passwords** hidden by default with 👁️ Show / 🙈 Hide toggle
 
-### Admin Features
-- **Backup & Restore**: New tab in Settings (admin only)
-  - 📥 Download Full Backup - exports all projects, devices, and tasks as JSON
-  - 📂 Import Backup - restore from a backup file
-  - Shows import results (created/skipped counts)
+### Dashboard (from v37)
+- Now defaults to **In Progress** projects view
 
-### Bug Fixes
-- Task routes now load correctly (fixed auth middleware issue)
-- Task creation works properly
-- Custom task stages now save to the database
+### Admin Backup & Restore (from v37)
+In Settings (admin only):
+- **Export** - Download all projects, devices & tasks as JSON
+- **Import** - Restore from backup file
 
 ---
 
@@ -49,12 +47,12 @@
 
 ```bash
 cd /home/app/Portal-Webapp
-unzip -o Portal-Webapp-v23-fixed37.zip
+unzip -o Portal-Webapp-v23-fixed38.zip
 pm2 restart all
 cd frontend && npm run build
 ```
 
 ## Notes
-- Existing door stations and touch panels will still work but may show under their old categories until re-saved
-- The backup feature only works for admin users
-- WiFi passwords can still be copied even when hidden
+- Existing DVR devices will still work, but DVR option is hidden from new device dropdown
+- Touch Panels can be added to either User Interfaces or Control System (both work)
+

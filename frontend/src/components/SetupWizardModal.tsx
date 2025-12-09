@@ -58,6 +58,8 @@ interface DeviceSetup {
   quantity: number
   brand: string
   model: string
+  portCount?: number
+  cameraConnection?: 'switch' | 'nvr'
 }
 
 export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onProjectCreated }) => {
@@ -191,7 +193,7 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
           const devices = []
           const baseName = DEVICE_SINGULAR_NAMES[techConfig.deviceType] || techConfig.label
           for (let i = 0; i < setup.quantity; i++) {
-            devices.push({
+            const deviceData: any = {
               name: `${baseName}${setup.quantity > 1 ? ` ${i + 1}` : ''}`,
               category: getCategoryFromDeviceType(techConfig.deviceType),
               deviceType: techConfig.deviceType,
@@ -200,7 +202,24 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
               vlan: techConfig.defaultVlan,
               autoAssignIP: true,
               status: 'not-installed',
-            })
+            }
+            
+            // Add port count for switches
+            if (techConfig.deviceType === 'switch') {
+              deviceData.portCount = setup.portCount || 24
+            }
+            
+            // Add outlet count for PDUs (stored as portCount)
+            if (techConfig.deviceType === 'pdu') {
+              deviceData.outletCount = setup.portCount || 8
+            }
+            
+            // Add camera connection info
+            if (techConfig.deviceType === 'camera' && setup.cameraConnection) {
+              deviceData.notes = `Connected to: ${setup.cameraConnection === 'nvr' ? 'NVR' : 'Network Switch'}`
+            }
+            
+            devices.push(deviceData)
           }
           
           if (devices.length > 0) {
@@ -220,17 +239,45 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
 
   const getCategoryFromDeviceType = (deviceType: string): string => {
     const mapping: Record<string, string> = {
+      // Network
       'switch': 'network',
       'router': 'network',
       'access-point': 'network',
+      'cloudkey': 'network',
+      // Camera
       'camera': 'camera',
       'nvr': 'camera',
+      // Security
       'alarm-panel': 'security',
+      'keypad': 'security',
+      'door-controller': 'security',
+      'ekey-reader': 'security',
+      // Intercom
+      'door-station': 'intercom',
+      // User Interface
+      'remote': 'user-interface',
+      // Control System (keep touch-panel here for wizard)
       'control-processor': 'control-system',
       'touch-panel': 'control-system',
+      'secondary-processor': 'control-system',
+      // Lighting
       'lighting-gateway': 'lighting',
+      'dali-gateway': 'lighting',
+      // AV
       'receiver': 'av',
       'tv': 'av',
+      'projector': 'av',
+      'audio-matrix': 'av',
+      'video-matrix': 'av',
+      'amplifier': 'av',
+      'soundbar': 'av',
+      'media-player': 'av',
+      // Power
+      'pdu': 'power',
+      'ups': 'power',
+      'powerboard': 'power',
+      // HVAC
+      'hvac-controller': 'hvac',
     }
     return mapping[deviceType] || 'other'
   }
@@ -444,6 +491,53 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
                       placeholder="e.g., IPC-HDW2831TM-AS-S2"
                     />
                   </div>
+
+                  {/* Port Count for Switches */}
+                  {getCurrentTech()?.deviceType === 'switch' && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Port Count</label>
+                      <select
+                        value={deviceSetups[getCurrentTech()!.key]?.portCount || 24}
+                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
+                      >
+                        <option value={8}>8 Ports</option>
+                        <option value={16}>16 Ports</option>
+                        <option value={24}>24 Ports</option>
+                        <option value={48}>48 Ports</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Outlet Count for PDUs */}
+                  {getCurrentTech()?.deviceType === 'pdu' && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Outlet Count</label>
+                      <select
+                        value={deviceSetups[getCurrentTech()!.key]?.portCount || 8}
+                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
+                      >
+                        <option value={4}>4 Outlets</option>
+                        <option value={6}>6 Outlets</option>
+                        <option value={8}>8 Outlets</option>
+                        <option value={10}>10 Outlets</option>
+                        <option value={12}>12 Outlets</option>
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Camera Connection */}
+                  {getCurrentTech()?.deviceType === 'camera' && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Connected To</label>
+                      <select
+                        value={deviceSetups[getCurrentTech()!.key]?.cameraConnection || 'switch'}
+                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'cameraConnection', e.target.value)}
+                      >
+                        <option value="switch">Network Switch (PoE)</option>
+                        <option value="nvr">Direct to NVR</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#dbeafe', borderRadius: '6px', fontSize: '0.85rem' }}>

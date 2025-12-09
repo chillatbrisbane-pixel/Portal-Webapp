@@ -494,7 +494,6 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
   camera: [
     { value: 'camera', label: '📹 Camera' },
     { value: 'nvr', label: '💾 NVR' },
-    { value: 'dvr', label: '📼 DVR' },
   ],
   security: [
     { value: 'alarm-panel', label: '🚨 Alarm Panel' },

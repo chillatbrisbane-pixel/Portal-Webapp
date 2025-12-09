@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { authAPI } from '../services/apiService';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
 interface UserSettingsModalProps {
   user: User;
   onClose: () => void;
@@ -387,7 +385,8 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                 try {
                   setLoading(true);
                   const token = localStorage.getItem('token');
-                  const response = await fetch(`${API_BASE_URL}/backup/export`, {
+                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                  const response = await fetch(`${apiUrl}/backup/export`, {
                     headers: { Authorization: `Bearer ${token}` }
                   });
                   if (!response.ok) throw new Error('Export failed');
@@ -436,7 +435,8 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                   const backup = JSON.parse(text);
                   
                   const token = localStorage.getItem('token');
-                  const response = await fetch(`${API_BASE_URL}/backup/import`, {
+                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                  const response = await fetch(`${apiUrl}/backup/import`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
