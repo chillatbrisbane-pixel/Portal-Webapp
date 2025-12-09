@@ -278,17 +278,23 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
       'keypad': 'security',
       'door-controller': 'security',
       'ekey-reader': 'security',
+      // Control System
+      'control-processor': 'control-system',
+      'secondary-processor': 'control-system',
+      // User Interface
+      'touch-panel': 'user-interface',
+      'remote': 'user-interface',
       // Intercom
       'door-station': 'intercom',
-      // User Interface
-      'remote': 'user-interface',
-      // Control System (keep touch-panel here for wizard)
-      'control-processor': 'control-system',
-      'touch-panel': 'control-system',
-      'secondary-processor': 'control-system',
       // Lighting
       'lighting-gateway': 'lighting',
       'dali-gateway': 'lighting',
+      // Power
+      'pdu': 'power',
+      'ups': 'power',
+      'powerboard': 'power',
+      // HVAC
+      'hvac-controller': 'hvac',
       // AV
       'receiver': 'av',
       'tv': 'av',
@@ -298,12 +304,6 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
       'amplifier': 'av',
       'soundbar': 'av',
       'media-player': 'av',
-      // Power
-      'pdu': 'power',
-      'ups': 'power',
-      'powerboard': 'power',
-      // HVAC
-      'hvac-controller': 'hvac',
     }
     return mapping[deviceType] || 'other'
   }

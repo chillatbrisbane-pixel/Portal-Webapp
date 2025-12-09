@@ -1,71 +1,65 @@
-# Portal v23-fixed39 Changelog
+# Portal v23-fixed40 Changelog
 
 ## What's New in This Update
 
 ### 🐛 Bug Fixes
-- **Backup API Fixed** - Changed from absolute localhost URL to relative `/api/backup` path
-  - ⚠️ **IMPORTANT**: You MUST run `npm run build` after deploying to fix this error!
+- **Touch Panels** now correctly go to **User Interfaces** category (was going to Control System)
 
-### 🔀 Network Device Ordering
-- Order is now: **Router → Cloudkey → Switches → WAPs**
-- Cloudkey (WiFi manager) now appears right after router, before switches
-
-### 🔧 Switch Configuration in Wizard (Enhanced)
-When adding switches via the New Project Wizard:
-
-**Single Switch:**
-- Select Port Count (8/16/24/48)
-- Select PoE Type (No PoE, PoE, PoE+, PoE++)
-
-**Multiple Switches:**
-- Configure EACH switch individually
-- Each switch gets its own Port Count and PoE Type selection
-- Example: Switch 1 = 48-port PoE++, Switch 2 = 24-port PoE+, Switch 3 = 8-port No PoE
-
-### Previous v38 Features
-- PDU Outlet Count selection in wizard
-- Camera connection choice (Switch vs NVR)
-- Fixed category mapping (PDU→Power, HVAC→HVAC)
-- New categories: Intercom, User Interfaces
-- Project Manager & Site Lead in header
-- WiFi password hide/show toggle
-- Admin backup/restore
-
----
-
-## ⚠️ CRITICAL: How to Deploy
-
-```bash
-cd /home/app/Portal-Webapp
-unzip -o Portal-Webapp-v23-fixed39.zip
-pm2 restart all
-
-# THIS STEP IS REQUIRED to fix the backup error:
-cd frontend && npm run build
-```
-
-The backup error occurs because the browser is still using the OLD compiled JavaScript. Running `npm run build` creates new compiled files with the fix.
-
----
-
-## Summary of All Category/Device Ordering
-
-**Categories (top to bottom):**
+### 📋 New Category Order
+Categories now display in this order:
 1. 🔗 Networking
-2. 📹 Cameras
-3. 🔒 Security
-4. 🔔 Intercom
+2. 🔒 Security
+3. 📹 Cameras
+4. 🎛️ Control System
 5. 📱 User Interfaces
-6. 🎛️ Control System
+6. 🔔 Intercom
 7. 💡 Lighting
-8. 📺 AV Equipment
-9. 🔌 Power
-10. ❄️ HVAC Control
+8. 🔌 Power
+9. ❄️ HVAC Control
+10. 📺 AV Equipment
 11. 📦 Other
 
-**Network devices (top to bottom):**
+### ✅ Verified Wizard Device → Category Mappings
+
+| Wizard Option | Device Type | Category |
+|---------------|-------------|----------|
+| Network Switches | switch | Networking |
+| Wireless Access Points | access-point | Networking |
+| Security Cameras | camera | Cameras |
+| NVR | nvr | Cameras |
+| Security Panel | alarm-panel | Security |
+| Control System | control-processor | Control System |
+| Touch Panels | touch-panel | **User Interfaces** |
+| Lighting Gateway | lighting-gateway | Lighting |
+| HVAC Control | hvac-controller | HVAC |
+| AV Receivers | receiver | AV |
+| Multiroom Audio | audio-matrix | AV |
+| Video Distribution | video-matrix | AV |
+| TVs/Displays | tv | AV |
+| Power / PDU | pdu | Power |
+
+### 🔀 Network Device Order (within Networking)
 1. Router
 2. Cloudkey
 3. Switches
 4. WAPs
+
+---
+
+## Previous Fixes (v39)
+- Backup API uses relative URL (no more localhost error)
+- Enhanced switch config: per-switch port count & PoE type
+
+---
+
+## ⚠️ How to Deploy
+
+```bash
+cd /home/app/Portal-Webapp
+unzip -o Portal-Webapp-v23-fixed40.zip
+pm2 restart all
+cd frontend && npm run build
+```
+
+**Remember**: You MUST run `npm run build` for changes to take effect!
 

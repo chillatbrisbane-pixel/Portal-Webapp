@@ -25,8 +25,8 @@ const CATEGORY_INFO: Record<DeviceCategory, { icon: string; label: string; color
 
 // Category order for display
 const CATEGORY_ORDER: DeviceCategory[] = [
-  'network', 'camera', 'security', 'intercom', 'user-interface', 
-  'control-system', 'lighting', 'av', 'power', 'hvac', 'other'
+  'network', 'security', 'camera', 'control-system', 'user-interface',
+  'intercom', 'lighting', 'power', 'hvac', 'av', 'other'
 ]
 
 // Device type order within network category
