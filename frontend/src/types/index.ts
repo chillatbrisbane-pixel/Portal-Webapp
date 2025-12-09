@@ -114,6 +114,16 @@ export interface Project {
   clientEmail: string;
   clientPhone: string;
   address: string;
+  state?: string;
+  postcode?: string;
+  projectManager?: {
+    name?: string;
+    phone?: string;
+  };
+  siteLead?: {
+    name?: string;
+    phone?: string;
+  };
   sharePointLink: string;
   skytunnelLink: string;
   status: 'planning' | 'in-progress' | 'completed';
@@ -130,6 +140,12 @@ export interface Project {
   createdBy: User;
   teamMembers: TeamMember[];
   notes: string;
+  taskStages?: {
+    id: string;
+    label: string;
+    color: string;
+    order: number;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -139,6 +155,8 @@ export type DeviceCategory =
   | 'network'
   | 'camera'
   | 'security'
+  | 'intercom'
+  | 'user-interface'
   | 'control-system'
   | 'lighting'
   | 'av'
@@ -415,19 +433,26 @@ export const BRAND_OPTIONS = {
     cloudkey: ['Ubiquiti', 'Araknis', 'Custom'],
   },
   camera: {
-    camera: ['Dahua', 'Hikvision', 'Luma', 'Axis', 'Hanwha', 'Custom'],
-    nvr: ['Dahua', 'Hikvision', 'Luma', 'Custom'],
+    camera: ['Dahua', 'Hikvision', 'Luma', 'Ubiquiti', 'Axis', 'Hanwha', 'Custom'],
+    nvr: ['Dahua', 'Hikvision', 'Luma', 'Ubiquiti', 'Custom'],
+    dvr: ['Dahua', 'Hikvision', 'Luma', 'Custom'],
   },
   security: {
-    'alarm-panel': ['Inner Range (Inception)', 'Paradox', 'Bosch', 'Honeywell', 'Custom'],
+    'alarm-panel': ['Inner Range (Inception)', 'Paradox', 'Bosch', 'Honeywell', 'Dahua', 'Ajax', 'Custom'],
+    keypad: ['Inner Range (Inception)', 'Paradox', 'Bosch', 'Honeywell', 'Ajax', 'Custom'],
+    'door-controller': ['Inner Range (Inception)', 'Paradox', 'Custom'],
     'ekey-reader': ['Ekey', 'Custom'],
+  },
+  intercom: {
+    'door-station': ['2N', 'Doorbird', 'Ubiquiti', 'Hikvision', 'Dahua', 'Control4', 'Crestron Home', 'Custom'],
+  },
+  'user-interface': {
+    'touch-panel': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
+    'remote': ['Control4', 'RTI', 'Custom'],
   },
   'control-system': {
     'control-processor': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
-    'touch-panel': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
     'secondary-processor': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
-    'door-station': ['Control4', 'Crestron Home', '2N', 'Doorbird', 'Custom'],
-    'remote': ['Control4', 'RTI', 'Custom'],
   },
   lighting: {
     'lighting-gateway': ['C-Bus', 'Lutron', 'Control4', 'Crestron', 'Dynalite', 'Custom'],
@@ -477,12 +502,16 @@ export const DEVICE_TYPE_OPTIONS: Record<DeviceCategory, { value: DeviceType; la
     { value: 'door-controller', label: '🚪 Door Controller' },
     { value: 'ekey-reader', label: '👆 Ekey Fingerprint Reader' },
   ],
+  intercom: [
+    { value: 'door-station', label: '🔔 Door Station' },
+  ],
+  'user-interface': [
+    { value: 'touch-panel', label: '📱 Touch Panel' },
+    { value: 'remote', label: '🎮 Hand Held Remote' },
+  ],
   'control-system': [
     { value: 'control-processor', label: '🖥️ Main Processor' },
-    { value: 'touch-panel', label: '📱 Touch Panel' },
     { value: 'secondary-processor', label: '🔧 Secondary Processor' },
-    { value: 'door-station', label: '🔔 Door Station' },
-    { value: 'remote', label: '🎮 Remote' },
   ],
   lighting: [
     { value: 'lighting-gateway', label: '💡 Lighting Gateway' },

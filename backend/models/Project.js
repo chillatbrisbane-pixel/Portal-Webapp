@@ -27,6 +27,22 @@ const projectSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    state: {
+      type: String,
+      trim: true,
+    },
+    postcode: {
+      type: String,
+      trim: true,
+    },
+    projectManager: {
+      name: { type: String, trim: true },
+      phone: { type: String, trim: true },
+    },
+    siteLead: {
+      name: { type: String, trim: true },
+      phone: { type: String, trim: true },
+    },
     sharePointLink: {
       type: String,
       trim: true,

@@ -75,7 +75,8 @@ const deviceTemplateRoutes = require('./routes/deviceTemplates');
 const deviceRoutes = require('./routes/devices');
 const reportRoutes = require('./routes/reports');
 const taskRoutes = require('./routes/tasks');
-console.log('✅ All routes loaded including tasks');
+const backupRoutes = require('./routes/backup');
+console.log('✅ All routes loaded including tasks and backup');
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -98,6 +99,7 @@ app.use('/api/device-templates', deviceTemplateRoutes);
 app.use('/api/devices', deviceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/backup', backupRoutes);
 
 // 404 handler
 app.use((req, res) => {

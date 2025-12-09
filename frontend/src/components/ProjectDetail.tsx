@@ -68,6 +68,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [showAddWifi, setShowAddWifi] = useState(false)
   const [newWifi, setNewWifi] = useState<WiFiNetwork>({ name: '', password: '', vlan: 1, band: '5GHz' })
   const [showNewWifiPassword, setShowNewWifiPassword] = useState(false)
+  const [showViewWifiPasswords, setShowViewWifiPasswords] = useState(false)
   const [editingWifiIndex, setEditingWifiIndex] = useState<number | null>(null)
   const [editingWifi, setEditingWifi] = useState<WiFiNetwork | null>(null)
   const [showEditWifiPassword, setShowEditWifiPassword] = useState(false)
@@ -226,6 +227,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
         clientEmail: formData.clientEmail,
         clientPhone: formData.clientPhone,
         address: formData.address,
+        state: formData.state,
+        postcode: formData.postcode,
+        projectManager: formData.projectManager,
+        siteLead: formData.siteLead,
         sharePointLink: formData.sharePointLink,
         skytunnelLink: formData.skytunnelLink,
         status: formData.status,
@@ -771,6 +776,71 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
+                <label>State</label>
+                <select
+                  value={formData.state || ''}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                >
+                  <option value="">Select State</option>
+                  <option value="NSW">NSW</option>
+                  <option value="VIC">VIC</option>
+                  <option value="QLD">QLD</option>
+                  <option value="WA">WA</option>
+                  <option value="SA">SA</option>
+                  <option value="TAS">TAS</option>
+                  <option value="ACT">ACT</option>
+                  <option value="NT">NT</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Postcode</label>
+                <input
+                  type="text"
+                  value={formData.postcode || ''}
+                  onChange={(e) => setFormData({ ...formData, postcode: e.target.value })}
+                  maxLength={4}
+                  placeholder="e.g. 2000"
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>👔 Project Manager Name</label>
+                <input
+                  type="text"
+                  value={formData.projectManager?.name || ''}
+                  onChange={(e) => setFormData({ ...formData, projectManager: { ...formData.projectManager, name: e.target.value } })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>👔 Project Manager Phone</label>
+                <input
+                  type="tel"
+                  value={formData.projectManager?.phone || ''}
+                  onChange={(e) => setFormData({ ...formData, projectManager: { ...formData.projectManager, phone: e.target.value } })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>🦺 Site Lead Name</label>
+                <input
+                  type="text"
+                  value={formData.siteLead?.name || ''}
+                  onChange={(e) => setFormData({ ...formData, siteLead: { ...formData.siteLead, name: e.target.value } })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>🦺 Site Lead Phone</label>
+                <input
+                  type="tel"
+                  value={formData.siteLead?.phone || ''}
+                  onChange={(e) => setFormData({ ...formData, siteLead: { ...formData.siteLead, phone: e.target.value } })}
+                />
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
                 <label>📁 SharePoint/OneDrive Link</label>
                 <input
                   type="url"
@@ -826,9 +896,44 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
               <div>
                 <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
-                <p style={{ fontWeight: 600, margin: 0 }}>{project.address || 'N/A'}</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>
+                  {project.address || 'N/A'}
+                  {(project.state || project.postcode) && (
+                    <span style={{ fontWeight: 400, color: '#6b7280' }}>
+                      {project.state ? `, ${project.state}` : ''}{project.postcode ? ` ${project.postcode}` : ''}
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
+
+            {/* Project Manager & Site Lead Row */}
+            {(project.projectManager?.name || project.siteLead?.name) && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                {project.projectManager?.name && (
+                  <div>
+                    <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👔 Project Manager</p>
+                    <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.projectManager.name}</p>
+                    {project.projectManager.phone && (
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                        <a href={`tel:${project.projectManager.phone}`} style={{ color: '#15803d' }}>{project.projectManager.phone}</a>
+                      </p>
+                    )}
+                  </div>
+                )}
+                {project.siteLead?.name && (
+                  <div>
+                    <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🦺 Site Lead</p>
+                    <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.siteLead.name}</p>
+                    {project.siteLead.phone && (
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                        <a href={`tel:${project.siteLead.phone}`} style={{ color: '#15803d' }}>{project.siteLead.phone}</a>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* SharePoint/OneDrive Link */}
             {project.sharePointLink && (
@@ -1074,7 +1179,16 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             {/* WiFi Networks in Header */}
             {allWifiNetworks.length > 0 && (
               <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
-                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.75rem' }}>📶 WiFi Networks</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>📶 WiFi Networks</p>
+                  <button
+                    onClick={() => setShowViewWifiPasswords(!showViewWifiPasswords)}
+                    style={{ padding: '0.2rem 0.5rem', background: 'transparent', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', color: '#6b7280' }}
+                    title={showViewWifiPasswords ? 'Hide passwords' : 'Show passwords'}
+                  >
+                    {showViewWifiPasswords ? '🙈 Hide' : '👁️ Show'}
+                  </button>
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                   {allWifiNetworks.map((wifi, i) => (
                     <div key={i} style={{ 
@@ -1087,8 +1201,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       border: '1px solid #bae6fd'
                     }}>
                       <strong style={{ fontSize: '0.9rem' }}>{wifi.name}:</strong>
-                      <code style={{ background: '#e0f2fe', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem' }}>
-                        {wifi.password || '(open)'}
+                      <code style={{ background: '#e0f2fe', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', fontFamily: 'monospace' }}>
+                        {wifi.password ? (showViewWifiPasswords ? wifi.password : '••••••••') : '(open)'}
                       </code>
                       {wifi.password && (
                         <>

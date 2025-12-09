@@ -42,7 +42,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('in-progress')
   const [sortBy, setSortBy] = useState<'alpha' | 'created' | 'modified'>('alpha')
   
   // My Tasks

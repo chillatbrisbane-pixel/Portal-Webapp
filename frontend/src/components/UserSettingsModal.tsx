@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { authAPI } from '../services/apiService';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface UserSettingsModalProps {
   user: User;
@@ -13,7 +15,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   onClose,
   onUserUpdated,
 }) => {
-  const [activeTab, setActiveTab] = useState<'password' | '2fa'>('password');
+  const [activeTab, setActiveTab] = useState<'password' | '2fa' | 'backup'>('password');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -31,6 +33,11 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [showBackupCodes, setShowBackupCodes] = useState(false);
   const [disablePassword, setDisablePassword] = useState('');
+
+  // Backup state
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState<any>(null);
+  const backupFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     load2FAStatus();
@@ -162,6 +169,22 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           >
             🔐 Two-Factor Auth
           </button>
+          {user.role === 'admin' && (
+            <button
+              onClick={() => { setActiveTab('backup'); setError(''); setSuccess(''); setImportResults(null); }}
+              style={{
+                padding: '0.5rem 1rem',
+                border: 'none',
+                background: activeTab === 'backup' ? '#3b82f6' : 'transparent',
+                color: activeTab === 'backup' ? 'white' : '#666',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              💾 Backup
+            </button>
+          )}
         </div>
 
         {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
@@ -348,6 +371,111 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                   {loading ? '🔄 Disabling...' : '🔓 Disable Two-Factor Authentication'}
                 </button>
               </form>
+            )}
+          </div>
+        )}
+
+        {/* Backup Tab (Admin Only) */}
+        {activeTab === 'backup' && user.role === 'admin' && (
+          <div>
+            <h4 style={{ marginBottom: '1rem' }}>📦 Export Backup</h4>
+            <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              Download a full backup of all projects, devices, and tasks. This backup file can be used to restore data.
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  const token = localStorage.getItem('token');
+                  const response = await fetch(`${API_BASE_URL}/backup/export`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (!response.ok) throw new Error('Export failed');
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `portal-backup-${new Date().toISOString().split('T')[0]}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  document.body.removeChild(a);
+                  setSuccess('Backup exported successfully!');
+                } catch (err: any) {
+                  setError(err.message || 'Export failed');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="btn btn-primary"
+              disabled={loading}
+              style={{ width: '100%', marginBottom: '2rem' }}
+            >
+              {loading ? '🔄 Exporting...' : '📥 Download Full Backup'}
+            </button>
+
+            <h4 style={{ marginBottom: '1rem' }}>📤 Import Backup</h4>
+            <p style={{ color: '#666', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              Restore projects, devices, and tasks from a backup file. Existing projects with the same name will be skipped.
+            </p>
+            <input
+              ref={backupFileInputRef}
+              type="file"
+              accept=".json"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                
+                try {
+                  setImporting(true);
+                  setError('');
+                  setImportResults(null);
+                  
+                  const text = await file.text();
+                  const backup = JSON.parse(text);
+                  
+                  const token = localStorage.getItem('token');
+                  const response = await fetch(`${API_BASE_URL}/backup/import`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ backup, options: { overwrite: false } })
+                  });
+                  
+                  const result = await response.json();
+                  if (!response.ok) throw new Error(result.error || 'Import failed');
+                  
+                  setImportResults(result.results);
+                  setSuccess('Backup imported successfully! Refresh the page to see changes.');
+                } catch (err: any) {
+                  setError(err.message || 'Import failed');
+                } finally {
+                  setImporting(false);
+                  if (backupFileInputRef.current) backupFileInputRef.current.value = '';
+                }
+              }}
+            />
+            <button
+              onClick={() => backupFileInputRef.current?.click()}
+              className="btn btn-secondary"
+              disabled={importing}
+              style={{ width: '100%' }}
+            >
+              {importing ? '🔄 Importing...' : '📂 Select Backup File'}
+            </button>
+
+            {importResults && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                <h5 style={{ margin: '0 0 0.5rem', color: '#166534' }}>Import Results:</h5>
+                <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#166534', fontSize: '0.9rem' }}>
+                  <li>Projects: {importResults.projects?.created || 0} created, {importResults.projects?.skipped || 0} skipped</li>
+                  <li>Devices: {importResults.devices?.created || 0} created, {importResults.devices?.skipped || 0} skipped</li>
+                  <li>Tasks: {importResults.tasks?.created || 0} created, {importResults.tasks?.skipped || 0} skipped</li>
+                </ul>
+              </div>
             )}
           </div>
         )}
