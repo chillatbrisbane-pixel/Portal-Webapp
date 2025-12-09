@@ -1,58 +1,71 @@
-# Portal v23-fixed38 Changelog
+# Portal v23-fixed39 Changelog
 
 ## What's New in This Update
 
-### Bug Fixes from v23-fixed37
-- **Backup API**: Fixed "failed to fetch" error - was pointing to localhost instead of production server
-- **Backend**: Added `intercom` and `user-interface` categories to Device model (was causing validation error)
-- **DVR Option**: Removed from Camera dropdown (kept in backend for existing data)
+### 🐛 Bug Fixes
+- **Backup API Fixed** - Changed from absolute localhost URL to relative `/api/backup` path
+  - ⚠️ **IMPORTANT**: You MUST run `npm run build` after deploying to fix this error!
 
-### New Project Wizard Improvements
-- **Switch Port Count**: Now asks how many ports (8/16/24/48) when adding switches
-- **PDU Outlet Count**: Now asks how many outlets (4/6/8/10/12) when adding PDUs  
-- **Camera Connection**: Choose whether cameras connect to Network Switch or direct to NVR
-- **Fixed Categories**: PDU now goes to Power category, HVAC Controller to HVAC category
-- **Touch Panels**: Correctly added to Control System category
+### 🔀 Network Device Ordering
+- Order is now: **Router → Cloudkey → Switches → WAPs**
+- Cloudkey (WiFi manager) now appears right after router, before switches
 
-### Device List Improvements
-- **Category Order**: Network now appears at top, followed by Cameras, Security, etc.
-- **Network Device Order**: Within Networking, devices sorted: Router → Switches → WAPs → Cloudkey
-- **New Categories in Filter**: Intercom and User Interfaces now in dropdown
+### 🔧 Switch Configuration in Wizard (Enhanced)
+When adding switches via the New Project Wizard:
 
-### New Device Categories (from v37)
-- **🔔 Intercom** - Door Stations (Ubiquiti, 2N, Doorbird, Hikvision, Dahua)
-- **📱 User Interfaces** - Touch Panels & Hand Held Remotes
+**Single Switch:**
+- Select Port Count (8/16/24/48)
+- Select PoE Type (No PoE, PoE, PoE+, PoE++)
 
-### New Brands Added (from v37)
-- **Cameras**: Ubiquiti
-- **Security > Alarm**: Dahua, Ajax
+**Multiple Switches:**
+- Configure EACH switch individually
+- Each switch gets its own Port Count and PoE Type selection
+- Example: Switch 1 = 48-port PoE++, Switch 2 = 24-port PoE+, Switch 3 = 8-port No PoE
 
-### Project Header (from v37)
-- **State & Postcode** fields for addresses
-- **Project Manager** name & phone (green banner)
-- **Site Lead** name & phone (green banner)
-- **WiFi passwords** hidden by default with 👁️ Show / 🙈 Hide toggle
-
-### Dashboard (from v37)
-- Now defaults to **In Progress** projects view
-
-### Admin Backup & Restore (from v37)
-In Settings (admin only):
-- **Export** - Download all projects, devices & tasks as JSON
-- **Import** - Restore from backup file
+### Previous v38 Features
+- PDU Outlet Count selection in wizard
+- Camera connection choice (Switch vs NVR)
+- Fixed category mapping (PDU→Power, HVAC→HVAC)
+- New categories: Intercom, User Interfaces
+- Project Manager & Site Lead in header
+- WiFi password hide/show toggle
+- Admin backup/restore
 
 ---
 
-## How to Deploy
+## ⚠️ CRITICAL: How to Deploy
 
 ```bash
 cd /home/app/Portal-Webapp
-unzip -o Portal-Webapp-v23-fixed38.zip
+unzip -o Portal-Webapp-v23-fixed39.zip
 pm2 restart all
+
+# THIS STEP IS REQUIRED to fix the backup error:
 cd frontend && npm run build
 ```
 
-## Notes
-- Existing DVR devices will still work, but DVR option is hidden from new device dropdown
-- Touch Panels can be added to either User Interfaces or Control System (both work)
+The backup error occurs because the browser is still using the OLD compiled JavaScript. Running `npm run build` creates new compiled files with the fix.
+
+---
+
+## Summary of All Category/Device Ordering
+
+**Categories (top to bottom):**
+1. 🔗 Networking
+2. 📹 Cameras
+3. 🔒 Security
+4. 🔔 Intercom
+5. 📱 User Interfaces
+6. 🎛️ Control System
+7. 💡 Lighting
+8. 📺 AV Equipment
+9. 🔌 Power
+10. ❄️ HVAC Control
+11. 📦 Other
+
+**Network devices (top to bottom):**
+1. Router
+2. Cloudkey
+3. Switches
+4. WAPs
 

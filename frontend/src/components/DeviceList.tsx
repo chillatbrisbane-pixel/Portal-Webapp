@@ -30,7 +30,7 @@ const CATEGORY_ORDER: DeviceCategory[] = [
 ]
 
 // Device type order within network category
-const NETWORK_DEVICE_ORDER = ['router', 'switch', 'access-point', 'cloudkey']
+const NETWORK_DEVICE_ORDER = ['router', 'cloudkey', 'switch', 'access-point']
 
 // Helper to parse IP address for sorting
 const parseIP = (ip: string): number => {

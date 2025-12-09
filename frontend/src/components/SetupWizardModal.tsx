@@ -59,7 +59,10 @@ interface DeviceSetup {
   brand: string
   model: string
   portCount?: number
+  poeType?: string
   cameraConnection?: 'switch' | 'nvr'
+  // Per-device configurations for switches
+  switchConfigs?: { portCount: number; poeType: string }[]
 }
 
 export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onProjectCreated }) => {
@@ -204,9 +207,32 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
               status: 'not-installed',
             }
             
-            // Add port count for switches
+            // Add port count and poeType for switches
             if (techConfig.deviceType === 'switch') {
-              deviceData.portCount = setup.portCount || 24
+              // Check if we have per-switch configs
+              if (setup.switchConfigs && setup.switchConfigs[i]) {
+                deviceData.portCount = setup.switchConfigs[i].portCount
+                const poeType = setup.switchConfigs[i].poeType
+                if (poeType && poeType !== 'none') {
+                  const poeLabels: Record<string, string> = {
+                    'af': 'PoE (802.3af)',
+                    'at': 'PoE+ (802.3at)',
+                    'bt': 'PoE++ (802.3bt)'
+                  }
+                  deviceData.notes = poeLabels[poeType] || ''
+                }
+              } else {
+                // Single switch or fallback
+                deviceData.portCount = setup.portCount || 24
+                if (setup.poeType && setup.poeType !== 'none') {
+                  const poeLabels: Record<string, string> = {
+                    'af': 'PoE (802.3af)',
+                    'at': 'PoE+ (802.3at)',
+                    'bt': 'PoE++ (802.3bt)'
+                  }
+                  deviceData.notes = poeLabels[setup.poeType] || ''
+                }
+              }
             }
             
             // Add outlet count for PDUs (stored as portCount)
@@ -494,18 +520,83 @@ export const SetupWizardModal: React.FC<SetupWizardModalProps> = ({ onClose, onP
 
                   {/* Port Count for Switches */}
                   {getCurrentTech()?.deviceType === 'switch' && (
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label>Port Count</label>
-                      <select
-                        value={deviceSetups[getCurrentTech()!.key]?.portCount || 24}
-                        onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
-                      >
-                        <option value={8}>8 Ports</option>
-                        <option value={16}>16 Ports</option>
-                        <option value={24}>24 Ports</option>
-                        <option value={48}>48 Ports</option>
-                      </select>
-                    </div>
+                    <>
+                      {(deviceSetups[getCurrentTech()!.key]?.quantity || 1) === 1 ? (
+                        // Single switch - simple config
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', gridColumn: '1 / -1' }}>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label>Port Count</label>
+                            <select
+                              value={deviceSetups[getCurrentTech()!.key]?.portCount || 24}
+                              onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'portCount', parseInt(e.target.value))}
+                            >
+                              <option value={8}>8 Ports</option>
+                              <option value={16}>16 Ports</option>
+                              <option value={24}>24 Ports</option>
+                              <option value={48}>48 Ports</option>
+                            </select>
+                          </div>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label>PoE Type</label>
+                            <select
+                              value={deviceSetups[getCurrentTech()!.key]?.poeType || 'none'}
+                              onChange={(e) => handleDeviceSetupChange(getCurrentTech()!.key, 'poeType', e.target.value)}
+                            >
+                              <option value="none">No PoE</option>
+                              <option value="af">802.3af (PoE)</option>
+                              <option value="at">802.3at (PoE+)</option>
+                              <option value="bt">802.3bt (PoE++)</option>
+                            </select>
+                          </div>
+                        </div>
+                      ) : (
+                        // Multiple switches - per-switch config
+                        <div style={{ gridColumn: '1 / -1' }}>
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Configure Each Switch</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {Array.from({ length: deviceSetups[getCurrentTech()!.key]?.quantity || 1 }, (_, i) => {
+                              const configs = deviceSetups[getCurrentTech()!.key]?.switchConfigs || []
+                              const config = configs[i] || { portCount: 24, poeType: 'none' }
+                              return (
+                                <div key={i} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: '0.75rem', alignItems: 'center', padding: '0.5rem', background: '#f3f4f6', borderRadius: '6px' }}>
+                                  <span style={{ fontWeight: 500, color: '#374151', minWidth: '70px' }}>Switch {i + 1}</span>
+                                  <select
+                                    value={config.portCount}
+                                    onChange={(e) => {
+                                      const newConfigs = [...(deviceSetups[getCurrentTech()!.key]?.switchConfigs || [])]
+                                      while (newConfigs.length <= i) newConfigs.push({ portCount: 24, poeType: 'none' })
+                                      newConfigs[i] = { ...newConfigs[i], portCount: parseInt(e.target.value) }
+                                      handleDeviceSetupChange(getCurrentTech()!.key, 'switchConfigs', newConfigs)
+                                    }}
+                                    style={{ padding: '0.4rem' }}
+                                  >
+                                    <option value={8}>8 Ports</option>
+                                    <option value={16}>16 Ports</option>
+                                    <option value={24}>24 Ports</option>
+                                    <option value={48}>48 Ports</option>
+                                  </select>
+                                  <select
+                                    value={config.poeType}
+                                    onChange={(e) => {
+                                      const newConfigs = [...(deviceSetups[getCurrentTech()!.key]?.switchConfigs || [])]
+                                      while (newConfigs.length <= i) newConfigs.push({ portCount: 24, poeType: 'none' })
+                                      newConfigs[i] = { ...newConfigs[i], poeType: e.target.value }
+                                      handleDeviceSetupChange(getCurrentTech()!.key, 'switchConfigs', newConfigs)
+                                    }}
+                                    style={{ padding: '0.4rem' }}
+                                  >
+                                    <option value="none">No PoE</option>
+                                    <option value="af">PoE (802.3af)</option>
+                                    <option value="at">PoE+ (802.3at)</option>
+                                    <option value="bt">PoE++ (802.3bt)</option>
+                                  </select>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {/* Outlet Count for PDUs */}
