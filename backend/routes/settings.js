@@ -108,6 +108,12 @@ router.put('/branding', authenticateToken, requireAdmin, async (req, res) => {
         // Remove logo
         settings.branding.logo = undefined;
       } else if (logo.data) {
+        // Validate format - PDFKit only supports PNG and JPEG
+        const validMimeTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+        if (!validMimeTypes.includes(logo.mimeType)) {
+          return res.status(400).json({ error: 'Logo must be PNG or JPEG format (WebP not supported)' });
+        }
+        
         // Validate base64 and size (max 2MB)
         const sizeInBytes = (logo.data.length * 3) / 4;
         if (sizeInBytes > 2 * 1024 * 1024) {
@@ -128,6 +134,12 @@ router.put('/branding', authenticateToken, requireAdmin, async (req, res) => {
         // Remove background
         settings.branding.background = undefined;
       } else if (background.data) {
+        // Validate format - PDFKit only supports PNG and JPEG
+        const validMimeTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+        if (!validMimeTypes.includes(background.mimeType)) {
+          return res.status(400).json({ error: 'Background must be PNG or JPEG format (WebP not supported)' });
+        }
+        
         // Validate base64 and size (max 5MB for backgrounds)
         const sizeInBytes = (background.data.length * 3) / 4;
         if (sizeInBytes > 5 * 1024 * 1024) {

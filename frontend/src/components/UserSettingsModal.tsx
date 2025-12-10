@@ -580,7 +580,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             {/* Logo Upload */}
             <h4 style={{ marginBottom: '1rem' }}>🖼️ PDF Logo</h4>
             <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Displayed at the top of the PDF cover page. Recommended: PNG with transparent background, max 2MB.
+              Displayed at the top of the PDF cover page. PNG or JPEG only (WebP not supported), max 2MB.
             </p>
             
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
@@ -673,7 +673,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             {/* Background Watermark Upload */}
             <h4 style={{ marginBottom: '1rem' }}>🌫️ Background Watermark</h4>
             <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Optional watermark displayed faded behind PDF content. Max 5MB.
+              Optional watermark displayed faded behind PDF content. PNG or JPEG only, max 5MB.
             </p>
             
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
