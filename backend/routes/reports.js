@@ -1,9 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
+const https = require('https');
 const Project = require('../models/Project');
 const Device = require('../models/Device');
 const jwt = require('jsonwebtoken');
+
+// Electronic Living logo URL
+const LOGO_URL = 'https://www.electronicliving.com.au/wp-content/uploads/Electronic-Living-Logo-Rev.png';
+
+// Function to download image as buffer
+const downloadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    https.get(url, (response) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => resolve(Buffer.concat(chunks)));
+      response.on('error', reject);
+    }).on('error', reject);
+  });
+};
 
 // Middleware to handle auth via query param or header (for download links)
 const authenticateDownload = (req, res, next) => {
@@ -27,6 +43,8 @@ const CATEGORY_INFO = {
   'network': { label: 'Networking', color: '#3b82f6' },
   'camera': { label: 'Cameras & Surveillance', color: '#ef4444' },
   'security': { label: 'Security System', color: '#f59e0b' },
+  'intercom': { label: 'Intercom', color: '#ec4899' },
+  'user-interface': { label: 'User Interfaces', color: '#a855f7' },
   'control-system': { label: 'Control System', color: '#8b5cf6' },
   'lighting': { label: 'Lighting Control', color: '#eab308' },
   'av': { label: 'Audio Visual', color: '#10b981' },
@@ -152,21 +170,29 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       .populate('boundToSwitch', 'name portCount')
       .sort({ category: 1, deviceType: 1, name: 1 });
 
+    // Download logo image
+    let logoBuffer = null;
+    try {
+      logoBuffer = await downloadImage(LOGO_URL);
+    } catch (logoError) {
+      console.log('Could not download logo, continuing without it:', logoError.message);
+    }
+
     // Create PDF
     const doc = new PDFDocument({ 
       size: 'A4',
       margin: 50,
       bufferPages: true,
       info: {
-        Title: `${project.name} - System Documentation`,
-        Author: 'AV Project Manager',
-        Subject: 'Smart Home System Documentation',
+        Title: `${project.name} - Integrated System Profile`,
+        Author: 'Electronic Living',
+        Subject: 'Technical Reference for Devices, Network, and Infrastructure',
       }
     });
 
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${project.name.replace(/[^a-z0-9]/gi, '_')}_System_Documentation.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${project.name.replace(/[^a-z0-9]/gi, '_')}_System_Profile.pdf"`);
 
     doc.pipe(res);
 
@@ -178,20 +204,35 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     // White content area
     doc.rect(40, 40, 515, 762).fill('#ffffff');
     
+    // Logo at top
+    if (logoBuffer) {
+      try {
+        doc.image(logoBuffer, 175, 60, { width: 250 });
+      } catch (imgError) {
+        console.log('Could not embed logo in PDF:', imgError.message);
+      }
+    }
+    
     // Title
-    doc.fontSize(32).fillColor('#0066cc').font('Helvetica-Bold');
-    doc.text('Smart Home', 60, 150, { align: 'center', width: 475 });
-    doc.text('System Documentation', 60, 190, { align: 'center', width: 475 });
+    doc.fontSize(28).fillColor('#0066cc').font('Helvetica-Bold');
+    doc.text('Integrated System Profile', 60, 180, { align: 'center', width: 475 });
+    
+    // Subtitle
+    doc.fontSize(12).fillColor('#666666').font('Helvetica');
+    doc.text('Technical Reference for Devices, Network, and Infrastructure', 60, 220, { align: 'center', width: 475 });
+    
+    // Divider line
+    doc.moveTo(150, 250).lineTo(445, 250).strokeColor('#0066cc').lineWidth(2).stroke();
     
     // Project name
     doc.moveDown(2);
-    doc.fontSize(24).fillColor('#333333');
+    doc.fontSize(24).fillColor('#333333').font('Helvetica-Bold');
     doc.text(project.name, 60, 280, { align: 'center', width: 475 });
     
     // Client info
     if (project.clientName) {
       doc.moveDown(1);
-      doc.fontSize(14).fillColor('#666666');
+      doc.fontSize(14).fillColor('#666666').font('Helvetica');
       doc.text(`Prepared for: ${project.clientName}`, 60, 340, { align: 'center', width: 475 });
     }
     
@@ -200,9 +241,17 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       doc.text(project.address, 60, 370, { align: 'center', width: 475 });
     }
     
+    // Footer section
+    doc.fontSize(10).fillColor('#888888');
+    doc.text('Prepared by', 60, 680, { align: 'center', width: 475 });
+    doc.fontSize(14).fillColor('#0066cc').font('Helvetica-Bold');
+    doc.text('Electronic Living', 60, 695, { align: 'center', width: 475 });
+    doc.fontSize(10).fillColor('#888888').font('Helvetica');
+    doc.text('www.electronicliving.com.au', 60, 715, { align: 'center', width: 475 });
+    
     // Date
-    doc.fontSize(12).fillColor('#666666');
-    doc.text(`Documentation Date: ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`, 60, 700, { align: 'center', width: 475 });
+    doc.fontSize(10).fillColor('#666666');
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}`, 60, 760, { align: 'center', width: 475 });
     
     // ============================================================
     // TABLE OF CONTENTS
@@ -505,6 +554,44 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
           doc.fillColor('#64748b').fontSize(8);
           doc.text(`Notes: ${device.configNotes}`, leftX, doc.y, { width: 480 });
           doc.moveDown(0.3);
+        }
+        
+        // Monitoring Company Info (for security devices with dialler)
+        if (device.category === 'security' && device.diallerInstalled) {
+          doc.moveDown(0.3);
+          doc.fillColor('#f59e0b').fontSize(9).font('Helvetica-Bold');
+          doc.text('🔔 Alarm Dialler & Monitoring', leftX, doc.y);
+          doc.moveDown(0.3);
+          doc.font('Helvetica').fillColor('#475569').fontSize(8);
+          
+          if (device.diallerType) {
+            doc.text(`Dialler Type: ${device.diallerType}`, leftX, doc.y);
+            doc.y += 10;
+          }
+          if (device.diallerAccountNumber) {
+            doc.font('Helvetica-Bold').fillColor('#dc2626');
+            doc.text(`Account Number: ${device.diallerAccountNumber}`, leftX, doc.y);
+            doc.y += 10;
+          }
+          if (device.monitoringCompany && device.monitoringCompany.name) {
+            doc.font('Helvetica-Bold').fillColor('#059669');
+            doc.text(`Monitoring Company: ${device.monitoringCompany.name}`, leftX, doc.y);
+            doc.y += 10;
+            doc.font('Helvetica').fillColor('#475569');
+            if (device.monitoringCompany.phone) {
+              doc.text(`Phone: ${device.monitoringCompany.phone}`, leftX + 10, doc.y);
+              doc.y += 10;
+            }
+            if (device.monitoringCompany.email) {
+              doc.text(`Email: ${device.monitoringCompany.email}`, leftX + 10, doc.y);
+              doc.y += 10;
+            }
+            if (device.monitoringCompany.address) {
+              doc.text(`Address: ${device.monitoringCompany.address}`, leftX + 10, doc.y);
+              doc.y += 10;
+            }
+          }
+          doc.fillColor('#475569');
         }
         
         // PDU / Powerboard port allocations (inline)

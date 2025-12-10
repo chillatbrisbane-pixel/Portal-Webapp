@@ -60,6 +60,13 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   diallerType: '',
   diallerLocation: '',
   diallerSerial: '',
+  diallerAccountNumber: '',
+  monitoringCompany: {
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+  },
   // Users arrays
   nvrUsers: [],
   alarmUsers: [],
@@ -2080,6 +2087,80 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           placeholder="Serial number"
                           disabled={viewOnly}
                         />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label>Account Number</label>
+                        <input
+                          type="text"
+                          name="diallerAccountNumber"
+                          value={formData.diallerAccountNumber || ''}
+                          onChange={handleInputChange}
+                          placeholder="Monitoring account #"
+                          disabled={viewOnly}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Monitoring Company Details */}
+                  {formData.diallerInstalled && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                      <h5 style={{ margin: '0 0 1rem', color: '#166534', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        🏢 Monitoring Company
+                      </h5>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Company Name</label>
+                          <input
+                            type="text"
+                            value={formData.monitoringCompany?.name || ''}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              monitoringCompany: { ...prev.monitoringCompany, name: e.target.value }
+                            }))}
+                            placeholder="e.g., ADT Security"
+                            disabled={viewOnly}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Phone</label>
+                          <input
+                            type="tel"
+                            value={formData.monitoringCompany?.phone || ''}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              monitoringCompany: { ...prev.monitoringCompany, phone: e.target.value }
+                            }))}
+                            placeholder="Contact number"
+                            disabled={viewOnly}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Email</label>
+                          <input
+                            type="email"
+                            value={formData.monitoringCompany?.email || ''}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              monitoringCompany: { ...prev.monitoringCompany, email: e.target.value }
+                            }))}
+                            placeholder="Email address"
+                            disabled={viewOnly}
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label>Address</label>
+                          <input
+                            type="text"
+                            value={formData.monitoringCompany?.address || ''}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              monitoringCompany: { ...prev.monitoringCompany, address: e.target.value }
+                            }))}
+                            placeholder="Company address"
+                            disabled={viewOnly}
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

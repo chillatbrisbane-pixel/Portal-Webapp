@@ -314,6 +314,19 @@ export interface Device {
   userCodeCount: number;       // User codes (legacy)
   sirenCount: number;          // Sirens
   
+  // Alarm Dialler
+  diallerInstalled: boolean;
+  diallerType: string;
+  diallerLocation: string;
+  diallerSerial: string;
+  diallerAccountNumber: string;
+  monitoringCompany: {
+    name: string;
+    phone: string;
+    email: string;
+    address: string;
+  };
+  
   // Alarm user codes with access permissions
   alarmUsers: AlarmUser[];
   

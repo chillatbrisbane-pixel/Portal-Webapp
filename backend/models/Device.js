@@ -97,6 +97,15 @@ const deviceSchema = new mongoose.Schema(
     diallerType: String,         // T4000, Permaconn, Custom
     diallerLocation: String,
     diallerSerial: String,
+    diallerAccountNumber: String,  // Monitoring account number
+    
+    // Monitoring company details
+    monitoringCompany: {
+      name: String,
+      phone: String,
+      email: String,
+      address: String,
+    },
     
     // Alarm user codes with access permissions
     alarmUsers: [{
