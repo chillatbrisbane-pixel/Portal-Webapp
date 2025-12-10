@@ -94,6 +94,14 @@ router.put('/branding', auth, requireAdmin, async (req, res) => {
     
     const settings = await Settings.getSettings();
     
+    // Ensure branding object exists
+    if (!settings.branding) {
+      settings.branding = {
+        companyName: 'Electronic Living',
+        companyWebsite: 'www.electronicliving.com.au',
+      };
+    }
+    
     // Update logo if provided
     if (logo !== undefined) {
       if (logo === null) {
@@ -148,6 +156,7 @@ router.put('/branding', auth, requireAdmin, async (req, res) => {
       settings.branding.companyWebsite = companyWebsite;
     }
     
+    settings.markModified('branding');  // Required for Mixed type
     settings.updatedAt = new Date();
     settings.updatedBy = req.userId;
     
@@ -167,8 +176,8 @@ router.put('/branding', auth, requireAdmin, async (req, res) => {
           opacity: settings.branding.background.opacity,
           hasData: !!settings.branding.background.data,
         } : null,
-        companyName: settings.branding.companyName,
-        companyWebsite: settings.branding.companyWebsite,
+        companyName: settings.branding?.companyName || 'Electronic Living',
+        companyWebsite: settings.branding?.companyWebsite || 'www.electronicliving.com.au',
       }
     });
   } catch (error) {
@@ -181,7 +190,10 @@ router.put('/branding', auth, requireAdmin, async (req, res) => {
 router.delete('/branding/logo', auth, requireAdmin, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
-    settings.branding.logo = undefined;
+    if (settings.branding) {
+      settings.branding.logo = undefined;
+    }
+    settings.markModified('branding');
     settings.updatedAt = new Date();
     settings.updatedBy = req.userId;
     await settings.save();
@@ -197,7 +209,10 @@ router.delete('/branding/logo', auth, requireAdmin, async (req, res) => {
 router.delete('/branding/background', auth, requireAdmin, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
-    settings.branding.background = undefined;
+    if (settings.branding) {
+      settings.branding.background = undefined;
+    }
+    settings.markModified('branding');
     settings.updatedAt = new Date();
     settings.updatedBy = req.userId;
     await settings.save();
