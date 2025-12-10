@@ -5,6 +5,8 @@ import { Header } from './components/Header'
 import { UserManagementModal } from './components/UserManagementModal'
 import { UserSettingsModal } from './components/UserSettingsModal'
 import { AcceptInvite } from './components/AcceptInvite'
+import { ForgotPassword } from './components/ForgotPassword'
+import { ResetPassword } from './components/ResetPassword'
 import { authAPI } from './services/apiService'
 import { User } from './types'
 import './App.css'
@@ -19,6 +21,8 @@ function App() {
   const [showUserManagement, setShowUserManagement] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [resetToken, setResetToken] = useState<string | null>(null)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [sessionWarning, setSessionWarning] = useState(false)
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null)
 
@@ -85,8 +89,15 @@ function App() {
     // Check for invite token in URL
     const urlParams = new URLSearchParams(window.location.search)
     const token = urlParams.get('token')
+    
     if (token && window.location.pathname.includes('accept-invite')) {
       setInviteToken(token)
+      setLoading(false)
+      return
+    }
+
+    if (token && window.location.pathname.includes('reset-password')) {
+      setResetToken(token)
       setLoading(false)
       return
     }
@@ -150,6 +161,12 @@ function App() {
     window.history.replaceState({}, document.title, '/')
   }
 
+  const handleCancelReset = () => {
+    setResetToken(null)
+    setShowForgotPassword(false)
+    window.history.replaceState({}, document.title, '/')
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -169,8 +186,33 @@ function App() {
     )
   }
 
+  // Show reset password page if token is present
+  if (resetToken) {
+    return (
+      <ResetPassword
+        token={resetToken}
+        onSuccess={handleCancelReset}
+        onBack={handleCancelReset}
+      />
+    )
+  }
+
+  // Show forgot password page
+  if (showForgotPassword) {
+    return (
+      <ForgotPassword
+        onBack={() => setShowForgotPassword(false)}
+      />
+    )
+  }
+
   if (!user) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />
+    return (
+      <LoginScreen 
+        onLoginSuccess={handleLoginSuccess}
+        onForgotPassword={() => setShowForgotPassword(true)}
+      />
+    )
   }
 
   return (

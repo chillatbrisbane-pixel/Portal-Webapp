@@ -195,6 +195,71 @@ export const authAPI = {
     }
     return data;
   },
+
+  // Password reset
+  forgotPassword: async (email: string) => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to process request');
+    }
+    return response.json();
+  },
+
+  verifyResetToken: async (token: string) => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/reset-password/${token}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Invalid or expired token');
+    }
+    return response.json();
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/reset-password/${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to reset password');
+    }
+    return response.json();
+  },
+};
+
+// ============ CALENDAR ============
+
+export const calendarAPI = {
+  getToken: async () => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/calendar/token`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get calendar token');
+    }
+    return response.json();
+  },
+
+  regenerateToken: async () => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/calendar/regenerate`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to regenerate token');
+    }
+    return response.json();
+  },
 };
 
 // ============ PROJECTS ============

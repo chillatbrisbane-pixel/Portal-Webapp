@@ -78,7 +78,8 @@ const taskRoutes = require('./routes/tasks');
 const backupRoutes = require('./routes/backup');
 const settingsRoutes = require('./routes/settings');
 const clientRoutes = require('./routes/client');
-console.log('✅ All routes loaded including tasks and backup');
+const calendarRoutes = require('./routes/calendar');
+console.log('✅ All routes loaded including tasks, backup, and calendar');
 
 // Health check endpoint
 app.get('/api/health', async (req, res) => {
@@ -104,6 +105,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/client', clientRoutes);
+app.use('/api/calendar', calendarRoutes);
 
 // 404 handler
 app.use((req, res) => {

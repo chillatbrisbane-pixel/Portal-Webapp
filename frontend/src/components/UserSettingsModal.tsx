@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { authAPI, settingsAPI } from '../services/apiService';
+import { CalendarSettings } from './CalendarSettings';
 
 interface BrandingSettings {
   logo: { filename: string; mimeType: string; hasData: boolean } | null;
@@ -20,7 +21,7 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   onClose,
   onUserUpdated,
 }) => {
-  const [activeTab, setActiveTab] = useState<'password' | '2fa' | 'backup' | 'branding'>('password');
+  const [activeTab, setActiveTab] = useState<'password' | '2fa' | 'calendar' | 'backup' | 'branding'>('password');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -219,6 +220,20 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             }}
           >
             🔐 Two-Factor Auth
+          </button>
+          <button
+            onClick={() => { setActiveTab('calendar'); setError(''); setSuccess(''); }}
+            style={{
+              padding: '0.5rem 1rem',
+              border: 'none',
+              background: activeTab === 'calendar' ? '#3b82f6' : 'transparent',
+              color: activeTab === 'calendar' ? 'white' : '#666',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+          >
+            📅 Calendar
           </button>
           {user.role === 'admin' && (
             <>
@@ -440,6 +455,11 @@ export const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
               </form>
             )}
           </div>
+        )}
+
+        {/* Calendar Tab */}
+        {activeTab === 'calendar' && (
+          <CalendarSettings />
         )}
 
         {/* Backup Tab (Admin Only) */}

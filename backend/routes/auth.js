@@ -212,6 +212,10 @@ router.post('/register', authenticateToken, authorizeRole(['admin']), async (req
 });
 
 // Login
+// Security constants
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password, twoFactorCode } = req.body;
@@ -233,6 +237,16 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Check if account is locked out
+    if (user.lockoutUntil && user.lockoutUntil > new Date()) {
+      const remainingMinutes = Math.ceil((user.lockoutUntil - new Date()) / 60000);
+      await logActivity(user._id, 'login_blocked', { reason: 'lockout' }, req);
+      return res.status(423).json({ 
+        error: `Account temporarily locked. Try again in ${remainingMinutes} minutes.`,
+        lockedUntil: user.lockoutUntil,
+      });
+    }
+
     // Check if user is active
     if (!user.isActive) {
       return res.status(403).json({ error: 'User account is inactive' });
@@ -251,8 +265,27 @@ router.post('/login', async (req, res) => {
     // Check password
     const passwordMatch = await user.comparePassword(password);
     if (!passwordMatch) {
-      await logActivity(user._id, 'login_failed', { reason: 'wrong_password' }, req);
-      return res.status(401).json({ error: 'Invalid credentials' });
+      // Increment failed attempts
+      user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+      
+      // Check if should lockout
+      if (user.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS) {
+        user.lockoutUntil = new Date(Date.now() + LOCKOUT_DURATION);
+        await user.save();
+        await logActivity(user._id, 'account_locked', { attempts: user.failedLoginAttempts }, req);
+        return res.status(423).json({ 
+          error: 'Too many failed attempts. Account locked for 15 minutes.',
+          lockedUntil: user.lockoutUntil,
+        });
+      }
+      
+      await user.save();
+      await logActivity(user._id, 'login_failed', { reason: 'wrong_password', attempts: user.failedLoginAttempts }, req);
+      
+      const remainingAttempts = MAX_LOGIN_ATTEMPTS - user.failedLoginAttempts;
+      return res.status(401).json({ 
+        error: `Invalid credentials. ${remainingAttempts} attempts remaining.` 
+      });
     }
 
     // Check if 2FA is required
@@ -289,9 +322,11 @@ router.post('/login', async (req, res) => {
       }
     }
 
-    // Update last login
+    // Update last login and reset lockout counters
     user.lastLogin = new Date();
     user.lastLoginIP = getClientIP(req);
+    user.failedLoginAttempts = 0;
+    user.lockoutUntil = undefined;
     await user.save();
 
     // Log successful login
@@ -570,6 +605,146 @@ router.get('/2fa/status', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('2FA status error:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ PASSWORD RESET ============
+
+// POST /api/auth/forgot-password - Request password reset
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return res.json({ 
+        message: 'If an account exists with this email, a reset link has been generated.' 
+      });
+    }
+
+    // Check if user is suspended
+    if (user.suspended) {
+      return res.json({ 
+        message: 'If an account exists with this email, a reset link has been generated.' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = resetExpires;
+    await user.save();
+
+    // Log the activity
+    await logActivity(user._id, 'password_reset_requested', {}, req);
+
+    // In production, you would email this link. For now, return it.
+    // The frontend will show the link to copy (or you can set up email later)
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+
+    res.json({ 
+      message: 'If an account exists with this email, a reset link has been generated.',
+      // Only include resetLink in development/testing - remove in production with email
+      resetLink: process.env.NODE_ENV !== 'production' ? resetLink : undefined,
+      // For admin to manually share:
+      token: resetToken,
+      expiresAt: resetExpires,
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// GET /api/auth/reset-password/:token - Verify reset token is valid
+router.get('/reset-password/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const user = await User.findOne({
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset link' });
+    }
+
+    res.json({ 
+      valid: true, 
+      email: user.email,
+      name: user.name,
+    });
+
+  } catch (error) {
+    console.error('Verify reset token error:', error);
+    res.status(500).json({ error: 'Failed to verify token' });
+  }
+});
+
+// POST /api/auth/reset-password/:token - Reset password with token
+router.post('/reset-password/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: 'Password is required' });
+    }
+
+    // Password complexity check
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one uppercase letter' });
+    }
+
+    if (!/[a-z]/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one lowercase letter' });
+    }
+
+    if (!/[0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Password must contain at least one number' });
+    }
+
+    const user = await User.findOne({
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired reset link' });
+    }
+
+    // Update password
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.failedLoginAttempts = 0;
+    user.lockoutUntil = undefined;
+    user.mustChangePassword = false;
+    await user.save();
+
+    // Log the activity
+    await logActivity(user._id, 'password_reset_completed', {}, req);
+
+    res.json({ message: 'Password reset successfully. You can now log in.' });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 

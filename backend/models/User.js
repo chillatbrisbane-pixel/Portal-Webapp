@@ -90,6 +90,26 @@ const userSchema = new mongoose.Schema(
       type: String,
       sparse: true,
     },
+    // Calendar feed token
+    calendarToken: {
+      type: String,
+      sparse: true,
+    },
+    // Password reset
+    passwordResetToken: {
+      type: String,
+    },
+    passwordResetExpires: {
+      type: Date,
+    },
+    // Security: failed login tracking
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lockoutUntil: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
