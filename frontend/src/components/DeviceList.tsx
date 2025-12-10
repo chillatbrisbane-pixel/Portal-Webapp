@@ -73,6 +73,19 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
   const [viewMode, setViewMode] = useState<'grouped' | 'table'>('grouped')
   const [viewOnlyMode, setViewOnlyMode] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
+
+  const toggleCategory = (category: string) => {
+    setCollapsedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(category)) {
+        newSet.delete(category)
+      } else {
+        newSet.add(category)
+      }
+      return newSet
+    })
+  }
 
   useEffect(() => {
     loadDevices()
@@ -569,18 +582,24 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
                 catDevices = sortNetworkDevices(catDevices)
               }
               const catInfo = CATEGORY_INFO[category as DeviceCategory] || CATEGORY_INFO.other
+              const isCollapsed = collapsedCategories.has(category)
               return (
                 <div key={category} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                  <div style={{
-                    padding: '1rem 1.5rem',
-                    background: `linear-gradient(135deg, ${catInfo.color}15, ${catInfo.color}05)`,
-                    borderBottom: `2px solid ${catInfo.color}30`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                  }}>
+                  <div 
+                    onClick={() => toggleCategory(category)}
+                    style={{
+                      padding: '1rem 1.5rem',
+                      background: `linear-gradient(135deg, ${catInfo.color}15, ${catInfo.color}05)`,
+                      borderBottom: isCollapsed ? 'none' : `2px solid ${catInfo.color}30`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                  >
                     <span style={{ fontSize: '1.5rem' }}>{catInfo.icon}</span>
-                    <h4 style={{ margin: 0, color: '#333' }}>{catInfo.label}</h4>
+                    <h4 style={{ margin: 0, color: '#333', flex: 1 }}>{catInfo.label}</h4>
                     <span style={{
                       background: catInfo.color,
                       color: 'white',
@@ -591,10 +610,14 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
                     }}>
                       {catDevices.length}
                     </span>
+                    <span style={{ color: catInfo.color, fontSize: '1rem' }}>
+                      {isCollapsed ? '▶' : '▼'}
+                    </span>
                   </div>
 
-                  <div style={{ padding: '1rem 1.5rem' }}>
-                    <div style={{ display: 'grid', gap: '1rem' }}>
+                  {!isCollapsed && (
+                    <div style={{ padding: '1rem 1.5rem' }}>
+                      <div style={{ display: 'grid', gap: '1rem' }}>
                       {catDevices.map(device => (
                         <div
                           key={device._id}
@@ -776,6 +799,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
                       ))}
                     </div>
                   </div>
+                  )}
                 </div>
               )
             })}

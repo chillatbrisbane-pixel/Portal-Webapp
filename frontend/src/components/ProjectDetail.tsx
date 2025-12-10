@@ -140,8 +140,8 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
       // Filter active users
       const activeUsers = users.filter((u: StaffMember) => !u.suspended)
       setAllStaff(activeUsers)
-      // Project managers are admin or project-manager role
-      setProjectManagers(activeUsers.filter((u: StaffMember) => ['admin', 'project-manager'].includes(u.role)))
+      // Project managers are only project-manager role (not admin)
+      setProjectManagers(activeUsers.filter((u: StaffMember) => u.role === 'project-manager'))
     } catch (err) {
       console.error('Failed to load staff:', err)
     }
@@ -1019,106 +1019,63 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           </form>
         ) : (
           <>
-            {/* Project Details Section - Collapsible */}
-            <div style={{ marginBottom: '1rem' }}>
-              <div 
-                onClick={() => setSectionsExpanded(prev => ({ ...prev, projectDetails: !prev.projectDetails }))}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  padding: '0.5rem 0',
-                  borderBottom: '1px solid #e5e7eb',
-                  marginBottom: sectionsExpanded.projectDetails ? '1rem' : 0,
-                }}
-              >
-                <h4 style={{ margin: 0, color: '#374151', fontSize: '0.95rem' }}>📋 Project Details</h4>
-                <span style={{ color: '#6b7280', fontSize: '1.2rem' }}>{sectionsExpanded.projectDetails ? '▼' : '▶'}</span>
+            {/* Client Info Row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👤 Client</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName || 'N/A'}</p>
               </div>
-              
-              {sectionsExpanded.projectDetails && (
-                <>
-                  {/* Client Info Row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
-                    <div>
-                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👤 Client</p>
-                      <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
-                      <p style={{ fontWeight: 600, margin: 0 }}>
-                        {project.clientEmail ? (
-                          <a href={`mailto:${project.clientEmail}`}>{project.clientEmail}</a>
-                        ) : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
-                      <p style={{ fontWeight: 600, margin: 0 }}>
-                        {project.clientPhone ? (
-                          <a href={`tel:${project.clientPhone}`}>{project.clientPhone}</a>
-                        ) : 'N/A'}
-                      </p>
-                    </div>
-                    <div>
-                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
-                      <p style={{ fontWeight: 600, margin: 0 }}>
-                        {project.address || 'N/A'}
-                        {(project.state || project.postcode) && (
-                          <span style={{ fontWeight: 400, color: '#6b7280' }}>
-                            {project.state ? `, ${project.state}` : ''}{project.postcode ? ` ${project.postcode}` : ''}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              )}
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>
+                  {project.clientEmail ? (
+                    <a href={`mailto:${project.clientEmail}`}>{project.clientEmail}</a>
+                  ) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>
+                  {project.clientPhone ? (
+                    <a href={`tel:${project.clientPhone}`}>{project.clientPhone}</a>
+                  ) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
+                <p style={{ fontWeight: 600, margin: 0 }}>
+                  {project.address || 'N/A'}
+                  {(project.state || project.postcode) && (
+                    <span style={{ fontWeight: 400, color: '#6b7280' }}>
+                      {project.state ? `, ${project.state}` : ''}{project.postcode ? ` ${project.postcode}` : ''}
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
 
-            {/* Team Contacts Section - Collapsible */}
+            {/* Project Manager & Site Lead Row */}
             {(project.projectManager?.name || project.siteLead?.name) && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div 
-                  onClick={() => setSectionsExpanded(prev => ({ ...prev, teamContacts: !prev.teamContacts }))}
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    padding: '0.5rem 0',
-                    borderBottom: '1px solid #e5e7eb',
-                    marginBottom: sectionsExpanded.teamContacts ? '1rem' : 0,
-                  }}
-                >
-                  <h4 style={{ margin: 0, color: '#374151', fontSize: '0.95rem' }}>👥 Team Contacts</h4>
-                  <span style={{ color: '#6b7280', fontSize: '1.2rem' }}>{sectionsExpanded.teamContacts ? '▼' : '▶'}</span>
-                </div>
-                
-                {sectionsExpanded.teamContacts && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                    {project.projectManager?.name && (
-                      <div>
-                        <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👔 Project Manager</p>
-                        <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.projectManager.name}</p>
-                        {project.projectManager.phone && (
-                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-                            <a href={`tel:${project.projectManager.phone}`} style={{ color: '#15803d' }}>{project.projectManager.phone}</a>
-                          </p>
-                        )}
-                      </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                {project.projectManager?.name && (
+                  <div>
+                    <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👔 Project Manager</p>
+                    <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.projectManager.name}</p>
+                    {project.projectManager.phone && (
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                        <a href={`tel:${project.projectManager.phone}`} style={{ color: '#15803d' }}>{project.projectManager.phone}</a>
+                      </p>
                     )}
-                    {project.siteLead?.name && (
-                      <div>
-                        <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🦺 Site Lead</p>
-                        <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.siteLead.name}</p>
-                        {project.siteLead.phone && (
-                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-                            <a href={`tel:${project.siteLead.phone}`} style={{ color: '#15803d' }}>{project.siteLead.phone}</a>
-                          </p>
-                        )}
-                      </div>
+                  </div>
+                )}
+                {project.siteLead?.name && (
+                  <div>
+                    <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🦺 Site Lead</p>
+                    <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.siteLead.name}</p>
+                    {project.siteLead.phone && (
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                        <a href={`tel:${project.siteLead.phone}`} style={{ color: '#15803d' }}>{project.siteLead.phone}</a>
+                      </p>
                     )}
                   </div>
                 )}
