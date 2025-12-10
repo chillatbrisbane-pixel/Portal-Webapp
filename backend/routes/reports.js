@@ -3,6 +3,7 @@ const router = express.Router();
 const PDFDocument = require('pdfkit');
 const Project = require('../models/Project');
 const Device = require('../models/Device');
+const Settings = require('../models/Settings');
 const jwt = require('jsonwebtoken');
 
 // Middleware to handle auth via query param or header (for download links)
@@ -154,6 +155,33 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       .populate('boundToSwitch', 'name portCount')
       .sort({ category: 1, deviceType: 1, name: 1 });
 
+    // Fetch branding settings
+    const settings = await Settings.getSettings();
+    const branding = settings.branding || {};
+    const companyName = branding.companyName || 'Electronic Living';
+    const companyWebsite = branding.companyWebsite || 'www.electronicliving.com.au';
+
+    // Prepare logo buffer if exists
+    let logoBuffer = null;
+    if (branding.logo?.data) {
+      try {
+        logoBuffer = Buffer.from(branding.logo.data, 'base64');
+      } catch (e) {
+        console.log('Could not decode logo:', e.message);
+      }
+    }
+
+    // Prepare background buffer if exists
+    let backgroundBuffer = null;
+    const backgroundOpacity = branding.background?.opacity || 0.1;
+    if (branding.background?.data) {
+      try {
+        backgroundBuffer = Buffer.from(branding.background.data, 'base64');
+      } catch (e) {
+        console.log('Could not decode background:', e.message);
+      }
+    }
+
     // Create PDF
     const doc = new PDFDocument({ 
       size: 'A4',
@@ -161,7 +189,7 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       bufferPages: true,
       info: {
         Title: `${project.name} - Integrated System Profile`,
-        Author: 'Electronic Living',
+        Author: companyName,
         Subject: 'Technical Reference for Devices, Network, and Infrastructure',
       }
     });
@@ -180,21 +208,45 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     // White content area
     doc.rect(40, 40, 515, 762).fill('#ffffff');
     
+    // Add background watermark if exists (centered, faded)
+    if (backgroundBuffer) {
+      try {
+        doc.save();
+        doc.opacity(backgroundOpacity);
+        // Center the background image
+        doc.image(backgroundBuffer, 120, 300, { width: 350, fit: [350, 350] });
+        doc.restore();
+      } catch (bgError) {
+        console.log('Could not add background to PDF:', bgError.message);
+      }
+    }
+    
+    // Logo at top if exists
+    let contentStartY = 120;
+    if (logoBuffer) {
+      try {
+        doc.image(logoBuffer, 175, 55, { width: 250, fit: [250, 80] });
+        contentStartY = 150; // Move content down if logo present
+      } catch (logoError) {
+        console.log('Could not add logo to PDF:', logoError.message);
+      }
+    }
+    
     // Title
     doc.fontSize(28).fillColor('#0066cc').font('Helvetica-Bold');
-    doc.text('Integrated System Profile', 60, 120, { align: 'center', width: 475 });
+    doc.text('Integrated System Profile', 60, contentStartY, { align: 'center', width: 475 });
     
     // Subtitle
     doc.fontSize(12).fillColor('#666666').font('Helvetica');
-    doc.text('Technical Reference for Devices, Network, and Infrastructure', 60, 160, { align: 'center', width: 475 });
+    doc.text('Technical Reference for Devices, Network, and Infrastructure', 60, contentStartY + 40, { align: 'center', width: 475 });
     
     // Divider line
-    doc.moveTo(150, 190).lineTo(445, 190).strokeColor('#0066cc').lineWidth(2).stroke();
+    doc.moveTo(150, contentStartY + 70).lineTo(445, contentStartY + 70).strokeColor('#0066cc').lineWidth(2).stroke();
     
     // Project name
     doc.moveDown(2);
     doc.fontSize(24).fillColor('#333333').font('Helvetica-Bold');
-    doc.text(project.name, 60, 220, { align: 'center', width: 475 });
+    doc.text(project.name, 60, contentStartY + 100, { align: 'center', width: 475 });
     
     // Client info
     if (project.clientName) {
@@ -212,9 +264,9 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     doc.fontSize(10).fillColor('#888888');
     doc.text('Prepared by', 60, 680, { align: 'center', width: 475 });
     doc.fontSize(14).fillColor('#0066cc').font('Helvetica-Bold');
-    doc.text('Electronic Living', 60, 695, { align: 'center', width: 475 });
+    doc.text(companyName, 60, 695, { align: 'center', width: 475 });
     doc.fontSize(10).fillColor('#888888').font('Helvetica');
-    doc.text('www.electronicliving.com.au', 60, 715, { align: 'center', width: 475 });
+    doc.text(companyWebsite, 60, 715, { align: 'center', width: 475 });
     
     // Date
     doc.fontSize(10).fillColor('#666666');
@@ -687,13 +739,13 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     doc.font('Helvetica-Bold').text('System Integrator');
     doc.moveDown(0.5);
     
-    // Electronic Living contact box
+    // Company contact box
     doc.rect(50, doc.y, 495, 60).fill('#f0f9ff');
     const boxY = doc.y;
     doc.fillColor('#0369a1').fontSize(14).font('Helvetica-Bold');
-    doc.text('Electronic Living', 60, boxY + 10);
+    doc.text(companyName, 60, boxY + 10);
     doc.fillColor('#333333').fontSize(11).font('Helvetica');
-    doc.text('1300 764 554', 60, boxY + 30);
+    doc.text(companyWebsite, 60, boxY + 30);
     doc.fontSize(10).fillColor('#666666');
     doc.text('For technical support or service requests', 60, boxY + 45);
     doc.y = boxY + 70;

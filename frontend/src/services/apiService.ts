@@ -753,6 +753,78 @@ export const tasksAPI = {
   },
 };
 
+// Settings API
+export const settingsAPI = {
+  // Get branding settings
+  getBranding: async () => {
+    const response = await fetch(`${API_BASE_URL}/settings/branding`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to fetch branding settings');
+    return response.json();
+  },
+
+  // Get logo image data
+  getLogo: async () => {
+    const response = await fetch(`${API_BASE_URL}/settings/branding/logo`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to fetch logo');
+    return response.json();
+  },
+
+  // Get background image data
+  getBackground: async () => {
+    const response = await fetch(`${API_BASE_URL}/settings/branding/background`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to fetch background');
+    return response.json();
+  },
+
+  // Update branding settings
+  updateBranding: async (data: {
+    logo?: { data: string; mimeType: string; filename: string } | null;
+    background?: { data: string; mimeType: string; filename: string; opacity?: number } | null;
+    companyName?: string;
+    companyWebsite?: string;
+  }) => {
+    const response = await fetch(`${API_BASE_URL}/settings/branding`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update branding');
+    }
+    return response.json();
+  },
+
+  // Delete logo
+  deleteLogo: async () => {
+    const response = await fetch(`${API_BASE_URL}/settings/branding/logo`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to delete logo');
+    return response.json();
+  },
+
+  // Delete background
+  deleteBackground: async () => {
+    const response = await fetch(`${API_BASE_URL}/settings/branding/background`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to delete background');
+    return response.json();
+  },
+};
+
 export default {
   authAPI,
   projectsAPI,
@@ -762,6 +834,7 @@ export default {
   manufacturersAPI,
   deviceTemplatesAPI,
   tasksAPI,
+  settingsAPI,
   healthCheck,
   getToken,
   setToken,

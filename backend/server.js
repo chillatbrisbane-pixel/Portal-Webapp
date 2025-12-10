@@ -76,6 +76,7 @@ const deviceRoutes = require('./routes/devices');
 const reportRoutes = require('./routes/reports');
 const taskRoutes = require('./routes/tasks');
 const backupRoutes = require('./routes/backup');
+const settingsRoutes = require('./routes/settings');
 console.log('✅ All routes loaded including tasks and backup');
 
 // Health check endpoint
@@ -100,6 +101,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -1,22 +1,38 @@
-# Portal v23-fixed43 Changelog
+# Portal v23-fixed44 Changelog
 
 ## What's New in This Update
 
-### 📄 PDF Report - Logo Removed
-- Removed logo from cover page (placeholder for future branding)
-- Kept all other PDF improvements:
-  - Title: **"Integrated System Profile"**
-  - Subtitle: *"Technical Reference for Devices, Network, and Infrastructure"*
-  - Footer: "Prepared by Electronic Living" with website
+### 🎨 Company Branding Settings (Admin Only)
 
-### 🔒 Security > Alarm Panel > Dialler (from v42)
-New fields when "Alarm Dialler Installed" is checked:
-- **Account Number** - Monitoring account number
-- **Monitoring Company** details:
-  - Company Name
-  - Phone
-  - Email
-  - Address
+New **Branding** tab in Settings allows admins to customize PDF reports:
+
+**Company Details:**
+- Company Name (appears in PDF footer and support page)
+- Website URL (appears in PDF footer and support page)
+
+**Logo Upload:**
+- PNG/JPEG support (max 2MB)
+- Displayed at top of PDF cover page
+- Preview shown in settings
+- Remove button to clear logo
+
+**Background Watermark:**
+- Optional image displayed faded behind PDF content
+- PNG/JPEG support (max 5MB)
+- Adjustable opacity (5% to 30%)
+- Preview with opacity applied
+- Remove button to clear background
+
+### 📄 PDF Report Updates
+- Cover page now uses custom logo if uploaded
+- Background watermark appears on cover page
+- Company name and website from settings shown in footer
+- Support page uses company name/website from settings
+
+### Previous Features (v43)
+- Alarm dialler account number and monitoring company fields
+- "Integrated System Profile" PDF title
+- Networking wizard with Routers + Switches
 
 ---
 
@@ -24,7 +40,7 @@ New fields when "Alarm Dialler Installed" is checked:
 
 ```bash
 cd /home/app/Portal-Webapp
-unzip -o Portal-Webapp-v23-fixed43.zip
+unzip -o Portal-Webapp-v23-fixed44.zip
 pm2 restart all
 cd frontend && npm run build
 ```
