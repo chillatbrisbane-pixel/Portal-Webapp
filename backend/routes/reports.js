@@ -1,25 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const PDFDocument = require('pdfkit');
-const https = require('https');
 const Project = require('../models/Project');
 const Device = require('../models/Device');
 const jwt = require('jsonwebtoken');
-
-// Electronic Living logo URL
-const LOGO_URL = 'https://www.electronicliving.com.au/wp-content/uploads/Electronic-Living-Logo-Rev.png';
-
-// Function to download image as buffer
-const downloadImage = (url) => {
-  return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
-      const chunks = [];
-      response.on('data', (chunk) => chunks.push(chunk));
-      response.on('end', () => resolve(Buffer.concat(chunks)));
-      response.on('error', reject);
-    }).on('error', reject);
-  });
-};
 
 // Middleware to handle auth via query param or header (for download links)
 const authenticateDownload = (req, res, next) => {
@@ -170,14 +154,6 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       .populate('boundToSwitch', 'name portCount')
       .sort({ category: 1, deviceType: 1, name: 1 });
 
-    // Download logo image
-    let logoBuffer = null;
-    try {
-      logoBuffer = await downloadImage(LOGO_URL);
-    } catch (logoError) {
-      console.log('Could not download logo, continuing without it:', logoError.message);
-    }
-
     // Create PDF
     const doc = new PDFDocument({ 
       size: 'A4',
@@ -204,41 +180,32 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     // White content area
     doc.rect(40, 40, 515, 762).fill('#ffffff');
     
-    // Logo at top
-    if (logoBuffer) {
-      try {
-        doc.image(logoBuffer, 175, 60, { width: 250 });
-      } catch (imgError) {
-        console.log('Could not embed logo in PDF:', imgError.message);
-      }
-    }
-    
     // Title
     doc.fontSize(28).fillColor('#0066cc').font('Helvetica-Bold');
-    doc.text('Integrated System Profile', 60, 180, { align: 'center', width: 475 });
+    doc.text('Integrated System Profile', 60, 120, { align: 'center', width: 475 });
     
     // Subtitle
     doc.fontSize(12).fillColor('#666666').font('Helvetica');
-    doc.text('Technical Reference for Devices, Network, and Infrastructure', 60, 220, { align: 'center', width: 475 });
+    doc.text('Technical Reference for Devices, Network, and Infrastructure', 60, 160, { align: 'center', width: 475 });
     
     // Divider line
-    doc.moveTo(150, 250).lineTo(445, 250).strokeColor('#0066cc').lineWidth(2).stroke();
+    doc.moveTo(150, 190).lineTo(445, 190).strokeColor('#0066cc').lineWidth(2).stroke();
     
     // Project name
     doc.moveDown(2);
     doc.fontSize(24).fillColor('#333333').font('Helvetica-Bold');
-    doc.text(project.name, 60, 280, { align: 'center', width: 475 });
+    doc.text(project.name, 60, 220, { align: 'center', width: 475 });
     
     // Client info
     if (project.clientName) {
       doc.moveDown(1);
       doc.fontSize(14).fillColor('#666666').font('Helvetica');
-      doc.text(`Prepared for: ${project.clientName}`, 60, 340, { align: 'center', width: 475 });
+      doc.text(`Prepared for: ${project.clientName}`, 60, 280, { align: 'center', width: 475 });
     }
     
     if (project.address) {
       doc.fontSize(12).fillColor('#888888');
-      doc.text(project.address, 60, 370, { align: 'center', width: 475 });
+      doc.text(project.address, 60, 310, { align: 'center', width: 475 });
     }
     
     // Footer section
