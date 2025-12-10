@@ -75,17 +75,12 @@ router.get('/:token', async (req, res) => {
         configNotes: d.configNotes,
         // Switch port info
         portCount: d.portCount,
-        managedPorts: d.managedPorts?.map(p => ({
-          portNumber: p.portNumber,
-          description: p.description,
-          assignedDevice: p.assignedDevice ? {
-            _id: p.assignedDevice._id,
-            name: p.assignedDevice.name,
-            ipAddress: p.assignedDevice.ipAddress,
-          } : null,
-          vlan: p.vlan,
-          poeEnabled: p.poeEnabled,
-        })),
+        // Switch binding (for devices connected to switches)
+        boundToSwitch: d.boundToSwitch ? {
+          _id: d.boundToSwitch._id || d.boundToSwitch,
+          name: d.boundToSwitch.name || '',
+        } : null,
+        switchPort: d.switchPort,
         // PDU info
         pduPortCount: d.pduPortCount,
         pduPortNames: d.pduPortNames,

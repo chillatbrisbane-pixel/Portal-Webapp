@@ -35,6 +35,9 @@ interface Device {
   // Switch ports
   portCount?: number;
   managedPorts?: ManagedPort[];
+  // Switch binding (for devices connected to switches)
+  boundToSwitch?: string | { _id: string; name: string };
+  switchPort?: number;
   // PDU ports
   pduPortCount?: number;
   pduPortNames?: string;
@@ -297,9 +300,26 @@ export const ClientPortal: React.FC = () => {
   const devicesByCategory = groupDevicesByCategory();
   
   // Get switches and PDUs for port allocation sections
-  // Show switches that have portCount (even if managedPorts is empty)
   const switches = devices.filter(d => d.deviceType === 'switch' && d.portCount);
   const pdus = devices.filter(d => d.deviceType === 'pdu');
+  
+  // Build port allocations for each switch from device bindings
+  const getSwitchPortAllocations = (switchId: string) => {
+    return devices
+      .filter(d => {
+        const boundId = typeof d.boundToSwitch === 'string' 
+          ? d.boundToSwitch 
+          : d.boundToSwitch?._id;
+        return boundId === switchId && d.switchPort;
+      })
+      .map(d => ({
+        portNumber: d.switchPort!,
+        deviceName: d.name,
+        ipAddress: d.ipAddress,
+        vlan: d.vlan,
+      }))
+      .sort((a, b) => a.portNumber - b.portNumber);
+  };
 
   const handleDownloadPDF = () => {
     if (token) {
@@ -634,47 +654,44 @@ export const ClientPortal: React.FC = () => {
             
             {sectionsExpanded.switchPorts && (
               <div style={{ padding: '1.5rem' }}>
-                {switches.map(sw => (
-                  <div key={sw._id} style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: '0 0 1rem', color: '#374151', fontSize: '1.1rem' }}>
-                      {sw.name} {sw.portCount && `(${sw.portCount} ports)`}
-                    </h3>
-                    <div style={{ overflowX: 'auto' }}>
-                      {sw.managedPorts && sw.managedPorts.filter(p => p.assignedDevice || p.description).length > 0 ? (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                          <thead>
-                            <tr style={{ background: '#f3f4f6' }}>
-                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Port</th>
-                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Device</th>
-                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>IP Address</th>
-                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>VLAN</th>
-                              <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '2px solid #e5e7eb' }}>PoE</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sw.managedPorts?.filter(p => p.assignedDevice || p.description).map(port => (
-                              <tr key={port.portNumber} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                                <td style={{ padding: '0.5rem', fontWeight: 600 }}>{port.portNumber}</td>
-                                <td style={{ padding: '0.5rem' }}>
-                                  {port.assignedDevice?.name || port.description || '-'}
-                                </td>
-                                <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#6b7280' }}>
-                                  {port.assignedDevice?.ipAddress || '-'}
-                                </td>
-                                <td style={{ padding: '0.5rem' }}>{port.vlan || '-'}</td>
-                                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                                  {port.poeEnabled ? '⚡' : '-'}
-                                </td>
+                {switches.map(sw => {
+                  const portAllocations = getSwitchPortAllocations(sw._id);
+                  return (
+                    <div key={sw._id} style={{ marginBottom: '1.5rem' }}>
+                      <h3 style={{ margin: '0 0 1rem', color: '#374151', fontSize: '1.1rem' }}>
+                        {sw.name} {sw.portCount && `(${sw.portCount} ports)`}
+                      </h3>
+                      <div style={{ overflowX: 'auto' }}>
+                        {portAllocations.length > 0 ? (
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                            <thead>
+                              <tr style={{ background: '#f3f4f6' }}>
+                                <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Port</th>
+                                <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Device</th>
+                                <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>IP Address</th>
+                                <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>VLAN</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <p style={{ color: '#6b7280', fontStyle: 'italic', margin: 0 }}>No port allocations configured</p>
-                      )}
+                            </thead>
+                            <tbody>
+                              {portAllocations.map(port => (
+                                <tr key={port.portNumber} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                  <td style={{ padding: '0.5rem', fontWeight: 600 }}>{port.portNumber}</td>
+                                  <td style={{ padding: '0.5rem' }}>{port.deviceName}</td>
+                                  <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#6b7280' }}>
+                                    {port.ipAddress || '-'}
+                                  </td>
+                                  <td style={{ padding: '0.5rem' }}>{port.vlan || '-'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p style={{ color: '#6b7280', fontStyle: 'italic', margin: 0 }}>No port allocations configured</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
