@@ -533,4 +533,105 @@ router.post('/:id/rollback/:versionId', authenticateToken, async (req, res) => {
   }
 });
 
+// ============================================
+// CLIENT ACCESS MANAGEMENT
+// ============================================
+
+const crypto = require('crypto');
+const generateClientToken = () => crypto.randomBytes(32).toString('hex');
+
+// GET /api/projects/:id/client-access - Get client access status
+router.get('/:id/client-access', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    res.json({
+      enabled: project.clientAccess?.enabled || false,
+      token: project.clientAccess?.token || null,
+      pin: project.clientAccess?.pin || null,
+      lastAccessed: project.clientAccess?.lastAccessed || null,
+      createdAt: project.clientAccess?.createdAt || null,
+    });
+  } catch (error) {
+    console.error('Error fetching client access:', error);
+    res.status(500).json({ error: 'Failed to fetch client access' });
+  }
+});
+
+// PUT /api/projects/:id/client-access - Enable/disable client access
+router.put('/:id/client-access', authenticateToken, async (req, res) => {
+  try {
+    const { enabled, pin } = req.body;
+    const project = await Project.findById(req.params.id);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    // Initialize clientAccess if not exists
+    if (!project.clientAccess) {
+      project.clientAccess = {};
+    }
+    
+    // If enabling and no token exists, or if re-enabling after disable, generate new token
+    if (enabled && (!project.clientAccess.token || !project.clientAccess.enabled)) {
+      project.clientAccess.token = generateClientToken();
+      project.clientAccess.createdAt = new Date();
+      project.clientAccess.lastAccessed = null;
+    }
+    
+    project.clientAccess.enabled = enabled;
+    
+    // Update PIN if provided (can be empty string to remove)
+    if (pin !== undefined) {
+      project.clientAccess.pin = pin || null;
+    }
+    
+    await project.save();
+    
+    res.json({
+      enabled: project.clientAccess.enabled,
+      token: project.clientAccess.token,
+      pin: project.clientAccess.pin,
+      lastAccessed: project.clientAccess.lastAccessed,
+      createdAt: project.clientAccess.createdAt,
+    });
+  } catch (error) {
+    console.error('Error updating client access:', error);
+    res.status(500).json({ error: 'Failed to update client access' });
+  }
+});
+
+// POST /api/projects/:id/client-access/regenerate - Regenerate token
+router.post('/:id/client-access/regenerate', authenticateToken, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    if (!project.clientAccess) {
+      project.clientAccess = {};
+    }
+    
+    project.clientAccess.token = generateClientToken();
+    project.clientAccess.createdAt = new Date();
+    project.clientAccess.lastAccessed = null;
+    
+    await project.save();
+    
+    res.json({
+      token: project.clientAccess.token,
+      createdAt: project.clientAccess.createdAt,
+    });
+  } catch (error) {
+    console.error('Error regenerating token:', error);
+    res.status(500).json({ error: 'Failed to regenerate token' });
+  }
+});
+
 module.exports = router;

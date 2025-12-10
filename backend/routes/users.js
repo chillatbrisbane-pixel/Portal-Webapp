@@ -325,4 +325,22 @@ router.delete('/:id', authenticateToken, authorizeRole(['admin']), async (req, r
   }
 });
 
+// GET /api/users/active/list - Get currently active users (admin only)
+router.get('/active/list', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    // Consider users active if they've been active in the last 15 minutes
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    
+    const activeUsers = await User.find({
+      lastActive: { $gte: fifteenMinutesAgo },
+      suspended: { $ne: true },
+    }).select('name email role lastActive lastLogin');
+    
+    res.json(activeUsers);
+  } catch (error) {
+    console.error('Error fetching active users:', error);
+    res.status(500).json({ error: 'Failed to fetch active users' });
+  }
+});
+
 module.exports = router;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Project, Device, ProjectVersion, NoteEntry } from '../types'
-import { projectsAPI, reportsAPI, devicesAPI } from '../services/apiService'
+import { projectsAPI, reportsAPI, devicesAPI, clientAccessAPI } from '../services/apiService'
 import { DeviceList } from './DeviceList'
 import TaskList from './TaskList'
 
@@ -78,6 +78,18 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [showSkytunnelQR, setShowSkytunnelQR] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   
+  // Client Access
+  const [clientAccess, setClientAccess] = useState<{
+    enabled: boolean;
+    token: string | null;
+    pin: string | null;
+    lastAccessed: string | null;
+    createdAt: string | null;
+  }>({ enabled: false, token: null, pin: null, lastAccessed: null, createdAt: null })
+  const [clientAccessLoading, setClientAccessLoading] = useState(false)
+  const [showClientAccessWarning, setShowClientAccessWarning] = useState(false)
+  const [clientAccessPin, setClientAccessPin] = useState('')
+  
   // Devices
   const [devices, setDevices] = useState<Device[]>([])
   
@@ -92,6 +104,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
   useEffect(() => {
     loadDevices()
+    loadClientAccess()
   }, [project._id])
 
   const loadDevices = async () => {
@@ -107,6 +120,75 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     } catch (err) {
       console.error('Failed to load devices:', err)
     }
+  }
+
+  const loadClientAccess = async () => {
+    try {
+      const data = await clientAccessAPI.getStatus(project._id)
+      setClientAccess(data)
+      setClientAccessPin(data.pin || '')
+    } catch (err) {
+      console.error('Failed to load client access:', err)
+    }
+  }
+
+  const toggleClientAccess = async (enable: boolean) => {
+    // If disabling, just do it
+    // If enabling after being disabled (token exists but disabled), show warning
+    if (enable && clientAccess.token && !clientAccess.enabled) {
+      setShowClientAccessWarning(true)
+      return
+    }
+    
+    await updateClientAccess(enable)
+  }
+
+  const updateClientAccess = async (enable: boolean) => {
+    setClientAccessLoading(true)
+    try {
+      const data = await clientAccessAPI.update(project._id, { 
+        enabled: enable,
+        pin: clientAccessPin || undefined,
+      })
+      setClientAccess(data)
+      setShowClientAccessWarning(false)
+    } catch (err) {
+      console.error('Failed to update client access:', err)
+    } finally {
+      setClientAccessLoading(false)
+    }
+  }
+
+  const saveClientAccessPin = async () => {
+    setClientAccessLoading(true)
+    try {
+      const data = await clientAccessAPI.update(project._id, { 
+        enabled: clientAccess.enabled,
+        pin: clientAccessPin || '',
+      })
+      setClientAccess(data)
+    } catch (err) {
+      console.error('Failed to save PIN:', err)
+    } finally {
+      setClientAccessLoading(false)
+    }
+  }
+
+  const regenerateClientToken = async () => {
+    setClientAccessLoading(true)
+    try {
+      const data = await clientAccessAPI.regenerateToken(project._id)
+      setClientAccess(prev => ({ ...prev, ...data }))
+    } catch (err) {
+      console.error('Failed to regenerate token:', err)
+    } finally {
+      setClientAccessLoading(false)
+    }
+  }
+
+  const getClientAccessUrl = () => {
+    const baseUrl = window.location.origin
+    return `${baseUrl}/client/${clientAccess.token}`
   }
 
   const loadVersions = async () => {
@@ -1173,6 +1255,163 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                     🔗 Open
                   </a>
                 </div>
+              </div>
+            )}
+
+            {/* Client Access Link */}
+            {currentUser?.role === 'admin' && (
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>🔗 Client Access Link</p>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={clientAccess.enabled}
+                      onChange={(e) => toggleClientAccess(e.target.checked)}
+                      disabled={clientAccessLoading}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '0.85rem', color: clientAccess.enabled ? '#059669' : '#6b7280' }}>
+                      {clientAccess.enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </label>
+                </div>
+                
+                {clientAccess.enabled && clientAccess.token && (
+                  <div style={{ background: '#f0fdf4', borderRadius: '8px', padding: '1rem', border: '1px solid #bbf7d0' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem', 
+                      marginBottom: '0.75rem',
+                      padding: '0.5rem',
+                      background: 'white',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontFamily: 'monospace',
+                      wordBreak: 'break-all',
+                    }}>
+                      {getClientAccessUrl()}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(getClientAccessUrl())
+                            setCopyFeedback('clientLink')
+                            setTimeout(() => setCopyFeedback(null), 2000)
+                          } catch {
+                            const textarea = document.createElement('textarea')
+                            textarea.value = getClientAccessUrl()
+                            document.body.appendChild(textarea)
+                            textarea.select()
+                            document.execCommand('copy')
+                            document.body.removeChild(textarea)
+                            setCopyFeedback('clientLink')
+                            setTimeout(() => setCopyFeedback(null), 2000)
+                          }
+                        }}
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          background: copyFeedback === 'clientLink' ? '#10b981' : '#059669',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                        }}
+                      >
+                        {copyFeedback === 'clientLink' ? '✓ Copied!' : '📋 Copy Link'}
+                      </button>
+                      <button
+                        onClick={regenerateClientToken}
+                        disabled={clientAccessLoading}
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          background: '#f59e0b',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                        }}
+                        title="Generate a new link (invalidates old link)"
+                      >
+                        🔄 New Link
+                      </button>
+                      <a
+                        href={getClientAccessUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          background: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        🔗 Preview
+                      </a>
+                    </div>
+                    
+                    {/* PIN Setting */}
+                    <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #bbf7d0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#166534' }}>🔐 PIN Protection:</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={clientAccessPin}
+                          onChange={(e) => setClientAccessPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          placeholder="Optional 4-6 digit PIN"
+                          maxLength={6}
+                          style={{
+                            padding: '0.375rem 0.5rem',
+                            border: '1px solid #86efac',
+                            borderRadius: '4px',
+                            width: '140px',
+                            fontSize: '0.85rem',
+                          }}
+                        />
+                        <button
+                          onClick={saveClientAccessPin}
+                          disabled={clientAccessLoading}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            background: '#166534',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          Save
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: '#166534', margin: '0.5rem 0 0', opacity: 0.8 }}>
+                        {clientAccess.pin ? `Current PIN: ${clientAccess.pin}` : 'No PIN set - anyone with the link can access'}
+                      </p>
+                    </div>
+                    
+                    {clientAccess.lastAccessed && (
+                      <p style={{ fontSize: '0.75rem', color: '#166534', margin: '0.75rem 0 0', opacity: 0.7 }}>
+                        Last accessed: {new Date(clientAccess.lastAccessed).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+                
+                {!clientAccess.enabled && (
+                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>
+                    Enable to generate a shareable link for clients to view their system profile
+                  </p>
+                )}
               </div>
             )}
 
@@ -2246,6 +2485,47 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               >
                 🔗 Open
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Client Access Re-enable Warning Modal */}
+      {showClientAccessWarning && (
+        <div className="modal-overlay" onClick={() => setShowClientAccessWarning(false)}>
+          <div 
+            className="modal" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '450px' }}
+          >
+            <div className="modal-header">
+              <h2>⚠️ Re-enable Client Access?</h2>
+              <button className="close-btn" onClick={() => setShowClientAccessWarning(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '1rem' }}>
+                Client access was previously disabled. Re-enabling will generate a <strong>new link</strong>.
+              </p>
+              <p style={{ color: '#dc2626', marginBottom: '1.5rem' }}>
+                The old link will no longer work. Make sure to share the new link with your client.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  onClick={() => setShowClientAccessWarning(false)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => updateClientAccess(true)}
+                  className="btn btn-primary"
+                  disabled={clientAccessLoading}
+                  style={{ flex: 1, background: '#059669' }}
+                >
+                  {clientAccessLoading ? 'Enabling...' : '✓ Enable & Generate New Link'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

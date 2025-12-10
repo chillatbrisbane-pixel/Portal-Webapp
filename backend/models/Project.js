@@ -169,6 +169,15 @@ const projectSchema = new mongoose.Schema(
       generatedDate: Date,
       html: String,
     },
+    
+    // Client Access Link
+    clientAccess: {
+      enabled: { type: Boolean, default: false },
+      token: { type: String, unique: true, sparse: true },
+      pin: { type: String },  // Optional 4-6 digit PIN
+      lastAccessed: { type: Date },
+      createdAt: { type: Date },
+    },
   },
   { timestamps: true }
 );

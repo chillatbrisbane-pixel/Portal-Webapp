@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { User, ActivityLog } from '../types'
-import { usersAPI } from '../services/apiService'
+import { usersAPI, activeUsersAPI } from '../services/apiService'
 
 interface UserManagementModalProps {
   currentUser: User
@@ -37,11 +37,19 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
   const [loginHistory, setLoginHistory] = useState<ActivityLog[]>([])
   const [viewingUserHistory, setViewingUserHistory] = useState<User | null>(null)
+  
+  // Active users
+  const [activeUsers, setActiveUsers] = useState<User[]>([])
+  const [loadingActiveUsers, setLoadingActiveUsers] = useState(false)
 
   useEffect(() => {
     // Only admins can load all users
     if (currentUser.role === 'admin') {
       loadUsers()
+      loadActiveUsers()
+      // Refresh active users every 30 seconds
+      const interval = setInterval(loadActiveUsers, 30000)
+      return () => clearInterval(interval)
     } else {
       setLoading(false)
     }
@@ -57,6 +65,19 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadActiveUsers = async () => {
+    if (currentUser.role !== 'admin') return
+    try {
+      setLoadingActiveUsers(true)
+      const data = await activeUsersAPI.getActiveUsers()
+      setActiveUsers(data)
+    } catch (err) {
+      console.error('Failed to load active users:', err)
+    } finally {
+      setLoadingActiveUsers(false)
     }
   }
 

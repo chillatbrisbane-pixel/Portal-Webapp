@@ -50,6 +50,9 @@ const userSchema = new mongoose.Schema(
     lastLoginIP: {
       type: String,
     },
+    lastActive: {
+      type: Date,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

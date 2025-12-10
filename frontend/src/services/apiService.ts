@@ -825,6 +825,81 @@ export const settingsAPI = {
   },
 };
 
+// Client Access API
+export const clientAccessAPI = {
+  // Get client access status for a project
+  getStatus: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/client-access`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to fetch client access status');
+    return response.json();
+  },
+
+  // Update client access (enable/disable, set PIN)
+  update: async (projectId: string, data: { enabled: boolean; pin?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/client-access`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update client access');
+    return response.json();
+  },
+
+  // Regenerate access token
+  regenerateToken: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/client-access/regenerate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to regenerate token');
+    return response.json();
+  },
+
+  // Public: Get project data via client token (no auth required)
+  getProjectByToken: async (token: string, pin?: string) => {
+    const url = pin 
+      ? `${API_BASE_URL}/client/${token}?pin=${pin}`
+      : `${API_BASE_URL}/client/${token}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const error = await response.json();
+      throw error;
+    }
+    return response.json();
+  },
+
+  // Public: Verify PIN
+  verifyPin: async (token: string, pin: string) => {
+    const response = await fetch(`${API_BASE_URL}/client/${token}/verify-pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw error;
+    }
+    return response.json();
+  },
+};
+
+// Active Users API
+export const activeUsersAPI = {
+  // Get list of currently active users (admin only)
+  getActiveUsers: async () => {
+    const response = await fetch(`${API_BASE_URL}/users/active/list`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error('Failed to fetch active users');
+    return response.json();
+  },
+};
+
 export default {
   authAPI,
   projectsAPI,
@@ -835,6 +910,8 @@ export default {
   deviceTemplatesAPI,
   tasksAPI,
   settingsAPI,
+  clientAccessAPI,
+  activeUsersAPI,
   healthCheck,
   getToken,
   setToken,
