@@ -29,12 +29,16 @@ interface Device {
 interface ProjectData {
   name: string;
   clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   address?: string;
   state?: string;
   postcode?: string;
   wifiNetworks?: WiFiNetwork[];
   projectManager?: { name?: string; phone?: string };
+  siteLead?: { name?: string; phone?: string };
   status?: string;
+  description?: string;
 }
 
 const CATEGORY_INFO: Record<string, { icon: string; label: string; color: string }> = {
@@ -69,6 +73,11 @@ export const ClientPortal: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showPasswords, setShowPasswords] = useState<Set<string>>(new Set());
+  const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null);
+  const [sectionsExpanded, setSectionsExpanded] = useState({
+    projectDetails: true,
+    wifiNetworks: true,
+  });
 
   useEffect(() => {
     if (token) {
@@ -290,56 +299,251 @@ export const ClientPortal: React.FC = () => {
       </div>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-        {/* WiFi Networks */}
+        {/* Project Details Section - Collapsible */}
+        <div style={{ 
+          background: 'white', 
+          borderRadius: '12px', 
+          marginBottom: '1.5rem',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          overflow: 'hidden',
+        }}>
+          <div 
+            onClick={() => setSectionsExpanded(prev => ({ ...prev, projectDetails: !prev.projectDetails }))}
+            style={{
+              padding: '1rem 1.5rem',
+              background: '#f0fdf4',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderBottom: sectionsExpanded.projectDetails ? '1px solid #bbf7d0' : 'none',
+            }}
+          >
+            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#166534' }}>
+              📋 Project Details
+            </h2>
+            <span style={{ fontSize: '1.2rem', color: '#166534' }}>{sectionsExpanded.projectDetails ? '▼' : '▶'}</span>
+          </div>
+          
+          {sectionsExpanded.projectDetails && (
+            <div style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                {project?.clientName && (
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👤 Client</p>
+                    <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName}</p>
+                  </div>
+                )}
+                {project?.clientEmail && (
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
+                    <p style={{ fontWeight: 600, margin: 0 }}>
+                      <a href={`mailto:${project.clientEmail}`} style={{ color: '#0066cc' }}>{project.clientEmail}</a>
+                    </p>
+                  </div>
+                )}
+                {project?.clientPhone && (
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
+                    <p style={{ fontWeight: 600, margin: 0 }}>
+                      <a href={`tel:${project.clientPhone}`} style={{ color: '#0066cc' }}>{project.clientPhone}</a>
+                    </p>
+                  </div>
+                )}
+                {project?.address && (
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
+                    <p style={{ fontWeight: 600, margin: 0 }}>
+                      {project.address}
+                      {(project.state || project.postcode) && (
+                        <span style={{ fontWeight: 400, color: '#6b7280' }}>
+                          {project.state ? `, ${project.state}` : ''} {project.postcode || ''}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Team Contacts */}
+              {(project?.projectManager?.name || project?.siteLead?.name) && (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+                    {project?.projectManager?.name && (
+                      <div style={{ padding: '0.75rem', background: '#f0fdf4', borderRadius: '8px' }}>
+                        <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👔 Project Manager</p>
+                        <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.projectManager.name}</p>
+                        {project.projectManager.phone && (
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                            <a href={`tel:${project.projectManager.phone}`} style={{ color: '#15803d' }}>{project.projectManager.phone}</a>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {project?.siteLead?.name && (
+                      <div style={{ padding: '0.75rem', background: '#fef3c7', borderRadius: '8px' }}>
+                        <p style={{ color: '#92400e', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🦺 Site Lead</p>
+                        <p style={{ fontWeight: 600, margin: 0, color: '#92400e' }}>{project.siteLead.name}</p>
+                        {project.siteLead.phone && (
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                            <a href={`tel:${project.siteLead.phone}`} style={{ color: '#b45309' }}>{project.siteLead.phone}</a>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* WiFi Networks - Collapsible */}
         {project?.wifiNetworks && project.wifiNetworks.length > 0 && (
           <div style={{ 
             background: 'white', 
             borderRadius: '12px', 
-            padding: '1.5rem',
             marginBottom: '1.5rem',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
           }}>
-            <h2 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              📶 WiFi Networks
-            </h2>
-            <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-              {project.wifiNetworks.map((wifi, i) => (
-                <div 
-                  key={i}
-                  style={{
-                    padding: '1rem',
-                    background: '#f0f9ff',
-                    borderRadius: '8px',
-                    border: '1px solid #bae6fd',
-                  }}
-                >
-                  <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '0.5rem' }}>
-                    {wifi.name}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: '#666', fontSize: '0.9rem' }}>Password:</span>
-                    <code style={{ 
-                      background: '#e0f2fe', 
-                      padding: '0.25rem 0.5rem', 
-                      borderRadius: '4px',
-                      fontFamily: 'monospace',
-                    }}>
-                      {showPasswords.has(`wifi-${i}`) ? wifi.password : '••••••••'}
-                    </code>
-                    <button
-                      onClick={() => togglePassword(`wifi-${i}`)}
+            <div 
+              onClick={() => setSectionsExpanded(prev => ({ ...prev, wifiNetworks: !prev.wifiNetworks }))}
+              style={{
+                padding: '1rem 1.5rem',
+                background: '#eff6ff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: sectionsExpanded.wifiNetworks ? '1px solid #bfdbfe' : 'none',
+              }}
+            >
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e40af' }}>
+                📶 WiFi Networks
+              </h2>
+              <span style={{ fontSize: '1.2rem', color: '#1e40af' }}>{sectionsExpanded.wifiNetworks ? '▼' : '▶'}</span>
+            </div>
+            
+            {sectionsExpanded.wifiNetworks && (
+              <div style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+                  {project.wifiNetworks.map((wifi, i) => (
+                    <div 
+                      key={i}
                       style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
+                        padding: '1rem',
+                        background: '#f0f9ff',
+                        borderRadius: '8px',
+                        border: '1px solid #bae6fd',
                       }}
                     >
-                      {showPasswords.has(`wifi-${i}`) ? '🙈' : '👁️'}
-                    </button>
-                  </div>
+                      <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: '0.5rem' }}>
+                        {wifi.name}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span style={{ color: '#666', fontSize: '0.9rem' }}>Password:</span>
+                        <code style={{ 
+                          background: '#e0f2fe', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '4px',
+                          fontFamily: 'monospace',
+                        }}>
+                          {showPasswords.has(`wifi-${i}`) ? wifi.password : '••••••••'}
+                        </code>
+                        <button
+                          onClick={() => togglePassword(`wifi-${i}`)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                          }}
+                        >
+                          {showPasswords.has(`wifi-${i}`) ? '🙈' : '👁️'}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setQrWifi(wifi)}
+                        style={{
+                          padding: '0.4rem 0.75rem',
+                          background: '#0066cc',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        📱 Show QR Code
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* WiFi QR Code Modal */}
+        {qrWifi && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }} onClick={() => setQrWifi(null)}>
+            <div 
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '2rem',
+                maxWidth: '400px',
+                width: '100%',
+                textAlign: 'center',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 1rem', color: '#0066cc' }}>{qrWifi.name}</h3>
+              <div style={{ 
+                background: 'white', 
+                padding: '1rem', 
+                borderRadius: '8px',
+                display: 'inline-block',
+                marginBottom: '1rem',
+              }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`WIFI:T:WPA;S:${qrWifi.name};P:${qrWifi.password};;`)}`}
+                  alt="WiFi QR Code"
+                  style={{ display: 'block' }}
+                />
+              </div>
+              <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                Scan this QR code with your phone camera to connect
+              </p>
+              <button
+                onClick={() => setQrWifi(null)}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#e5e7eb',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Close
+              </button>
             </div>
           </div>
         )}

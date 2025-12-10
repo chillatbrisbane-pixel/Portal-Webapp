@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Project, Device, ProjectVersion, NoteEntry } from '../types'
-import { projectsAPI, reportsAPI, devicesAPI, clientAccessAPI } from '../services/apiService'
+import { Project, Device, ProjectVersion, NoteEntry, User } from '../types'
+import { projectsAPI, reportsAPI, devicesAPI, clientAccessAPI, usersAPI } from '../services/apiService'
 import { DeviceList } from './DeviceList'
 import TaskList from './TaskList'
 
@@ -12,6 +12,13 @@ interface ProjectDetailProps {
   onProjectDeleted: (projectId: string) => void
   onProjectCloned?: (project: Project) => void
   currentUser?: { _id: string; name: string; role: string }
+}
+
+interface StaffMember {
+  _id: string
+  name: string
+  phone?: string
+  role: string
 }
 
 interface WiFiNetwork {
@@ -65,6 +72,17 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [cloneName, setCloneName] = useState('')
   const [cloneDevices, setCloneDevices] = useState(true)
   
+  // Staff list for dropdowns
+  const [allStaff, setAllStaff] = useState<StaffMember[]>([])
+  const [projectManagers, setProjectManagers] = useState<StaffMember[]>([])
+  
+  // Collapsible sections
+  const [sectionsExpanded, setSectionsExpanded] = useState({
+    projectDetails: true,
+    teamContacts: true,
+    links: true,
+  })
+  
   // WiFi networks - sync with project
   const [wifiNetworks, setWifiNetworks] = useState<WiFiNetwork[]>(project.wifiNetworks || [])
   const [showAddWifi, setShowAddWifi] = useState(false)
@@ -108,6 +126,26 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
     loadDevices()
     loadClientAccess()
   }, [project._id])
+
+  // Load staff list when editing starts
+  useEffect(() => {
+    if (editing) {
+      loadStaff()
+    }
+  }, [editing])
+
+  const loadStaff = async () => {
+    try {
+      const users = await usersAPI.getAll()
+      // Filter active users
+      const activeUsers = users.filter((u: StaffMember) => !u.suspended)
+      setAllStaff(activeUsers)
+      // Project managers are admin or project-manager role
+      setProjectManagers(activeUsers.filter((u: StaffMember) => ['admin', 'project-manager'].includes(u.role)))
+    } catch (err) {
+      console.error('Failed to load staff:', err)
+    }
+  }
 
   const loadDevices = async () => {
     try {
@@ -889,30 +927,55 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label>👔 Project Manager Name</label>
-                <input
-                  type="text"
-                  value={formData.projectManager?.name || ''}
-                  onChange={(e) => setFormData({ ...formData, projectManager: { ...formData.projectManager, name: e.target.value } })}
-                />
+                <label>👔 Project Manager</label>
+                <select
+                  value={formData.projectManager?.userId || ''}
+                  onChange={(e) => {
+                    const selectedUser = projectManagers.find(u => u._id === e.target.value)
+                    setFormData({
+                      ...formData,
+                      projectManager: selectedUser 
+                        ? { userId: selectedUser._id, name: selectedUser.name, phone: selectedUser.phone || '' }
+                        : { userId: undefined, name: '', phone: '' }
+                    })
+                  }}
+                >
+                  <option value="">-- Select Project Manager --</option>
+                  {projectManagers.map(pm => (
+                    <option key={pm._id} value={pm._id}>{pm.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label>👔 Project Manager Phone</label>
+                <label>👔 PM Phone</label>
                 <input
                   type="tel"
                   value={formData.projectManager?.phone || ''}
                   onChange={(e) => setFormData({ ...formData, projectManager: { ...formData.projectManager, phone: e.target.value } })}
+                  placeholder="Auto-filled or manual entry"
                 />
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label>🦺 Site Lead Name</label>
-                <input
-                  type="text"
-                  value={formData.siteLead?.name || ''}
-                  onChange={(e) => setFormData({ ...formData, siteLead: { ...formData.siteLead, name: e.target.value } })}
-                />
+                <label>🦺 Site Lead</label>
+                <select
+                  value={formData.siteLead?.userId || ''}
+                  onChange={(e) => {
+                    const selectedUser = allStaff.find(u => u._id === e.target.value)
+                    setFormData({
+                      ...formData,
+                      siteLead: selectedUser 
+                        ? { userId: selectedUser._id, name: selectedUser.name, phone: selectedUser.phone || '' }
+                        : { userId: undefined, name: '', phone: '' }
+                    })
+                  }}
+                >
+                  <option value="">-- Select Site Lead --</option>
+                  {allStaff.map(staff => (
+                    <option key={staff._id} value={staff._id}>{staff.name}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
@@ -956,63 +1019,106 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
           </form>
         ) : (
           <>
-            {/* Client Info Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <div>
-                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👤 Client</p>
-                <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName || 'N/A'}</p>
+            {/* Project Details Section - Collapsible */}
+            <div style={{ marginBottom: '1rem' }}>
+              <div 
+                onClick={() => setSectionsExpanded(prev => ({ ...prev, projectDetails: !prev.projectDetails }))}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  padding: '0.5rem 0',
+                  borderBottom: '1px solid #e5e7eb',
+                  marginBottom: sectionsExpanded.projectDetails ? '1rem' : 0,
+                }}
+              >
+                <h4 style={{ margin: 0, color: '#374151', fontSize: '0.95rem' }}>📋 Project Details</h4>
+                <span style={{ color: '#6b7280', fontSize: '1.2rem' }}>{sectionsExpanded.projectDetails ? '▼' : '▶'}</span>
               </div>
-              <div>
-                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
-                <p style={{ fontWeight: 600, margin: 0 }}>
-                  {project.clientEmail ? (
-                    <a href={`mailto:${project.clientEmail}`}>{project.clientEmail}</a>
-                  ) : 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
-                <p style={{ fontWeight: 600, margin: 0 }}>
-                  {project.clientPhone ? (
-                    <a href={`tel:${project.clientPhone}`}>{project.clientPhone}</a>
-                  ) : 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
-                <p style={{ fontWeight: 600, margin: 0 }}>
-                  {project.address || 'N/A'}
-                  {(project.state || project.postcode) && (
-                    <span style={{ fontWeight: 400, color: '#6b7280' }}>
-                      {project.state ? `, ${project.state}` : ''}{project.postcode ? ` ${project.postcode}` : ''}
-                    </span>
-                  )}
-                </p>
-              </div>
+              
+              {sectionsExpanded.projectDetails && (
+                <>
+                  {/* Client Info Row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
+                    <div>
+                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👤 Client</p>
+                      <p style={{ fontWeight: 600, margin: 0 }}>{project.clientName || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📧 Email</p>
+                      <p style={{ fontWeight: 600, margin: 0 }}>
+                        {project.clientEmail ? (
+                          <a href={`mailto:${project.clientEmail}`}>{project.clientEmail}</a>
+                        ) : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📱 Phone</p>
+                      <p style={{ fontWeight: 600, margin: 0 }}>
+                        {project.clientPhone ? (
+                          <a href={`tel:${project.clientPhone}`}>{project.clientPhone}</a>
+                        ) : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '0.25rem' }}>📍 Address</p>
+                      <p style={{ fontWeight: 600, margin: 0 }}>
+                        {project.address || 'N/A'}
+                        {(project.state || project.postcode) && (
+                          <span style={{ fontWeight: 400, color: '#6b7280' }}>
+                            {project.state ? `, ${project.state}` : ''}{project.postcode ? ` ${project.postcode}` : ''}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Project Manager & Site Lead Row */}
+            {/* Team Contacts Section - Collapsible */}
             {(project.projectManager?.name || project.siteLead?.name) && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-                {project.projectManager?.name && (
-                  <div>
-                    <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👔 Project Manager</p>
-                    <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.projectManager.name}</p>
-                    {project.projectManager.phone && (
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-                        <a href={`tel:${project.projectManager.phone}`} style={{ color: '#15803d' }}>{project.projectManager.phone}</a>
-                      </p>
+              <div style={{ marginBottom: '1rem' }}>
+                <div 
+                  onClick={() => setSectionsExpanded(prev => ({ ...prev, teamContacts: !prev.teamContacts }))}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    padding: '0.5rem 0',
+                    borderBottom: '1px solid #e5e7eb',
+                    marginBottom: sectionsExpanded.teamContacts ? '1rem' : 0,
+                  }}
+                >
+                  <h4 style={{ margin: 0, color: '#374151', fontSize: '0.95rem' }}>👥 Team Contacts</h4>
+                  <span style={{ color: '#6b7280', fontSize: '1.2rem' }}>{sectionsExpanded.teamContacts ? '▼' : '▶'}</span>
+                </div>
+                
+                {sectionsExpanded.teamContacts && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', padding: '1rem', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                    {project.projectManager?.name && (
+                      <div>
+                        <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>👔 Project Manager</p>
+                        <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.projectManager.name}</p>
+                        {project.projectManager.phone && (
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                            <a href={`tel:${project.projectManager.phone}`} style={{ color: '#15803d' }}>{project.projectManager.phone}</a>
+                          </p>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-                {project.siteLead?.name && (
-                  <div>
-                    <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🦺 Site Lead</p>
-                    <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.siteLead.name}</p>
-                    {project.siteLead.phone && (
-                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
-                        <a href={`tel:${project.siteLead.phone}`} style={{ color: '#15803d' }}>{project.siteLead.phone}</a>
-                      </p>
+                    {project.siteLead?.name && (
+                      <div>
+                        <p style={{ color: '#166534', fontSize: '0.85rem', marginBottom: '0.25rem' }}>🦺 Site Lead</p>
+                        <p style={{ fontWeight: 600, margin: 0, color: '#166534' }}>{project.siteLead.name}</p>
+                        {project.siteLead.phone && (
+                          <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem' }}>
+                            <a href={`tel:${project.siteLead.phone}`} style={{ color: '#15803d' }}>{project.siteLead.phone}</a>
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}

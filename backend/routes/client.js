@@ -43,12 +43,16 @@ router.get('/:token', async (req, res) => {
       project: {
         name: project.name,
         clientName: project.clientName,
+        clientEmail: project.clientEmail,
+        clientPhone: project.clientPhone,
         address: project.address,
         state: project.state,
         postcode: project.postcode,
         wifiNetworks: project.wifiNetworks,
         projectManager: project.projectManager,
+        siteLead: project.siteLead,
         status: project.status,
+        description: project.description,
       },
       devices: devices.map(d => ({
         _id: d._id,
