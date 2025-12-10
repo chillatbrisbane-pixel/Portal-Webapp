@@ -33,6 +33,10 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
   
+  // Reset password link state
+  const [resetLink, setResetLink] = useState<string | null>(null)
+  const [resetLinkCopied, setResetLinkCopied] = useState(false)
+  
   // Activity log state
   const [activeTab, setActiveTab] = useState<'users' | 'activity'>('users')
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
@@ -129,6 +133,53 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     setPasswordMode(true)
     setSelfPasswordMode(false)
     setShowForm(true)
+  }
+
+  const handleGenerateResetLink = async (user: User) => {
+    setLoading(true)
+    setError('')
+    try {
+      const response = await fetch('/api/auth/admin-reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ userId: user._id })
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Failed to generate reset link')
+      
+      const baseUrl = window.location.origin
+      setResetLink(`${baseUrl}/reset-password?token=${result.token}`)
+      setResetLinkCopied(false)
+      setEditingUser(user)
+      setShowForm(true)
+      setPasswordMode(false)
+      setSelfPasswordMode(false)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const copyResetLink = async () => {
+    if (resetLink) {
+      try {
+        await navigator.clipboard.writeText(resetLink)
+        setResetLinkCopied(true)
+      } catch (err) {
+        // Fallback
+        const textarea = document.createElement('textarea')
+        textarea.value = resetLink
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+        setResetLinkCopied(true)
+      }
+    }
   }
 
   const handleChangeOwnPassword = () => {
@@ -583,12 +634,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => handleResetPassword(user)}
+                                    onClick={() => handleGenerateResetLink(user)}
                                     className="btn btn-sm"
                                     style={{ background: '#f59e0b', color: 'white' }}
-                                    title="Reset password"
+                                    title="Generate password reset link"
                                   >
-                                    🔑
+                                    🔑 Reset
                                   </button>
                                   {user._id !== currentUser._id && (
                                     <>
@@ -779,6 +830,63 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
               <button
                 type="button"
                 onClick={() => { setInviteLink(null); setShowForm(false); }}
+                className="btn btn-secondary"
+                style={{ width: '100%' }}
+              >
+                Done
+              </button>
+            </>
+          ) : resetLink ? (
+            // Show reset link after admin generates it
+            <>
+              <h3 style={{ color: '#333333' }}>🔑 Password Reset Link Generated</h3>
+              
+              <div style={{
+                background: '#fef3c7',
+                border: '1px solid #fcd34d',
+                borderRadius: '8px',
+                padding: '1.5rem',
+                marginBottom: '1.5rem',
+              }}>
+                <p style={{ margin: '0 0 1rem 0', color: '#92400e' }}>
+                  Share this link with <strong>{editingUser?.name}</strong> ({editingUser?.email}). They'll use it to set a new password.
+                </p>
+                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#666' }}>
+                  ⏰ Link expires in 24 hours
+                </p>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+              }}>
+                <input
+                  type="text"
+                  value={resetLink}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                    background: '#f9fafb',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={copyResetLink}
+                  className="btn btn-primary"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {resetLinkCopied ? '✅ Copied!' : '📋 Copy Link'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { setResetLink(null); setEditingUser(null); setShowForm(false); }}
                 className="btn btn-secondary"
                 style={{ width: '100%' }}
               >

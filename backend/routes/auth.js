@@ -748,4 +748,42 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
+// POST /api/auth/admin-reset-password - Admin generates reset link for a user
+router.post('/admin-reset-password', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours for admin-generated
+
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = resetExpires;
+    await user.save();
+
+    // Log the activity
+    await logActivity(req.userId, 'admin_password_reset_generated', { targetUser: user.email }, req, user._id);
+
+    res.json({ 
+      message: 'Reset link generated successfully',
+      token: resetToken,
+      expiresAt: resetExpires,
+      userEmail: user.email,
+    });
+
+  } catch (error) {
+    console.error('Admin reset password error:', error);
+    res.status(500).json({ error: 'Failed to generate reset link' });
+  }
+});
+
 module.exports = router;

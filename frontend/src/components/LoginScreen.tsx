@@ -3,7 +3,6 @@ import { authAPI, healthCheck } from '../services/apiService';
 
 interface LoginScreenProps {
   onLoginSuccess: (user: any) => void;
-  onForgotPassword?: () => void;
 }
 
 // ============ CUSTOMIZATION CONFIG ============
@@ -18,7 +17,7 @@ const BRANDING_CONFIG = {
   companyLogoUrl: 'https://www.electronicliving.com.au/wp-content/uploads/Electronic-Living-Logo-Rev.png',
 };
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onForgotPassword }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
@@ -260,10 +259,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onForg
                 />
               </div>
 
-              {/* Remember Me and Forgot Password Row */}
+              {/* Remember Me */}
               <div style={{ 
                 display: 'flex', 
-                justifyContent: 'space-between', 
                 alignItems: 'center',
                 marginBottom: '1rem',
                 fontSize: '0.9rem',
@@ -277,20 +275,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, onForg
                   />
                   <span style={{ color: '#666' }}>Remember me</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={onForgotPassword}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#3b82f6',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    padding: 0,
-                  }}
-                >
-                  Forgot password?
-                </button>
               </div>
             </>
           ) : (

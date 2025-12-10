@@ -5,7 +5,6 @@ import { Header } from './components/Header'
 import { UserManagementModal } from './components/UserManagementModal'
 import { UserSettingsModal } from './components/UserSettingsModal'
 import { AcceptInvite } from './components/AcceptInvite'
-import { ForgotPassword } from './components/ForgotPassword'
 import { ResetPassword } from './components/ResetPassword'
 import { authAPI } from './services/apiService'
 import { User } from './types'
@@ -15,6 +14,9 @@ import './App.css'
 const SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
 const WARNING_BEFORE_MS = 5 * 60 * 1000 // Show warning 5 minutes before logout
 
+// Key for storing 2FA prompt dismissal
+const TWO_FA_PROMPT_KEY = 'twoFactorPromptDismissed'
+
 function App() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -22,9 +24,9 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [inviteToken, setInviteToken] = useState<string | null>(null)
   const [resetToken, setResetToken] = useState<string | null>(null)
-  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [sessionWarning, setSessionWarning] = useState(false)
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null)
+  const [show2FAPrompt, setShow2FAPrompt] = useState(false)
 
   // Get login timestamp from localStorage
   const getLoginTime = () => {
@@ -130,6 +132,18 @@ function App() {
     // Clear invite token and URL params
     setInviteToken(null)
     window.history.replaceState({}, document.title, '/')
+    
+    // Check if 2FA prompt should be shown
+    if (!userData.twoFactorEnabled) {
+      const dismissed = localStorage.getItem(TWO_FA_PROMPT_KEY)
+      const dismissedTime = dismissed ? parseInt(dismissed, 10) : 0
+      const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000)
+      
+      // Show prompt if never dismissed or dismissed more than a week ago
+      if (!dismissed || dismissedTime < oneWeekAgo) {
+        setShow2FAPrompt(true)
+      }
+    }
   }
 
   const handleLogout = () => {
@@ -163,7 +177,6 @@ function App() {
 
   const handleCancelReset = () => {
     setResetToken(null)
-    setShowForgotPassword(false)
     window.history.replaceState({}, document.title, '/')
   }
 
@@ -186,7 +199,7 @@ function App() {
     )
   }
 
-  // Show reset password page if token is present
+  // Show reset password page if token is present (admin-generated link)
   if (resetToken) {
     return (
       <ResetPassword
@@ -197,26 +210,104 @@ function App() {
     )
   }
 
-  // Show forgot password page
-  if (showForgotPassword) {
-    return (
-      <ForgotPassword
-        onBack={() => setShowForgotPassword(false)}
-      />
-    )
-  }
-
   if (!user) {
-    return (
-      <LoginScreen 
-        onLoginSuccess={handleLoginSuccess}
-        onForgotPassword={() => setShowForgotPassword(true)}
-      />
-    )
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />
   }
 
   return (
     <div className="app">
+      {/* 2FA Prompt Modal */}
+      {show2FAPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10001,
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '2rem',
+            maxWidth: '450px',
+            width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🔐</div>
+              <h2 style={{ margin: '0 0 0.5rem', color: '#333' }}>Secure Your Account</h2>
+              <p style={{ color: '#666', margin: 0 }}>
+                Two-factor authentication adds an extra layer of security to your account.
+              </p>
+            </div>
+            
+            <div style={{
+              background: '#fef3c7',
+              border: '1px solid #fcd34d',
+              borderRadius: '8px',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+            }}>
+              <p style={{ margin: 0, color: '#92400e', fontSize: '0.9rem' }}>
+                <strong>⚠️ Your account does not have 2FA enabled.</strong><br />
+                We strongly recommend enabling two-factor authentication to protect your account from unauthorized access.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => {
+                  setShow2FAPrompt(false)
+                  setShowSettings(true)
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                🔐 Enable 2FA Now
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem(TWO_FA_PROMPT_KEY, Date.now().toString())
+                  setShow2FAPrompt(false)
+                }}
+                style={{
+                  padding: '0.75rem 1rem',
+                  background: '#e5e7eb',
+                  color: '#374151',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                Remind Later
+              </button>
+            </div>
+            
+            <p style={{ 
+              margin: '1rem 0 0', 
+              fontSize: '0.8rem', 
+              color: '#9ca3af',
+              textAlign: 'center',
+            }}>
+              You can enable 2FA anytime in Settings → Two-Factor Auth
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Session timeout warning banner */}
       {sessionWarning && (
         <div style={{
