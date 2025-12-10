@@ -433,7 +433,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             type="text"
             placeholder="🔍 Search projects..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value)
+              // Auto-switch to "All" when user starts typing
+              if (e.target.value && statusFilter !== 'all') {
+                setStatusFilter('all')
+              }
+            }}
             style={{
               flex: '1',
               minWidth: '200px',
