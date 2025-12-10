@@ -297,8 +297,9 @@ export const ClientPortal: React.FC = () => {
   const devicesByCategory = groupDevicesByCategory();
   
   // Get switches and PDUs for port allocation sections
-  const switches = devices.filter(d => d.deviceType === 'switch' && d.managedPorts && d.managedPorts.length > 0);
-  const pdus = devices.filter(d => d.deviceType === 'pdu' && d.pduPortNames);
+  // Show switches that have portCount (even if managedPorts is empty)
+  const switches = devices.filter(d => d.deviceType === 'switch' && d.portCount);
+  const pdus = devices.filter(d => d.deviceType === 'pdu');
 
   const handleDownloadPDF = () => {
     if (token) {
@@ -639,34 +640,38 @@ export const ClientPortal: React.FC = () => {
                       {sw.name} {sw.portCount && `(${sw.portCount} ports)`}
                     </h3>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                        <thead>
-                          <tr style={{ background: '#f3f4f6' }}>
-                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Port</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Device</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>IP Address</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>VLAN</th>
-                            <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '2px solid #e5e7eb' }}>PoE</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sw.managedPorts?.filter(p => p.assignedDevice || p.description).map(port => (
-                            <tr key={port.portNumber} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                              <td style={{ padding: '0.5rem', fontWeight: 600 }}>{port.portNumber}</td>
-                              <td style={{ padding: '0.5rem' }}>
-                                {port.assignedDevice?.name || port.description || '-'}
-                              </td>
-                              <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#6b7280' }}>
-                                {port.assignedDevice?.ipAddress || '-'}
-                              </td>
-                              <td style={{ padding: '0.5rem' }}>{port.vlan || '-'}</td>
-                              <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                                {port.poeEnabled ? '⚡' : '-'}
-                              </td>
+                      {sw.managedPorts && sw.managedPorts.filter(p => p.assignedDevice || p.description).length > 0 ? (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                          <thead>
+                            <tr style={{ background: '#f3f4f6' }}>
+                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Port</th>
+                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Device</th>
+                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>IP Address</th>
+                              <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>VLAN</th>
+                              <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '2px solid #e5e7eb' }}>PoE</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {sw.managedPorts?.filter(p => p.assignedDevice || p.description).map(port => (
+                              <tr key={port.portNumber} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <td style={{ padding: '0.5rem', fontWeight: 600 }}>{port.portNumber}</td>
+                                <td style={{ padding: '0.5rem' }}>
+                                  {port.assignedDevice?.name || port.description || '-'}
+                                </td>
+                                <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#6b7280' }}>
+                                  {port.assignedDevice?.ipAddress || '-'}
+                                </td>
+                                <td style={{ padding: '0.5rem' }}>{port.vlan || '-'}</td>
+                                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                  {port.poeEnabled ? '⚡' : '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <p style={{ color: '#6b7280', fontStyle: 'italic', margin: 0 }}>No port allocations configured</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -711,34 +716,38 @@ export const ClientPortal: React.FC = () => {
                       <h3 style={{ margin: '0 0 1rem', color: '#374151', fontSize: '1.1rem' }}>
                         {pdu.name} {pdu.location && `(${pdu.location})`}
                       </h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                        {portNames.map((name, idx) => (
-                          <div 
-                            key={idx}
-                            style={{
-                              padding: '0.5rem 0.75rem',
-                              background: '#fef2f2',
-                              borderRadius: '6px',
-                              border: '1px solid #fecaca',
-                              display: 'flex',
-                              gap: '0.5rem',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <span style={{ 
-                              background: '#dc2626', 
-                              color: 'white', 
-                              padding: '0.125rem 0.5rem', 
-                              borderRadius: '4px',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                            }}>
-                              {idx + 1}
-                            </span>
-                            <span style={{ color: '#374151' }}>{name}</span>
-                          </div>
-                        ))}
-                      </div>
+                      {portNames.length > 0 ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                          {portNames.map((name, idx) => (
+                            <div 
+                              key={idx}
+                              style={{
+                                padding: '0.5rem 0.75rem',
+                                background: '#fef2f2',
+                                borderRadius: '6px',
+                                border: '1px solid #fecaca',
+                                display: 'flex',
+                                gap: '0.5rem',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span style={{ 
+                                background: '#dc2626', 
+                                color: 'white', 
+                                padding: '0.125rem 0.5rem', 
+                                borderRadius: '4px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                              }}>
+                                {idx + 1}
+                              </span>
+                              <span style={{ color: '#374151' }}>{name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ color: '#6b7280', fontStyle: 'italic', margin: 0 }}>No outlet allocations configured</p>
+                      )}
                     </div>
                   );
                 })}
@@ -949,8 +958,36 @@ export const ClientPortal: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', marginTop: '2rem', color: '#9ca3af', fontSize: '0.85rem' }}>
-          Powered by Electronic Living Portal
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '3rem', 
+          padding: '2rem',
+          background: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        }}>
+          <p style={{ margin: 0, color: '#374151', fontWeight: 600, fontSize: '1rem' }}>
+            Need assistance? Contact Electronic Living
+          </p>
+          <p style={{ margin: '0.5rem 0 0' }}>
+            <a 
+              href="tel:1300764554" 
+              style={{ 
+                color: '#0066cc', 
+                fontSize: '1.5rem', 
+                fontWeight: 700, 
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              📞 1300 764 554
+            </a>
+          </p>
+          <p style={{ margin: '1rem 0 0', color: '#9ca3af', fontSize: '0.85rem' }}>
+            Powered by Electronic Living Portal
+          </p>
         </div>
       </div>
     </div>
