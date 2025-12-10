@@ -36,10 +36,12 @@ const projectSchema = new mongoose.Schema(
       trim: true,
     },
     projectManager: {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       name: { type: String, trim: true },
       phone: { type: String, trim: true },
     },
     siteLead: {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
       name: { type: String, trim: true },
       phone: { type: String, trim: true },
     },

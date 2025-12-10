@@ -2,7 +2,8 @@ export interface User {
   _id: string;
   email: string;
   name: string;
-  role: 'admin' | 'manager' | 'technician';
+  phone?: string;
+  role: 'admin' | 'project-manager' | 'tech' | 'viewer';
   isActive: boolean;
   suspended?: boolean;
   suspendedAt?: string;
@@ -117,10 +118,12 @@ export interface Project {
   state?: string;
   postcode?: string;
   projectManager?: {
+    userId?: string;
     name?: string;
     phone?: string;
   };
   siteLead?: {
+    userId?: string;
     name?: string;
     phone?: string;
   };

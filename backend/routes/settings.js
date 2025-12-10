@@ -4,11 +4,11 @@ const Settings = require('../models/Settings');
 const User = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 
-// Check if user is admin
+// Check if user is admin or project-manager
 const requireAdmin = async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
-    if (!user || user.role !== 'admin') {
+    if (!user || !['admin', 'project-manager'].includes(user.role)) {
       return res.status(403).json({ error: 'Admin access required' });
     }
     next();

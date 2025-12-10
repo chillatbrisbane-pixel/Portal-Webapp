@@ -41,6 +41,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [showWizard, setShowWizard] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [initialTab, setInitialTab] = useState<'devices' | 'tasks' | null>(null)
+  const [showTasksPanel, setShowTasksPanel] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('in-progress')
@@ -235,18 +236,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <p style={{ color: '#166534', margin: '0 0 0.25rem 0', fontSize: '0.8rem' }}>Completed</p>
             <h3 style={{ color: '#166534', margin: 0, fontSize: '1.75rem' }}>{completedCount}</h3>
           </div>
+
+          {myTasks.length > 0 && (
+            <div 
+              className="card" 
+              style={{ 
+                background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)', 
+                border: showTasksPanel ? '2px solid #dc2626' : 'none', 
+                padding: '1rem', 
+                cursor: 'pointer',
+                position: 'relative',
+              }}
+              onClick={() => setShowTasksPanel(!showTasksPanel)}
+            >
+              <p style={{ color: '#991b1b', margin: '0 0 0.25rem 0', fontSize: '0.8rem' }}>📋 My Tasks</p>
+              <h3 style={{ color: '#991b1b', margin: 0, fontSize: '1.75rem' }}>{myTasks.length}</h3>
+              {myTasks.some(t => t.dueDate && new Date(t.dueDate) < new Date()) && (
+                <span style={{ 
+                  position: 'absolute', 
+                  top: '0.5rem', 
+                  right: '0.5rem', 
+                  background: '#dc2626', 
+                  color: 'white', 
+                  borderRadius: '50%', 
+                  width: '12px', 
+                  height: '12px',
+                  fontSize: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>!</span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* My Tasks Section */}
-      {myTasks.length > 0 && (
-        <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem' }}>
+      {/* My Tasks Panel - shown when clicking red Tasks button */}
+      {showTasksPanel && myTasks.length > 0 && (
+        <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem', border: '2px solid #fecaca' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#333' }}>📋 My Tasks</h3>
-            <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>{myTasks.length} assigned to you</span>
+            <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#991b1b' }}>📋 My Tasks</h3>
+            <button 
+              onClick={() => setShowTasksPanel(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#6b7280' }}
+            >
+              ✕
+            </button>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {myTasks.slice(0, 5).map((task) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
+            {myTasks.map((task) => {
               const isOverdue = task.dueDate && new Date(task.dueDate) < new Date()
               const priorityColors: Record<string, { bg: string; color: string }> = {
                 high: { bg: '#fee2e2', color: '#991b1b' },
@@ -311,11 +350,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
               )
             })}
-            {myTasks.length > 5 && (
-              <div style={{ textAlign: 'center', padding: '0.5rem', color: '#6b7280', fontSize: '0.85rem' }}>
-                +{myTasks.length - 5} more tasks
-              </div>
-            )}
           </div>
         </div>
       )}

@@ -87,7 +87,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     // Only tech and admins can create projects
-    if (!['tech', 'admin'].includes(req.userRole)) {
+    if (!['tech', 'admin', 'project-manager'].includes(req.userRole)) {
       return res.status(403).json({ error: 'Only techs and admins can create projects' });
     }
 
@@ -179,9 +179,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // Delete project (admin only)
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    // Only admins can delete projects
-    if (req.userRole !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can delete projects' });
+    // Only admins and project-managers can delete projects
+    if (!['admin', 'project-manager'].includes(req.userRole)) {
+      return res.status(403).json({ error: 'Only admins and project managers can delete projects' });
     }
 
     const project = await Project.findById(req.params.id);

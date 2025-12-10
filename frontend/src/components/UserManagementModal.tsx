@@ -529,11 +529,12 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                     borderRadius: '12px',
                                     fontSize: '0.8rem',
                                     fontWeight: 600,
-                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'tech' ? '#dbeafe' : '#e0f2fe',
-                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'tech' ? '#1e40af' : '#0369a1',
+                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'project-manager' ? '#fef3c7' : user.role === 'tech' ? '#dbeafe' : '#e0f2fe',
+                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'project-manager' ? '#92400e' : user.role === 'tech' ? '#1e40af' : '#0369a1',
                                   }}
                                 >
-                                  {user.role === 'admin' ? 'Admin' : user.role === 'tech' ? 'Tech' : 'Viewer'}
+                                  {user.role === 'admin' ? 'Admin' : user.role === 'project-manager' ? 'Project Manager' : user.role === 'tech' ? 'Tech' : 'Viewer'}
+                                </span>
                                 </span>
                                 {user.lastLogin && (
                                   <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
@@ -842,6 +843,25 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                         >
                           <option value="viewer">Viewer (View Only)</option>
                           <option value="tech">Tech (Full Access)</option>
+                          <option value="project-manager">Project Manager (Full + Assign Tasks)</option>
+                          <option value="admin">Admin (Full + User Management)</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Role select for new user invites */}
+                    {currentUser.role === 'admin' && !editingUser && (
+                      <div className="form-group">
+                        <label htmlFor="role">Role</label>
+                        <select
+                          id="role"
+                          value={formData.role}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          disabled={loading}
+                        >
+                          <option value="viewer">Viewer (View Only)</option>
+                          <option value="tech">Tech (Full Access)</option>
+                          <option value="project-manager">Project Manager (Full + Assign Tasks)</option>
                           <option value="admin">Admin (Full + User Management)</option>
                         </select>
                       </div>
