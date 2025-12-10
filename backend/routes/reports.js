@@ -214,7 +214,7 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
         doc.save();
         doc.opacity(backgroundOpacity);
         // Center the background image
-        doc.image(backgroundBuffer, 120, 300, { width: 350, fit: [350, 350] });
+        doc.image(backgroundBuffer, 120, 300, { fit: [350, 350], align: 'center' });
         doc.restore();
       } catch (bgError) {
         console.log('Could not add background to PDF:', bgError.message);
@@ -225,7 +225,7 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
     let contentStartY = 120;
     if (logoBuffer) {
       try {
-        doc.image(logoBuffer, 175, 55, { width: 250, fit: [250, 80] });
+        doc.image(logoBuffer, 175, 55, { fit: [250, 80], align: 'center' });
         contentStartY = 150; // Move content down if logo present
       } catch (logoError) {
         console.log('Could not add logo to PDF:', logoError.message);
