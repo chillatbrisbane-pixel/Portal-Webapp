@@ -984,6 +984,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   type="tel"
                   value={formData.siteLead?.phone || ''}
                   onChange={(e) => setFormData({ ...formData, siteLead: { ...formData.siteLead, phone: e.target.value } })}
+                  placeholder="Auto-filled or manual entry"
                 />
               </div>
 

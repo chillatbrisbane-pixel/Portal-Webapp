@@ -333,6 +333,11 @@ export interface Device {
   // Alarm user codes with access permissions
   alarmUsers: AlarmUser[];
   
+  // Access control toggles
+  hasFobs: boolean;
+  hasProxTags: boolean;
+  hasAirkeys: boolean;
+  
   // Security Fobs
   securityFobs: SecurityFob[];
   

@@ -67,6 +67,10 @@ const INITIAL_FORM_DATA: Partial<Device> = {
     email: '',
     address: '',
   },
+  // Access control toggles
+  hasFobs: false,
+  hasProxTags: false,
+  hasAirkeys: false,
   // Users arrays
   nvrUsers: [],
   alarmUsers: [],
@@ -1965,51 +1969,10 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             {/* SECURITY - ALARM PANEL */}
             {formData.category === 'security' && formData.deviceType === 'alarm-panel' && (
               <>
-                <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
-                  🚨 Security Panel Configuration
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Panel Type</label>
-                    <select name="panelType" value={formData.panelType} onChange={handleInputChange}>
-                      <option value="">Select...</option>
-                      <option value="inception">Inner Range (Inception)</option>
-                      <option value="paradox">Paradox</option>
-                      <option value="bosch">Bosch</option>
-                      <option value="honeywell">Honeywell</option>
-                      <option value="custom">Custom</option>
-                    </select>
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Zones</label>
-                    <input name="zoneCount" type="number" value={formData.zoneCount || 0} onChange={handleInputChange} min={0} />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Outputs</label>
-                    <input name="outputCount" type="number" value={formData.outputCount || 0} onChange={handleInputChange} min={0} />
-                  </div>
-                </div>
-
-                {/* Common alarm fields */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Areas/Partitions</label>
-                    <input name="partitionCount" type="number" value={formData.partitionCount || 1} onChange={handleInputChange} min={1} />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>User Codes</label>
-                    <input name="userCodeCount" type="number" value={formData.userCodeCount || 0} onChange={handleInputChange} min={0} />
-                  </div>
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Sirens</label>
-                    <input name="sirenCount" type="number" value={formData.sirenCount || 0} onChange={handleInputChange} min={0} />
-                  </div>
-                </div>
-
                 {/* SkyTunnel link for Inception panels */}
-                {formData.panelType === 'inception' && formData.serialNumber && (
+                {formData.serialNumber && (
                   <div className="form-group" style={{ marginTop: '1rem' }}>
-                    <label>SkyTunnel Link</label>
+                    <label>🌐 SkyTunnel Link</label>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                       <input
                         type="text"
@@ -2592,7 +2555,43 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         </button>
                     </div>
 
+                    {/* ============ ACCESS CONTROL TOGGLES ============ */}
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      🔐 Access Control Devices
+                    </h4>
+                    <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem 1rem', background: formData.hasFobs ? '#dcfce7' : '#f3f4f6', borderRadius: '6px', border: formData.hasFobs ? '2px solid #10b981' : '1px solid #d1d5db' }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.hasFobs || false}
+                          onChange={(e) => setFormData({ ...formData, hasFobs: e.target.checked })}
+                          disabled={viewOnly}
+                        />
+                        🔑 Fobs
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem 1rem', background: formData.hasProxTags ? '#fef3c7' : '#f3f4f6', borderRadius: '6px', border: formData.hasProxTags ? '2px solid #f59e0b' : '1px solid #d1d5db' }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.hasProxTags || false}
+                          onChange={(e) => setFormData({ ...formData, hasProxTags: e.target.checked })}
+                          disabled={viewOnly}
+                        />
+                        🏷️ Prox Tags
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem 1rem', background: formData.hasAirkeys ? '#ede9fe' : '#f3f4f6', borderRadius: '6px', border: formData.hasAirkeys ? '2px solid #8b5cf6' : '1px solid #d1d5db' }}>
+                        <input
+                          type="checkbox"
+                          checked={formData.hasAirkeys || false}
+                          onChange={(e) => setFormData({ ...formData, hasAirkeys: e.target.checked })}
+                          disabled={viewOnly}
+                        />
+                        📱 Airkeys
+                      </label>
+                    </div>
+
                     {/* ============ SECURITY FOBS ============ */}
+                    {formData.hasFobs && (
+                    <>
                     <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                       🔑 Fobs
                     </h4>
@@ -2730,8 +2729,12 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         ➕ Add Fob
                       </button>
                     </div>
+                    </>
+                    )}
 
                     {/* ============ PROX TAGS ============ */}
+                    {formData.hasProxTags && (
+                    <>
                     <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                       🏷️ Prox Tags
                     </h4>
@@ -2878,8 +2881,12 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         ➕ Add Prox Tag
                       </button>
                     </div>
+                    </>
+                    )}
 
                     {/* ============ AIRKEYS ============ */}
+                    {formData.hasAirkeys && (
+                    <>
                     <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                       📱 Airkeys
                     </h4>
@@ -3027,6 +3034,8 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         ➕ Add Airkey
                       </button>
                     </div>
+                    </>
+                    )}
                   </>
                 )}
               </>

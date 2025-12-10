@@ -123,6 +123,11 @@ const deviceSchema = new mongoose.Schema(
       isRestApiUser: { type: Boolean, default: false },
     }],
     
+    // Access control toggles
+    hasFobs: { type: Boolean, default: false },
+    hasProxTags: { type: Boolean, default: false },
+    hasAirkeys: { type: Boolean, default: false },
+    
     // Security Fobs
     securityFobs: [{
       name: String,
