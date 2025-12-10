@@ -8,6 +8,14 @@ interface WiFiNetwork {
   band?: string;
 }
 
+interface ManagedPort {
+  portNumber: number;
+  description?: string;
+  assignedDevice?: { _id: string; name: string; ipAddress?: string } | null;
+  vlan?: number;
+  poeEnabled?: boolean;
+}
+
 interface Device {
   _id: string;
   name: string;
@@ -24,9 +32,16 @@ interface Device {
   password?: string;
   ssids?: { name: string; password: string }[];
   configNotes?: string;
+  // Switch ports
+  portCount?: number;
+  managedPorts?: ManagedPort[];
+  // PDU ports
+  pduPortCount?: number;
+  pduPortNames?: string;
 }
 
 interface ProjectData {
+  _id?: string;
   name: string;
   clientName?: string;
   clientEmail?: string;
@@ -69,6 +84,7 @@ export const ClientPortal: React.FC = () => {
   const [requiresPin, setRequiresPin] = useState(false);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [verifiedPin, setVerifiedPin] = useState('');
   const [project, setProject] = useState<ProjectData | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -77,6 +93,8 @@ export const ClientPortal: React.FC = () => {
   const [sectionsExpanded, setSectionsExpanded] = useState({
     projectDetails: true,
     wifiNetworks: true,
+    switchPorts: true,
+    pduPorts: true,
   });
 
   useEffect(() => {
@@ -119,6 +137,7 @@ export const ClientPortal: React.FC = () => {
     
     try {
       await clientAccessAPI.verifyPin(token!, pin);
+      setVerifiedPin(pin);  // Store the verified pin for PDF downloads
       loadProject(pin);
     } catch (err: any) {
       setPinError(err.error || 'Incorrect PIN');
@@ -276,6 +295,18 @@ export const ClientPortal: React.FC = () => {
   }
 
   const devicesByCategory = groupDevicesByCategory();
+  
+  // Get switches and PDUs for port allocation sections
+  const switches = devices.filter(d => d.deviceType === 'switch' && d.managedPorts && d.managedPorts.length > 0);
+  const pdus = devices.filter(d => d.deviceType === 'pdu' && d.pduPortNames);
+
+  const handleDownloadPDF = () => {
+    if (token) {
+      // Use the public client PDF endpoint with the client token
+      const pinParam = verifiedPin ? `?pin=${encodeURIComponent(verifiedPin)}` : '';
+      window.open(`/api/reports/client/${token}/pdf${pinParam}`, '_blank');
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
@@ -285,15 +316,40 @@ export const ClientPortal: React.FC = () => {
         color: 'white',
         padding: '2rem',
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <h1 style={{ margin: 0, fontSize: '1.75rem' }}>{project?.name}</h1>
-          {project?.clientName && (
-            <p style={{ margin: '0.5rem 0 0', opacity: 0.9 }}>{project.clientName}</p>
-          )}
-          {project?.address && (
-            <p style={{ margin: '0.25rem 0 0', opacity: 0.7, fontSize: '0.9rem' }}>
-              {project.address}{project.state && `, ${project.state}`} {project.postcode}
-            </p>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.75rem' }}>{project?.name}</h1>
+            {project?.clientName && (
+              <p style={{ margin: '0.5rem 0 0', opacity: 0.9 }}>{project.clientName}</p>
+            )}
+            {project?.address && (
+              <p style={{ margin: '0.25rem 0 0', opacity: 0.7, fontSize: '0.9rem' }}>
+                {project.address}{project.state && `, ${project.state}`} {project.postcode}
+              </p>
+            )}
+          </div>
+          {project?._id && (
+            <button
+              onClick={handleDownloadPDF}
+              style={{
+                padding: '0.75rem 1.25rem',
+                background: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                border: '1px solid rgba(255,255,255,0.3)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+            >
+              📄 Download PDF
+            </button>
           )}
         </div>
       </div>
@@ -545,6 +601,149 @@ export const ClientPortal: React.FC = () => {
                 Close
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Switch Port Allocations */}
+        {switches.length > 0 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '12px', 
+            marginBottom: '1.5rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          }}>
+            <div 
+              onClick={() => setSectionsExpanded(prev => ({ ...prev, switchPorts: !prev.switchPorts }))}
+              style={{
+                padding: '1rem 1.5rem',
+                background: '#dbeafe',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: sectionsExpanded.switchPorts ? '1px solid #bfdbfe' : 'none',
+              }}
+            >
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e40af' }}>
+                🔌 Switch Port Allocations
+              </h2>
+              <span style={{ fontSize: '1.2rem', color: '#1e40af' }}>{sectionsExpanded.switchPorts ? '▼' : '▶'}</span>
+            </div>
+            
+            {sectionsExpanded.switchPorts && (
+              <div style={{ padding: '1.5rem' }}>
+                {switches.map(sw => (
+                  <div key={sw._id} style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 1rem', color: '#374151', fontSize: '1.1rem' }}>
+                      {sw.name} {sw.portCount && `(${sw.portCount} ports)`}
+                    </h3>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead>
+                          <tr style={{ background: '#f3f4f6' }}>
+                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Port</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>Device</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>IP Address</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '2px solid #e5e7eb' }}>VLAN</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '2px solid #e5e7eb' }}>PoE</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sw.managedPorts?.filter(p => p.assignedDevice || p.description).map(port => (
+                            <tr key={port.portNumber} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <td style={{ padding: '0.5rem', fontWeight: 600 }}>{port.portNumber}</td>
+                              <td style={{ padding: '0.5rem' }}>
+                                {port.assignedDevice?.name || port.description || '-'}
+                              </td>
+                              <td style={{ padding: '0.5rem', fontFamily: 'monospace', color: '#6b7280' }}>
+                                {port.assignedDevice?.ipAddress || '-'}
+                              </td>
+                              <td style={{ padding: '0.5rem' }}>{port.vlan || '-'}</td>
+                              <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                                {port.poeEnabled ? '⚡' : '-'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PDU Port Allocations */}
+        {pdus.length > 0 && (
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '12px', 
+            marginBottom: '1.5rem',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          }}>
+            <div 
+              onClick={() => setSectionsExpanded(prev => ({ ...prev, pduPorts: !prev.pduPorts }))}
+              style={{
+                padding: '1rem 1.5rem',
+                background: '#fee2e2',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: sectionsExpanded.pduPorts ? '1px solid #fecaca' : 'none',
+              }}
+            >
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#991b1b' }}>
+                🔌 PDU Outlet Allocations
+              </h2>
+              <span style={{ fontSize: '1.2rem', color: '#991b1b' }}>{sectionsExpanded.pduPorts ? '▼' : '▶'}</span>
+            </div>
+            
+            {sectionsExpanded.pduPorts && (
+              <div style={{ padding: '1.5rem' }}>
+                {pdus.map(pdu => {
+                  const portNames = pdu.pduPortNames?.split('\n').filter(n => n.trim()) || [];
+                  return (
+                    <div key={pdu._id} style={{ marginBottom: '1.5rem' }}>
+                      <h3 style={{ margin: '0 0 1rem', color: '#374151', fontSize: '1.1rem' }}>
+                        {pdu.name} {pdu.location && `(${pdu.location})`}
+                      </h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                        {portNames.map((name, idx) => (
+                          <div 
+                            key={idx}
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              background: '#fef2f2',
+                              borderRadius: '6px',
+                              border: '1px solid #fecaca',
+                              display: 'flex',
+                              gap: '0.5rem',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <span style={{ 
+                              background: '#dc2626', 
+                              color: 'white', 
+                              padding: '0.125rem 0.5rem', 
+                              borderRadius: '4px',
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <span style={{ color: '#374151' }}>{name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

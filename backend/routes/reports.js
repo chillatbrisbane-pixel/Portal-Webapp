@@ -958,4 +958,166 @@ router.post('/import', authenticateDownload, async (req, res) => {
   }
 });
 
+// GET /api/reports/client/:clientToken/pdf - Public PDF for client portal
+router.get('/client/:clientToken/pdf', async (req, res) => {
+  try {
+    const { clientToken } = req.params;
+    const { pin } = req.query;
+    
+    // Find project by client access token
+    const project = await Project.findOne({ 
+      'clientAccess.token': clientToken,
+      'clientAccess.enabled': true 
+    });
+    
+    if (!project) {
+      return res.status(404).json({ error: 'Invalid or expired access link' });
+    }
+    
+    // Check PIN if required
+    if (project.clientAccess.pin && project.clientAccess.pin !== pin) {
+      return res.status(401).json({ error: 'PIN required' });
+    }
+    
+    // Now generate the PDF using the same logic as the authenticated route
+    // Redirect to the regular PDF endpoint with a special internal flag
+    // Or duplicate the PDF generation code here
+    
+    // For simplicity, we'll fetch devices and generate a simplified PDF
+    const devices = await Device.find({ projectId: project._id })
+      .populate('boundToSwitch', 'name portCount')
+      .sort({ category: 1, deviceType: 1, name: 1 });
+
+    // Fetch branding settings
+    const Settings = require('../models/Settings');
+    const settings = await Settings.getSettings();
+    const branding = settings.branding || {};
+    const companyName = branding.companyName || 'Electronic Living';
+    const companyWebsite = branding.companyWebsite || 'www.electronicliving.com.au';
+
+    let logoBuffer = null;
+    if (branding.logo?.data) {
+      try {
+        logoBuffer = Buffer.from(branding.logo.data, 'base64');
+      } catch (e) {
+        console.log('Could not decode logo:', e.message);
+      }
+    }
+
+    // Create PDF
+    const doc = new PDFDocument({ 
+      size: 'A4', 
+      margin: 50,
+      info: {
+        Title: `${project.name} - Integrated System Profile`,
+        Author: companyName,
+        Subject: 'Project Technical Reference',
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${project.name.replace(/[^a-zA-Z0-9]/g, '_')}_Profile.pdf"`);
+
+    doc.pipe(res);
+
+    // Cover page
+    doc.rect(0, 0, 595, 842).fill('#0066cc');
+    doc.rect(40, 40, 515, 762).fill('#ffffff');
+    
+    let contentStartY = 120;
+    if (logoBuffer) {
+      try {
+        doc.image(logoBuffer, 175, 55, { width: 250 });
+        contentStartY = 150;
+      } catch (logoError) {
+        console.log('Could not add logo to PDF:', logoError.message);
+      }
+    }
+    
+    doc.fontSize(28).fillColor('#0066cc').font('Helvetica-Bold');
+    doc.text('Integrated System Profile', 60, contentStartY, { align: 'center', width: 475 });
+    
+    doc.fontSize(12).fillColor('#666666').font('Helvetica');
+    doc.text('Technical Reference for Devices, Network, and Infrastructure', 60, contentStartY + 40, { align: 'center', width: 475 });
+    
+    doc.moveTo(150, contentStartY + 70).lineTo(445, contentStartY + 70).strokeColor('#0066cc').lineWidth(2).stroke();
+    
+    doc.fontSize(24).fillColor('#333333').font('Helvetica-Bold');
+    doc.text(project.name, 60, contentStartY + 100, { align: 'center', width: 475 });
+    
+    if (project.clientName) {
+      doc.fontSize(14).fillColor('#666666').font('Helvetica');
+      doc.text(`Prepared for: ${project.clientName}`, 60, 280, { align: 'center', width: 475 });
+    }
+    
+    if (project.address) {
+      doc.fontSize(12).fillColor('#888888');
+      doc.text(project.address, 60, 310, { align: 'center', width: 475 });
+    }
+
+    // Footer
+    doc.fontSize(10).fillColor('#0066cc');
+    doc.text(`Prepared by ${companyName}`, 60, 720, { align: 'center', width: 475 });
+    doc.text(companyWebsite, 60, 735, { align: 'center', width: 475 });
+    doc.text(new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }), 60, 750, { align: 'center', width: 475 });
+
+    // Device pages
+    doc.addPage();
+    doc.fontSize(18).fillColor('#0066cc').font('Helvetica-Bold');
+    doc.text('Device Summary', 50, 50);
+    doc.moveTo(50, 75).lineTo(545, 75).strokeColor('#0066cc').lineWidth(2).stroke();
+    
+    let yPos = 100;
+    const devicesByCategory = {};
+    devices.forEach(d => {
+      const cat = d.category || 'other';
+      if (!devicesByCategory[cat]) devicesByCategory[cat] = [];
+      devicesByCategory[cat].push(d);
+    });
+
+    for (const [category, catDevices] of Object.entries(devicesByCategory)) {
+      if (yPos > 700) {
+        doc.addPage();
+        yPos = 50;
+      }
+      
+      const catInfo = CATEGORY_INFO[category] || CATEGORY_INFO.other;
+      doc.fontSize(14).fillColor(catInfo.color).font('Helvetica-Bold');
+      doc.text(catInfo.label, 50, yPos);
+      yPos += 25;
+      
+      for (const device of catDevices) {
+        if (yPos > 750) {
+          doc.addPage();
+          yPos = 50;
+        }
+        
+        doc.fontSize(11).fillColor('#333333').font('Helvetica-Bold');
+        doc.text(device.name, 60, yPos);
+        yPos += 15;
+        
+        doc.fontSize(9).fillColor('#666666').font('Helvetica');
+        const details = [];
+        if (device.manufacturer) details.push(device.manufacturer);
+        if (device.model) details.push(device.model);
+        if (device.ipAddress) details.push(`IP: ${device.ipAddress}`);
+        if (device.location) details.push(`Location: ${device.location}`);
+        
+        if (details.length > 0) {
+          doc.text(details.join(' | '), 60, yPos);
+          yPos += 15;
+        }
+        yPos += 5;
+      }
+      yPos += 15;
+    }
+
+    doc.end();
+    
+  } catch (error) {
+    console.error('Client PDF error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
 module.exports = router;

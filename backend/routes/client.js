@@ -33,14 +33,17 @@ router.get('/:token', async (req, res) => {
     project.clientAccess.lastAccessed = new Date();
     await project.save();
     
-    // Fetch devices for this project
+    // Fetch devices for this project with populated references
     const devices = await Device.find({ projectId: project._id })
+      .populate('boundToSwitch', 'name')
+      .populate('managedPorts.assignedDevice', 'name ipAddress')
       .select('-__v')
       .sort({ category: 1, deviceType: 1, name: 1 });
     
     // Return project data for client view
     res.json({
       project: {
+        _id: project._id,
         name: project.name,
         clientName: project.clientName,
         clientEmail: project.clientEmail,
@@ -70,6 +73,22 @@ router.get('/:token', async (req, res) => {
         password: d.password,
         ssids: d.ssids,
         configNotes: d.configNotes,
+        // Switch port info
+        portCount: d.portCount,
+        managedPorts: d.managedPorts?.map(p => ({
+          portNumber: p.portNumber,
+          description: p.description,
+          assignedDevice: p.assignedDevice ? {
+            _id: p.assignedDevice._id,
+            name: p.assignedDevice.name,
+            ipAddress: p.assignedDevice.ipAddress,
+          } : null,
+          vlan: p.vlan,
+          poeEnabled: p.poeEnabled,
+        })),
+        // PDU info
+        pduPortCount: d.pduPortCount,
+        pduPortNames: d.pduPortNames,
       })),
     });
   } catch (error) {
