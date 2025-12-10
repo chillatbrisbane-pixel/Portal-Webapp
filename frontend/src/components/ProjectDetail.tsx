@@ -6,6 +6,7 @@ import TaskList from './TaskList'
 
 interface ProjectDetailProps {
   project: Project
+  initialTab?: 'devices' | 'tasks' | null
   onBack: () => void
   onProjectUpdated: (project: Project) => void
   onProjectDeleted: (projectId: string) => void
@@ -31,6 +32,7 @@ const parseIP = (ip: string): number => {
 
 export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   project,
+  initialTab,
   onBack,
   onProjectUpdated,
   onProjectDeleted,
@@ -41,7 +43,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState(project)
-  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes' | 'history' | 'tasks'>('devices')
+  const [activeTab, setActiveTab] = useState<'devices' | 'wifi' | 'ports' | 'notes' | 'history' | 'tasks'>(initialTab || 'devices')
   
   // Version history
   const [versions, setVersions] = useState<ProjectVersion[]>([])

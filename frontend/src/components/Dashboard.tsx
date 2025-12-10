@@ -40,6 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [error, setError] = useState('')
   const [showWizard, setShowWizard] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [initialTab, setInitialTab] = useState<'devices' | 'tasks' | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('in-progress')
@@ -174,8 +175,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     return (
       <ProjectDetail
         project={selectedProject}
+        initialTab={initialTab}
         onBack={() => {
           setSelectedProject(null)
+          setInitialTab(null)
           loadMyTasks() // Refresh tasks in case any were completed
         }}
         onProjectUpdated={(updated) => {
@@ -257,7 +260,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   key={task._id}
                   onClick={() => {
                     const project = projects.find(p => p._id === task.project._id)
-                    if (project) setSelectedProject(project)
+                    if (project) {
+                      setInitialTab('tasks')
+                      setSelectedProject(project)
+                    }
                   }}
                   style={{
                     display: 'flex',
