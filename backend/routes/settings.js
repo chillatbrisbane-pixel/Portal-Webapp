@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Settings = require('../models/Settings');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Check if user is admin
 const requireAdmin = async (req, res, next) => {
@@ -18,7 +18,7 @@ const requireAdmin = async (req, res, next) => {
 };
 
 // GET /api/settings/branding - Get branding settings
-router.get('/branding', auth, async (req, res) => {
+router.get('/branding', authenticateToken, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
     
@@ -47,7 +47,7 @@ router.get('/branding', auth, async (req, res) => {
 });
 
 // GET /api/settings/branding/logo - Get logo image data
-router.get('/branding/logo', auth, async (req, res) => {
+router.get('/branding/logo', authenticateToken, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
     
@@ -67,7 +67,7 @@ router.get('/branding/logo', auth, async (req, res) => {
 });
 
 // GET /api/settings/branding/background - Get background image data
-router.get('/branding/background', auth, async (req, res) => {
+router.get('/branding/background', authenticateToken, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
     
@@ -88,7 +88,7 @@ router.get('/branding/background', auth, async (req, res) => {
 });
 
 // PUT /api/settings/branding - Update branding settings (admin only)
-router.put('/branding', auth, requireAdmin, async (req, res) => {
+router.put('/branding', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { logo, background, companyName, companyWebsite } = req.body;
     
@@ -187,7 +187,7 @@ router.put('/branding', auth, requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/settings/branding/logo - Remove logo (admin only)
-router.delete('/branding/logo', auth, requireAdmin, async (req, res) => {
+router.delete('/branding/logo', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
     if (settings.branding) {
@@ -206,7 +206,7 @@ router.delete('/branding/logo', auth, requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/settings/branding/background - Remove background (admin only)
-router.delete('/branding/background', auth, requireAdmin, async (req, res) => {
+router.delete('/branding/background', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const settings = await Settings.getSettings();
     if (settings.branding) {

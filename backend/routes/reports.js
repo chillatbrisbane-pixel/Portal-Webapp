@@ -3,7 +3,7 @@ const router = express.Router();
 const PDFDocument = require('pdfkit');
 const Project = require('../models/Project');
 const Device = require('../models/Device');
-const Settings = require('../models/Settings');
+// const Settings = require('../models/Settings');  // Temporarily disabled
 const jwt = require('jsonwebtoken');
 
 // Middleware to handle auth via query param or header (for download links)
@@ -155,32 +155,12 @@ router.get('/project/:projectId', authenticateDownload, async (req, res) => {
       .populate('boundToSwitch', 'name portCount')
       .sort({ category: 1, deviceType: 1, name: 1 });
 
-    // Fetch branding settings
-    const settings = await Settings.getSettings();
-    const branding = settings.branding || {};
-    const companyName = branding.companyName || 'Electronic Living';
-    const companyWebsite = branding.companyWebsite || 'www.electronicliving.com.au';
-
-    // Prepare logo buffer if exists
-    let logoBuffer = null;
-    if (branding.logo?.data) {
-      try {
-        logoBuffer = Buffer.from(branding.logo.data, 'base64');
-      } catch (e) {
-        console.log('Could not decode logo:', e.message);
-      }
-    }
-
-    // Prepare background buffer if exists
-    let backgroundBuffer = null;
-    const backgroundOpacity = branding.background?.opacity || 0.1;
-    if (branding.background?.data) {
-      try {
-        backgroundBuffer = Buffer.from(branding.background.data, 'base64');
-      } catch (e) {
-        console.log('Could not decode background:', e.message);
-      }
-    }
+    // Hardcoded branding (Settings feature temporarily disabled)
+    const companyName = 'Electronic Living';
+    const companyWebsite = 'www.electronicliving.com.au';
+    const logoBuffer = null;
+    const backgroundBuffer = null;
+    const backgroundOpacity = 0.1;
 
     // Create PDF
     const doc = new PDFDocument({ 
