@@ -535,7 +535,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                 >
                                   {user.role === 'admin' ? 'Admin' : user.role === 'project-manager' ? 'Project Manager' : user.role === 'tech' ? 'Tech' : 'Viewer'}
                                 </span>
-                                </span>
                                 {user.lastLogin && (
                                   <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
                                     Last login: {formatDate(user.lastLogin)}
