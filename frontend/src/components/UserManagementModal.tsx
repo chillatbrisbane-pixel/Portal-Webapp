@@ -23,6 +23,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     currentPassword: '',
     role: 'viewer',
@@ -107,7 +108,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleAddUser = () => {
     setEditingUser(null)
-    setFormData({ name: '', email: '', password: '', currentPassword: '', role: 'viewer' })
+    setFormData({ name: '', email: '', phone: '', password: '', currentPassword: '', role: 'viewer' })
     setShowForm(true)
     setPasswordMode(false)
     setSelfPasswordMode(false)
@@ -116,7 +117,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleEditUser = (user: User) => {
     setEditingUser(user)
-    setFormData({ name: user.name, email: user.email, password: '', currentPassword: '', role: user.role })
+    setFormData({ name: user.name, email: user.email, phone: user.phone || '', password: '', currentPassword: '', role: user.role })
     setShowForm(true)
     setPasswordMode(false)
     setSelfPasswordMode(false)
@@ -124,7 +125,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleResetPassword = (user: User) => {
     setEditingUser(user)
-    setFormData({ name: user.name, email: user.email, password: '', currentPassword: '', role: user.role })
+    setFormData({ name: user.name, email: user.email, phone: user.phone || '', password: '', currentPassword: '', role: user.role })
     setPasswordMode(true)
     setSelfPasswordMode(false)
     setShowForm(true)
@@ -132,7 +133,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
 
   const handleChangeOwnPassword = () => {
     setEditingUser(currentUser)
-    setFormData({ name: currentUser.name, email: currentUser.email, password: '', currentPassword: '', role: currentUser.role })
+    setFormData({ name: currentUser.name, email: currentUser.email, phone: currentUser.phone || '', password: '', currentPassword: '', role: currentUser.role })
     setPasswordMode(false)
     setSelfPasswordMode(true)
     setShowForm(true)
@@ -241,8 +242,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         setPasswordMode(false)
         setSelfPasswordMode(false)
       } else if (editingUser) {
-        // If editing own profile, include email
-        const updateData: any = { name: formData.name }
+        // If editing own profile, include email and phone
+        const updateData: any = { name: formData.name, phone: formData.phone }
         if (editingUser._id === currentUser._id) {
           updateData.email = formData.email
         } else if (currentUser.role === 'admin') {
@@ -257,6 +258,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
         const result = await usersAPI.invite({
           name: formData.name,
           email: formData.email,
+          phone: formData.phone,
           role: formData.role,
         })
         // Show the invite link
@@ -521,6 +523,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                               </div>
                               <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#6b7280' }}>
                                 {user.email}
+                                {user.phone && <span style={{ marginLeft: '1rem' }}>📱 {user.phone}</span>}
                               </p>
                               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <span
@@ -830,6 +833,19 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                         />
                       </div>
                     )}
+
+                    {/* Phone field - always editable */}
+                    <div className="form-group">
+                      <label htmlFor="phone">Phone Number</label>
+                      <input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="0400 000 000"
+                        disabled={loading}
+                      />
+                    </div>
 
                     {currentUser.role === 'admin' && editingUser && editingUser._id !== currentUser._id && (
                       <div className="form-group">

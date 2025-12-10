@@ -953,27 +953,6 @@ export const ClientPortal: React.FC = () => {
           );
         })}
 
-        {/* Support Footer */}
-        <div style={{ 
-          background: 'white', 
-          borderRadius: '12px', 
-          padding: '1.5rem',
-          marginTop: '2rem',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-        }}>
-          <h3 style={{ margin: '0 0 0.5rem', color: '#1f2937' }}>Need Help?</h3>
-          <p style={{ margin: 0, color: '#6b7280' }}>
-            Contact your system integrator for technical support
-          </p>
-          {project?.projectManager?.name && (
-            <p style={{ margin: '0.5rem 0 0', color: '#0066cc' }}>
-              {project.projectManager.name}
-              {project.projectManager.phone && ` • ${project.projectManager.phone}`}
-            </p>
-          )}
-        </div>
-
         {/* Footer */}
         <div style={{ 
           textAlign: 'center', 

@@ -127,13 +127,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     const oldRole = user.role;
 
-    // Users can update own name and email
+    // Users can update own name, email, and phone
     // Admins can update anything except password
     const allowedFields = isAdmin 
-      ? ['name', 'role', 'isActive'] 
+      ? ['name', 'phone', 'role', 'isActive'] 
       : isOwnProfile 
-        ? ['name', 'email'] 
-        : ['name'];
+        ? ['name', 'email', 'phone'] 
+        : ['name', 'phone'];
 
     // Check if email is being changed and validate uniqueness
     if (req.body.email && req.body.email.toLowerCase() !== user.email) {

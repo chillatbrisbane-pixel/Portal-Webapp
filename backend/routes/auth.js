@@ -37,7 +37,7 @@ const generateInviteToken = () => {
 // Create user invite (admin only) - no password, generates invite link
 router.post('/invite', authenticateToken, authorizeRole(['admin']), async (req, res) => {
   try {
-    const { email, name, role } = req.body;
+    const { email, name, phone, role } = req.body;
 
     // Validate input
     if (!email || !name) {
@@ -59,6 +59,7 @@ router.post('/invite', authenticateToken, authorizeRole(['admin']), async (req, 
       email: email.toLowerCase(),
       password: crypto.randomBytes(32).toString('hex'), // Random placeholder, can't be used to login
       name,
+      phone: phone || '',
       role: role || 'viewer',
       createdBy: req.userId,
       accountStatus: 'pending',
