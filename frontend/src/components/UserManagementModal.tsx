@@ -559,7 +559,8 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     >
                       <option value="all">All Roles</option>
                       <option value="viewer">👁️ Viewer</option>
-                      <option value="technician">🔧 Technician</option>
+                      <option value="tech">🔧 Technician</option>
+                      <option value="sales">💼 Sales</option>
                       <option value="project-manager">📋 Project Manager</option>
                       <option value="admin">👑 Admin</option>
                     </select>
@@ -588,12 +589,13 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           return true
                         })
                         .sort((a, b) => {
-                          // Sort order: viewer > technician > project-manager > admin
+                          // Sort order: viewer > tech > sales > project-manager > admin
                           const roleOrder: Record<string, number> = { 
                             'viewer': 1, 
-                            'technician': 2, 
-                            'project-manager': 3, 
-                            'admin': 4 
+                            'tech': 2,
+                            'sales': 3,
+                            'project-manager': 4, 
+                            'admin': 5 
                           }
                           return (roleOrder[a.role] || 0) - (roleOrder[b.role] || 0)
                         })
@@ -650,11 +652,11 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                     borderRadius: '12px',
                                     fontSize: '0.8rem',
                                     fontWeight: 600,
-                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'project-manager' ? '#fef3c7' : user.role === 'tech' ? '#dbeafe' : '#e0f2fe',
-                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'project-manager' ? '#92400e' : user.role === 'tech' ? '#1e40af' : '#0369a1',
+                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'project-manager' ? '#fef3c7' : user.role === 'tech' ? '#dbeafe' : user.role === 'sales' ? '#f3e8ff' : '#e0f2fe',
+                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'project-manager' ? '#92400e' : user.role === 'tech' ? '#1e40af' : user.role === 'sales' ? '#7c3aed' : '#0369a1',
                                   }}
                                 >
-                                  {user.role === 'admin' ? 'Admin' : user.role === 'project-manager' ? 'Project Manager' : user.role === 'tech' ? 'Tech' : 'Viewer'}
+                                  {user.role === 'admin' ? 'Admin' : user.role === 'project-manager' ? 'Project Manager' : user.role === 'tech' ? 'Tech' : user.role === 'sales' ? 'Sales' : 'Viewer'}
                                 </span>
                                 {user.lastLogin && (
                                   <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
@@ -1032,6 +1034,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           disabled={loading}
                         >
                           <option value="viewer">Viewer (View Only)</option>
+                          <option value="sales">Sales (View + PDF Reports)</option>
                           <option value="tech">Tech (Full Access)</option>
                           <option value="project-manager">Project Manager (Full + Assign Tasks)</option>
                           <option value="admin">Admin (Full + User Management)</option>
@@ -1050,6 +1053,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           disabled={loading}
                         >
                           <option value="viewer">Viewer (View Only)</option>
+                          <option value="sales">Sales (View + PDF Reports)</option>
                           <option value="tech">Tech (Full Access)</option>
                           <option value="project-manager">Project Manager (Full + Assign Tasks)</option>
                           <option value="admin">Admin (Full + User Management)</option>

@@ -3,7 +3,7 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
-  role: 'admin' | 'project-manager' | 'tech' | 'viewer';
+  role: 'admin' | 'project-manager' | 'tech' | 'sales' | 'viewer';
   isActive: boolean;
   suspended?: boolean;
   suspendedAt?: string;
