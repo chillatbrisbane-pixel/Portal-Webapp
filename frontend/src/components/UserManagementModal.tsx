@@ -406,7 +406,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                     <tr style={{ background: '#f3f4f6', textAlign: 'left' }}>
                       <th style={{ padding: '0.75rem' }}>Date/Time</th>
                       <th style={{ padding: '0.75rem' }}>Status</th>
-                      <th style={{ padding: '0.75rem' }}>IP Address</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -423,9 +422,6 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           }}>
                             {log.action === 'login' ? '✅ Success' : '❌ Failed'}
                           </span>
-                        </td>
-                        <td style={{ padding: '0.75rem', fontFamily: 'monospace', fontSize: '0.9rem' }}>
-                          {log.ipAddress || 'N/A'}
                         </td>
                       </tr>
                     ))}

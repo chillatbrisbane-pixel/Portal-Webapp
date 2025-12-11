@@ -909,7 +909,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             )}
 
             {/* ============ CONTROL4 CONFIGURATION ============ */}
-            {formData.manufacturer === 'Control4' && (
+            {formData.manufacturer === 'Control4' && formData.deviceType === 'control-processor' && (
               <>
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                   🎛️ Control4 Configuration
@@ -926,7 +926,7 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 </div>
                 
                 {/* Temp login only for primary control processor */}
-                {formData.deviceType === 'control-processor' && (
+                
                   <>
                     <h5 style={{ color: '#1e40af', margin: '1rem 0 0.75rem', fontSize: '0.95rem' }}>
                       🔑 Temporary Installer Login
@@ -968,7 +968,6 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                       Temporary installer credentials for project handover
                     </p>
                   </>
-                )}
               </>
             )}
 

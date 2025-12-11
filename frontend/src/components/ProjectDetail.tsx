@@ -973,9 +973,11 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   }}
                 >
                   <option value="">-- Select Site Lead --</option>
-                  {allStaff.map(staff => (
-                    <option key={staff._id} value={staff._id}>{staff.name}</option>
-                  ))}
+                  {allStaff
+                    .filter(staff => ['tech', 'project-manager', 'admin'].includes(staff.role))
+                    .map(staff => (
+                      <option key={staff._id} value={staff._id}>{staff.name}</option>
+                    ))}
                 </select>
               </div>
 
