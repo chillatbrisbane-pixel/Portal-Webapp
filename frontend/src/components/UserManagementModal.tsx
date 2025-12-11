@@ -29,6 +29,10 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
     role: 'viewer',
   })
   
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  
   // Invite link state
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [inviteCopied, setInviteCopied] = useState(false)
@@ -521,16 +525,79 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                   <button
                     onClick={handleAddUser}
                     className="btn btn-primary"
-                    style={{ marginBottom: '1.5rem' }}
+                    style={{ marginBottom: '1rem' }}
                   >
                     ➕ Invite New User
                   </button>
+
+                  {/* Search and Filter */}
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      placeholder="🔍 Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        flex: 1,
+                        minWidth: '200px',
+                        padding: '0.5rem 0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                      }}
+                    />
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => setRoleFilter(e.target.value)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                        background: 'white',
+                      }}
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="viewer">👁️ Viewer</option>
+                      <option value="technician">🔧 Technician</option>
+                      <option value="project-manager">📋 Project Manager</option>
+                      <option value="admin">👑 Admin</option>
+                    </select>
+                  </div>
 
                   {loading ? (
                     <p>Loading users...</p>
                   ) : (
                     <div style={{ display: 'grid', gap: '1rem' }}>
-                      {users.filter(u => u._id !== currentUser._id).map(user => (
+                      {users
+                        .filter(u => u._id !== currentUser._id)
+                        .filter(u => {
+                          // Search filter
+                          if (searchQuery) {
+                            const query = searchQuery.toLowerCase()
+                            return u.name.toLowerCase().includes(query) || 
+                                   u.email.toLowerCase().includes(query)
+                          }
+                          return true
+                        })
+                        .filter(u => {
+                          // Role filter
+                          if (roleFilter !== 'all') {
+                            return u.role === roleFilter
+                          }
+                          return true
+                        })
+                        .sort((a, b) => {
+                          // Sort order: viewer > technician > project-manager > admin
+                          const roleOrder: Record<string, number> = { 
+                            'viewer': 1, 
+                            'technician': 2, 
+                            'project-manager': 3, 
+                            'admin': 4 
+                          }
+                          return (roleOrder[a.role] || 0) - (roleOrder[b.role] || 0)
+                        })
+                        .map(user => (
                         <div
                           key={user._id}
                           style={{

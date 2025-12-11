@@ -300,9 +300,9 @@ export const ClientPortal: React.FC = () => {
 
   const devicesByCategory = groupDevicesByCategory();
   
-  // Get switches and PDUs for port allocation sections
+  // Get switches and PDUs/Powerboards for port allocation sections
   const switches = devices.filter(d => d.deviceType === 'switch' && d.portCount);
-  const pdus = devices.filter(d => d.deviceType === 'pdu');
+  const pdus = devices.filter(d => d.deviceType === 'pdu' || d.deviceType === 'powerboard');
   
   // Build port allocations for each switch from device bindings
   const getSwitchPortAllocations = (switchId: string) => {
@@ -781,7 +781,7 @@ export const ClientPortal: React.FC = () => {
               }}
             >
               <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#991b1b' }}>
-                🔌 PDU Outlet Allocations
+                🔌 PDU / Powerboard Outlet Allocations
               </h2>
               <span style={{ fontSize: '1.2rem', color: '#991b1b' }}>{sectionsExpanded.pduPorts ? '▼' : '▶'}</span>
             </div>

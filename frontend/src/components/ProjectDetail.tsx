@@ -97,6 +97,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [showSharePointQR, setShowSharePointQR] = useState(false)
   const [showSkytunnelQR, setShowSkytunnelQR] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
+  const [quickLinksExpanded, setQuickLinksExpanded] = useState(true)
   
   // Client Access
   const [clientAccess, setClientAccess] = useState<{
@@ -1123,11 +1124,31 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
             )}
 
-            {/* SharePoint/OneDrive Link */}
-            {project.sharePointLink && (
-              <div 
-                className="sharepoint-bar"
-                style={{ 
+            {/* Quick Links Section */}
+            {(project.sharePointLink || project.skytunnelLink || currentUser?.role === 'admin') && (
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div 
+                  onClick={() => setQuickLinksExpanded(!quickLinksExpanded)}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.5rem', 
+                    cursor: 'pointer',
+                    marginBottom: quickLinksExpanded ? '1rem' : 0,
+                    padding: '0.5rem 0',
+                  }}
+                >
+                  <span style={{ color: '#6b7280' }}>{quickLinksExpanded ? '▼' : '▶'}</span>
+                  <h3 style={{ margin: 0, fontSize: '1rem', color: '#374151' }}>🔗 Quick Links</h3>
+                </div>
+                
+                {quickLinksExpanded && (
+                  <>
+                    {/* SharePoint/OneDrive Link */}
+                    {project.sharePointLink && (
+                      <div 
+                        className="sharepoint-bar"
+                        style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '0.75rem',
@@ -1364,9 +1385,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
               </div>
             )}
 
-            {/* Client Access Link */}
-            {currentUser?.role === 'admin' && (
-              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
+                    {/* Client Access Link */}
+                    {currentUser?.role === 'admin' && (
+                      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                   <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>🔗 Client Access Link</p>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
@@ -1517,6 +1538,10 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                   <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>
                     Enable to generate a shareable link for clients to view their system profile
                   </p>
+                )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -1860,7 +1885,9 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
                       style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #d1d5db' }}
                     >
                       {switches.map(sw => (
-                        <option key={sw._id} value={sw._id}>{sw.name} ({sw.portCount || 24} ports)</option>
+                        <option key={sw._id} value={sw._id}>
+                          {sw.name} ({sw.deviceType === 'router' ? (sw.lanPorts || 4) : (sw.portCount || 24)} ports)
+                        </option>
                       ))}
                     </select>
                   </div>
