@@ -788,6 +788,15 @@ export const tasksAPI = {
     return response.json();
   },
 
+  toggleSubtask: async (taskId: string, subtaskId: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${taskId}/subtasks/${subtaskId}/toggle`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to toggle subtask');
+    return response.json();
+  },
+
   moveStage: async (id: string, stage: string) => {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}/stage`, {
       method: 'PATCH',

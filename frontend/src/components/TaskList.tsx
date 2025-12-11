@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react'
 import { tasksAPI, usersAPI, projectsAPI } from '../services/apiService'
 
+interface Subtask {
+  _id: string
+  title: string
+  completed: boolean
+  completedAt?: string
+  completedBy?: { _id: string; name: string }
+}
+
 interface Task {
   _id: string
   title: string
   description?: string
   assignee?: { _id: string; name: string; email: string }
+  assignees?: { _id: string; name: string; email: string }[]
+  subtasks?: Subtask[]
   stage: string
   completed: boolean
   priority: 'low' | 'medium' | 'high'
@@ -64,16 +74,20 @@ export default function TaskList({ projectId }: TaskListProps) {
   const [showStageManager, setShowStageManager] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [expandedTask, setExpandedTask] = useState<string | null>(null)
+  const [expandedView, setExpandedView] = useState(false)
   
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     assignee: '',
+    assignees: [] as string[],
+    subtasks: [] as { title: string; completed: boolean }[],
     stage: 'planning',
     priority: 'medium' as 'low' | 'medium' | 'high',
     dueDate: '',
   })
+  const [newSubtask, setNewSubtask] = useState('')
 
   // Stage manager state
   const [editingStages, setEditingStages] = useState<Stage[]>([])
@@ -206,10 +220,13 @@ export default function TaskList({ projectId }: TaskListProps) {
       title: task.title,
       description: task.description || '',
       assignee: task.assignee?._id || '',
+      assignees: task.assignees?.map(a => a._id) || (task.assignee ? [task.assignee._id] : []),
+      subtasks: task.subtasks?.map(s => ({ title: s.title, completed: s.completed })) || [],
       stage: task.stage,
       priority: task.priority,
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
     })
+    setNewSubtask('')
     setShowAddForm(true)
   }
 
@@ -220,7 +237,8 @@ export default function TaskList({ projectId }: TaskListProps) {
   }
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', assignee: '', stage: stages[0]?.id || 'planning', priority: 'medium', dueDate: '' })
+    setFormData({ title: '', description: '', assignee: '', assignees: [], subtasks: [], stage: stages[0]?.id || 'planning', priority: 'medium', dueDate: '' })
+    setNewSubtask('')
     setEditingTask(null)
     setShowAddForm(false)
   }
@@ -369,20 +387,84 @@ export default function TaskList({ projectId }: TaskListProps) {
               )}
             </div>
             
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: '#6b7280', flexWrap: 'wrap' }}>
-              {task.assignee && <span>👤 {task.assignee.name.split(' ')[0]}</span>}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', fontSize: '0.75rem', color: '#6b7280', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Show multiple assignees */}
+              {(task.assignees && task.assignees.length > 0) ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  👥 {task.assignees.map(a => a.name.split(' ')[0]).join(', ')}
+                </span>
+              ) : task.assignee && (
+                <span>👤 {task.assignee.name.split(' ')[0]}</span>
+              )}
               {task.dueDate && (
                 <span style={{ color: overdue ? '#dc2626' : '#6b7280' }}>
                   📅 {formatDate(task.dueDate)}{overdue && ' ⚠️'}
                 </span>
               )}
+              {/* Subtask progress */}
+              {task.subtasks && task.subtasks.length > 0 && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  📋 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
+                </span>
+              )}
             </div>
+
+            {/* Subtask progress bar */}
+            {task.subtasks && task.subtasks.length > 0 && (
+              <div style={{ marginTop: '0.5rem', background: '#e5e7eb', borderRadius: '4px', height: '4px', overflow: 'hidden' }}>
+                <div style={{ 
+                  width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%`, 
+                  background: '#10b981', 
+                  height: '100%',
+                  transition: 'width 0.3s'
+                }} />
+              </div>
+            )}
 
             {isExpanded && (
               <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e5e7eb' }}>
                 {task.description && (
                   <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: '#4b5563' }}>{task.description}</p>
                 )}
+                
+                {/* Subtasks list in expanded view */}
+                {task.subtasks && task.subtasks.length > 0 && (
+                  <div style={{ margin: '0.5rem 0', padding: '0.5rem', background: '#f9fafb', borderRadius: '6px' }}>
+                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Subtasks:</p>
+                    {task.subtasks.map((subtask, idx) => (
+                      <div 
+                        key={subtask._id || idx} 
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem', 
+                          padding: '0.25rem 0',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={subtask.completed}
+                          onChange={async () => {
+                            try {
+                              await tasksAPI.toggleSubtask(task._id, subtask._id)
+                              await loadTasks()
+                            } catch (err) {
+                              console.error('Failed to toggle subtask:', err)
+                            }
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span style={{ 
+                          textDecoration: subtask.completed ? 'line-through' : 'none',
+                          color: subtask.completed ? '#9ca3af' : '#374151'
+                        }}>{subtask.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <select
                     value={task.stage}
@@ -464,7 +546,7 @@ export default function TaskList({ projectId }: TaskListProps) {
       {/* Add/Edit Task Modal */}
       {showAddForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => resetForm()}>
-          <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', width: '100%', maxWidth: '500px', margin: '1rem' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', width: '100%', maxWidth: '600px', margin: '1rem', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 1rem' }}>{editingTask ? '✏️ Edit Task' : '➕ New Task'}</h3>
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -474,18 +556,103 @@ export default function TaskList({ projectId }: TaskListProps) {
                   <select value={formData.stage} onChange={(e) => setFormData({ ...formData, stage: e.target.value })} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }}>
                     {stages.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                   </select>
-                  <select value={formData.assignee} onChange={(e) => setFormData({ ...formData, assignee: e.target.value })} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }}>
-                    <option value="">Unassigned</option>
-                    {users.map((user) => <option key={user._id} value={user._id}>{user.name}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }}>
                     <option value="low">🟢 Low Priority</option>
                     <option value="medium">🟡 Medium Priority</option>
                     <option value="high">🔴 High Priority</option>
                   </select>
-                  <input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }} />
+                </div>
+                
+                {/* Multiple Assignees */}
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.25rem', display: 'block' }}>👥 Assignees</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    {formData.assignees.map(assigneeId => {
+                      const user = users.find(u => u._id === assigneeId)
+                      return user ? (
+                        <span key={assigneeId} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', background: '#dbeafe', borderRadius: '12px', fontSize: '0.85rem' }}>
+                          {user.name}
+                          <button type="button" onClick={() => setFormData({ ...formData, assignees: formData.assignees.filter(id => id !== assigneeId) })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 0.25rem', color: '#6b7280' }}>×</button>
+                        </span>
+                      ) : null
+                    })}
+                  </div>
+                  <select 
+                    value="" 
+                    onChange={(e) => {
+                      if (e.target.value && !formData.assignees.includes(e.target.value)) {
+                        setFormData({ ...formData, assignees: [...formData.assignees, e.target.value] })
+                      }
+                    }} 
+                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #d1d5db', width: '100%' }}
+                  >
+                    <option value="">+ Add assignee...</option>
+                    {users.filter(u => !formData.assignees.includes(u._id)).map((user) => <option key={user._id} value={user._id}>{user.name}</option>)}
+                  </select>
+                </div>
+
+                <input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #d1d5db' }} />
+
+                {/* Subtasks */}
+                <div>
+                  <label style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.25rem', display: 'block' }}>📋 Subtasks</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    {formData.subtasks.map((subtask, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', background: '#f9fafb', borderRadius: '6px' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={subtask.completed} 
+                          onChange={() => {
+                            const updated = [...formData.subtasks]
+                            updated[idx] = { ...updated[idx], completed: !updated[idx].completed }
+                            setFormData({ ...formData, subtasks: updated })
+                          }}
+                          style={{ width: '18px', height: '18px' }}
+                        />
+                        <input 
+                          type="text" 
+                          value={subtask.title} 
+                          onChange={(e) => {
+                            const updated = [...formData.subtasks]
+                            updated[idx] = { ...updated[idx], title: e.target.value }
+                            setFormData({ ...formData, subtasks: updated })
+                          }}
+                          style={{ flex: 1, padding: '0.25rem 0.5rem', border: '1px solid #e5e7eb', borderRadius: '4px', textDecoration: subtask.completed ? 'line-through' : 'none', color: subtask.completed ? '#9ca3af' : 'inherit' }}
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setFormData({ ...formData, subtasks: formData.subtasks.filter((_, i) => i !== idx) })}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.25rem' }}
+                        >🗑️</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Add subtask..." 
+                      value={newSubtask}
+                      onChange={(e) => setNewSubtask(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newSubtask.trim()) {
+                          e.preventDefault()
+                          setFormData({ ...formData, subtasks: [...formData.subtasks, { title: newSubtask.trim(), completed: false }] })
+                          setNewSubtask('')
+                        }
+                      }}
+                      style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #d1d5db' }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (newSubtask.trim()) {
+                          setFormData({ ...formData, subtasks: [...formData.subtasks, { title: newSubtask.trim(), completed: false }] })
+                          setNewSubtask('')
+                        }
+                      }}
+                      style={{ padding: '0.5rem 1rem', background: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                    >+ Add</button>
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>

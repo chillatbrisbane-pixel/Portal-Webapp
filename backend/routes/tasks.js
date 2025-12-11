@@ -12,11 +12,15 @@ router.get('/test', (req, res) => {
 router.get('/my-tasks', authenticateToken, async (req, res) => {
   try {
     const tasks = await Task.find({ 
-      assignee: req.userId,
+      $or: [
+        { assignee: req.userId },
+        { assignees: req.userId }
+      ],
       completed: false 
     })
       .populate('project', 'name')
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
       .sort({ dueDate: 1, priority: -1, createdAt: -1 });
     res.json(tasks);
@@ -30,9 +34,11 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
   try {
     const tasks = await Task.find({ project: req.params.projectId })
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
       .populate('completedBy', 'name email')
       .populate('comments.user', 'name email')
+      .populate('subtasks.completedBy', 'name email')
       .sort({ order: 1, createdAt: -1 });
     res.json(tasks);
   } catch (error) {
@@ -45,8 +51,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
-      .populate('comments.user', 'name email');
+      .populate('comments.user', 'name email')
+      .populate('subtasks.completedBy', 'name email');
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -60,7 +68,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     console.log('Creating task with body:', JSON.stringify(req.body));
-    const { project, title, description, assignee, stage, priority, dueDate } = req.body;
+    const { project, title, description, assignee, assignees, stage, priority, dueDate, subtasks } = req.body;
     
     // Validate required fields
     if (!project) {
@@ -76,11 +84,21 @@ router.post('/', authenticateToken, async (req, res) => {
     const lastTask = await Task.findOne({ project, stage: stage || 'planning' }).sort({ order: -1 });
     const order = lastTask ? lastTask.order + 1 : 0;
     
+    // Handle assignees - support both single assignee and multiple assignees
+    let taskAssignees = [];
+    if (assignees && assignees.length > 0) {
+      taskAssignees = assignees.filter(a => a && a !== '');
+    } else if (assignee && assignee !== '') {
+      taskAssignees = [assignee];
+    }
+    
     const taskData = {
       project,
       title: title.trim(),
       description: description || '',
-      assignee: assignee && assignee !== '' ? assignee : null,
+      assignee: taskAssignees.length > 0 ? taskAssignees[0] : null,
+      assignees: taskAssignees,
+      subtasks: subtasks || [],
       stage: stage || 'planning',
       completed: false,
       priority: priority || 'medium',
@@ -98,6 +116,7 @@ router.post('/', authenticateToken, async (req, res) => {
     
     const populatedTask = await Task.findById(task._id)
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email');
     
     res.status(201).json(populatedTask);
@@ -111,15 +130,26 @@ router.post('/', authenticateToken, async (req, res) => {
 // Update task
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const { title, description, assignee, stage, completed, priority, dueDate } = req.body;
+    const { title, description, assignee, assignees, stage, completed, priority, dueDate, subtasks } = req.body;
     
     const updateData = { title, description, priority };
     
-    // Handle assignee - allow null/unassigned
-    if (assignee === '' || assignee === null) {
+    // Handle assignees - support both single and multiple
+    if (assignees !== undefined) {
+      const validAssignees = (assignees || []).filter(a => a && a !== '');
+      updateData.assignees = validAssignees;
+      updateData.assignee = validAssignees.length > 0 ? validAssignees[0] : null;
+    } else if (assignee === '' || assignee === null) {
       updateData.assignee = null;
+      updateData.assignees = [];
     } else if (assignee) {
       updateData.assignee = assignee;
+      updateData.assignees = [assignee];
+    }
+    
+    // Handle subtasks
+    if (subtasks !== undefined) {
+      updateData.subtasks = subtasks;
     }
     
     // Handle stage change
@@ -152,9 +182,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
       { new: true }
     )
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
       .populate('completedBy', 'name email')
-      .populate('comments.user', 'name email');
+      .populate('comments.user', 'name email')
+      .populate('subtasks.completedBy', 'name email');
     
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -189,8 +221,46 @@ router.patch('/:id/toggle', authenticateToken, async (req, res) => {
       { new: true }
     )
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
       .populate('completedBy', 'name email');
+    
+    res.json(updatedTask);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Toggle subtask completion
+router.patch('/:id/subtasks/:subtaskId/toggle', authenticateToken, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+    
+    const subtask = task.subtasks.id(req.params.subtaskId);
+    if (!subtask) {
+      return res.status(404).json({ message: 'Subtask not found' });
+    }
+    
+    subtask.completed = !subtask.completed;
+    if (subtask.completed) {
+      subtask.completedAt = new Date();
+      subtask.completedBy = req.userId;
+    } else {
+      subtask.completedAt = null;
+      subtask.completedBy = null;
+    }
+    
+    await task.save();
+    
+    const updatedTask = await Task.findById(task._id)
+      .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
+      .populate('createdBy', 'name email')
+      .populate('completedBy', 'name email')
+      .populate('subtasks.completedBy', 'name email');
     
     res.json(updatedTask);
   } catch (error) {
@@ -209,6 +279,7 @@ router.patch('/:id/stage', authenticateToken, async (req, res) => {
       { new: true }
     )
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
       .populate('completedBy', 'name email');
     
@@ -241,6 +312,7 @@ router.post('/:id/comments', authenticateToken, async (req, res) => {
     
     const populatedTask = await Task.findById(task._id)
       .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
       .populate('createdBy', 'name email')
       .populate('comments.user', 'name email');
     
