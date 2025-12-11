@@ -268,6 +268,9 @@ const deviceSchema = new mongoose.Schema(
     wanGateway: String,
     wanDNS: String,
     
+    // UniFi specific
+    unifiSiteName: String,
+    
     // Switch specific
     portCount: {
       type: Number,

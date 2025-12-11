@@ -376,7 +376,7 @@ export const DeviceList: React.FC<DeviceListProps> = ({ projectId, onDevicesChan
             🔄 {lastRefresh.toLocaleTimeString()}
           </button>
           <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            ➕ Add
+            ➕ Add Device
           </button>
         </div>
       </div>

@@ -93,6 +93,7 @@ export const ClientPortal: React.FC = () => {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [showPasswords, setShowPasswords] = useState<Set<string>>(new Set());
   const [qrWifi, setQrWifi] = useState<WiFiNetwork | null>(null);
+  const [qrSerial, setQrSerial] = useState<{ name: string; serial: string } | null>(null);
   const [sectionsExpanded, setSectionsExpanded] = useState({
     projectDetails: true,
     wifiNetworks: true,
@@ -625,6 +626,67 @@ export const ClientPortal: React.FC = () => {
           </div>
         )}
 
+        {/* Serial Number QR Code Modal */}
+        {qrSerial && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }} onClick={() => setQrSerial(null)}>
+            <div 
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '2rem',
+                maxWidth: '400px',
+                width: '100%',
+                textAlign: 'center',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 0.5rem', color: '#0066cc' }}>{qrSerial.name}</h3>
+              <p style={{ margin: '0 0 1rem', color: '#6b7280', fontSize: '0.9rem' }}>Serial Number</p>
+              <div style={{ 
+                background: 'white', 
+                padding: '1rem', 
+                borderRadius: '8px',
+                display: 'inline-block',
+                marginBottom: '1rem',
+              }}>
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrSerial.serial)}`}
+                  alt="Serial QR Code"
+                  style={{ display: 'block' }}
+                />
+              </div>
+              <p style={{ fontSize: '1rem', color: '#333', marginBottom: '1rem', fontFamily: 'monospace', background: '#f3f4f6', padding: '0.5rem', borderRadius: '4px' }}>
+                {qrSerial.serial}
+              </p>
+              <button
+                onClick={() => setQrSerial(null)}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#e5e7eb',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Switch Port Allocations */}
         {switches.length > 0 && (
           <div style={{ 
@@ -879,9 +941,16 @@ export const ClientPortal: React.FC = () => {
                           </div>
                         )}
                         {device.serialNumber && (
-                          <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <span style={{ color: '#6b7280' }}>Serial:</span>{' '}
                             <span>{device.serialNumber}</span>
+                            <button
+                              onClick={() => setQrSerial({ name: device.name, serial: device.serialNumber || '' })}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0', fontSize: '0.85rem' }}
+                              title="Show QR Code"
+                            >
+                              📱
+                            </button>
                           </div>
                         )}
                         {device.vlan && (

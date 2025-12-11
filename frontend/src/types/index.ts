@@ -372,6 +372,9 @@ export interface Device {
   wanGateway: string;
   wanDNS: string;
   
+  // Network - UniFi
+  unifiSiteName: string;
+  
   // Network - Switch
   portCount: 8 | 16 | 24 | 48;
   poeType: 'none' | 'af' | 'at' | 'bt' | '';
@@ -469,7 +472,7 @@ export const BRAND_OPTIONS = {
   },
   'user-interface': {
     'touch-panel': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
-    'remote': ['Control4', 'RTI', 'Custom'],
+    'remote': ['Control4', 'Crestron Home', 'RTI', 'Custom'],
   },
   'control-system': {
     'control-processor': ['Control4', 'Crestron Home', 'RTI', 'Custom'],

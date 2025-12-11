@@ -85,6 +85,8 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   ovrcAccountName: '',
   localAdminUser: '',
   localAdminPass: '',
+  // UniFi
+  unifiSiteName: '',
   // Audio matrix / multiroom amp
   audioInputCount: 0,
   audioOutputCount: 0,
@@ -1671,6 +1673,21 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                   🔀 Switch Configuration
                 </h4>
+                
+                {/* UniFi Site Name - only for Ubiquiti */}
+                {formData.manufacturer?.toLowerCase().includes('ubiquiti') && (
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label>UniFi Site Name</label>
+                    <input
+                      name="unifiSiteName"
+                      type="text"
+                      value={formData.unifiSiteName || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Default, Site1"
+                    />
+                  </div>
+                )}
+                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                   <div className="form-group" style={{ margin: 0 }}>
                     <label>Port Count</label>
@@ -1710,6 +1727,21 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
                   🌐 Router Configuration
                 </h4>
+                
+                {/* UniFi Site Name - only for Ubiquiti */}
+                {formData.manufacturer?.toLowerCase().includes('ubiquiti') && (
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label>UniFi Site Name</label>
+                    <input
+                      name="unifiSiteName"
+                      type="text"
+                      value={formData.unifiSiteName || ''}
+                      onChange={handleInputChange}
+                      placeholder="e.g., Default, Site1"
+                    />
+                  </div>
+                )}
+                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                   <div className="form-group" style={{ margin: 0 }}>
                     <label>WAN Protocol</label>
