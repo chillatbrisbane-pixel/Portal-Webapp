@@ -320,7 +320,7 @@ const deviceSchema = new mongoose.Schema(
     // Security Panel
     panelType: {
       type: String,
-      enum: ['inception', 'paradox', 'bosch', 'honeywell', 'custom', '']
+      enum: ['inception', 'paradox', 'bosch', 'honeywell', 'ajax', 'dahua', 'hikvision', 'custom', '']
     },
     skyTunnelLink: String, // Auto-generated for Inner Range Inception
     zoneCount: Number,

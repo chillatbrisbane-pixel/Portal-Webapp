@@ -801,36 +801,65 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                 />
               </div>
 
-              <div className="form-group" style={{ margin: 0 }}>
-                <label>Manufacturer</label>
-                <select name="manufacturer" value={formData.manufacturer} onChange={handleInputChange}>
-                  <option value="">Select...</option>
-                  {getBrandOptions().map(brand => (
-                    <option key={brand} value={brand}>{brand}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Hide Manufacturer for alarm panels - Panel Type serves as both */}
+              {!(formData.category === 'security' && formData.deviceType === 'alarm-panel') && (
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label>Manufacturer</label>
+                  <select name="manufacturer" value={formData.manufacturer} onChange={handleInputChange}>
+                    <option value="">Select...</option>
+                    {getBrandOptions().map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label>Model</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    name="model"
-                    type="text"
-                    value={formData.model}
-                    onChange={handleInputChange}
-                    placeholder="e.g., USW-Pro-24-POE"
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => startScanner('model')}
-                    style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
-                    title="Scan barcode"
-                  >
-                    📷
-                  </button>
-                </div>
+                {/* For alarm panels, show Panel Type dropdown instead of Model text field */}
+                {formData.category === 'security' && formData.deviceType === 'alarm-panel' ? (
+                  <>
+                    <label>Panel Type *</label>
+                    <select
+                      name="panelType"
+                      value={formData.panelType || ''}
+                      onChange={handleInputChange}
+                      disabled={viewOnly}
+                      style={{ width: '100%' }}
+                    >
+                      <option value="">Select panel type...</option>
+                      <option value="inception">Inner Range Inception</option>
+                      <option value="paradox">Paradox</option>
+                      <option value="bosch">Bosch</option>
+                      <option value="honeywell">Honeywell</option>
+                      <option value="ajax">Ajax</option>
+                      <option value="dahua">Dahua</option>
+                      <option value="hikvision">Hikvision</option>
+                      <option value="custom">Other / Custom</option>
+                    </select>
+                  </>
+                ) : (
+                  <>
+                    <label>Model</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        name="model"
+                        type="text"
+                        value={formData.model}
+                        onChange={handleInputChange}
+                        placeholder="e.g., USW-Pro-24-POE"
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => startScanner('model')}
+                        style={{ padding: '0.5rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+                        title="Scan barcode"
+                      >
+                        📷
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
@@ -2000,25 +2029,6 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             {/* SECURITY - ALARM PANEL */}
             {formData.category === 'security' && formData.deviceType === 'alarm-panel' && (
               <>
-                {/* Panel Type Selection */}
-                <div className="form-group" style={{ marginTop: '1rem' }}>
-                  <label>🏢 Panel Type</label>
-                  <select
-                    name="panelType"
-                    value={formData.panelType || ''}
-                    onChange={handleInputChange}
-                    disabled={viewOnly}
-                    style={{ width: '100%' }}
-                  >
-                    <option value="">Select panel type...</option>
-                    <option value="inception">Inner Range Inception</option>
-                    <option value="paradox">Paradox</option>
-                    <option value="bosch">Bosch</option>
-                    <option value="honeywell">Honeywell</option>
-                    <option value="custom">Other / Custom</option>
-                  </select>
-                </div>
-
                 {/* SkyTunnel link for Inception panels */}
                 {formData.panelType === 'inception' && formData.serialNumber && (
                   <div className="form-group" style={{ marginTop: '1rem' }}>
