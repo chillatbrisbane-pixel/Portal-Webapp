@@ -56,7 +56,7 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
       const trimmed = line.trim()
 
       // Skip empty lines and dividers
-      if (!trimmed || /^=+$/.test(trimmed)) continue
+      if (!trimmed || /^=+$/.test(trimmed) || /^-+$/.test(trimmed)) continue
 
       // Detect section headers [SectionName]
       const sectionMatch = trimmed.match(/^\[([^\]]+)\]/)
@@ -90,7 +90,7 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
           currentDevice = { _type: 'wifi' }
         } else if (sectionLower.includes('control4')) {
           currentDevice = { _type: 'control4' }
-        } else if (sectionLower.match(/^wap\d+$/i)) {
+        } else if (sectionLower.match(/^wap\d+$/i) || sectionLower.includes('wap controller')) {
           currentDevice = { _type: 'access-point', name: currentSection }
         } else if (sectionLower.match(/^switch\d+$/i)) {
           currentDevice = { _type: 'switch', name: currentSection }
@@ -112,10 +112,60 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
           currentDevice = { _type: 'amplifier', name: currentSection }
         } else if (sectionLower.includes('intercom') || sectionLower.includes('ds2')) {
           currentDevice = { _type: 'door-station', name: 'Intercom' }
-        } else if (sectionLower.includes('samsung')) {
-          currentDevice = { _type: 'tv', name: 'Samsung TV' }
+        } else if (sectionLower.includes('samsung') || sectionLower.match(/^tv\d+$/i)) {
+          currentDevice = { _type: 'tv', name: currentSection }
+        } else if (sectionLower.match(/^proj\d+$/i)) {
+          currentDevice = { _type: 'projector', name: currentSection }
+        } else if (sectionLower.match(/^avr\d+$/i)) {
+          currentDevice = { _type: 'avr', name: currentSection }
+        } else if (sectionLower === 'nas') {
+          currentDevice = { _type: 'nas', name: 'NAS' }
+        } else if (sectionLower.includes('alarm') || sectionLower.includes('ness')) {
+          currentDevice = { _type: 'alarm-panel', name: 'Alarm Panel' }
+        } else if (sectionLower.includes('audio matrix')) {
+          currentDevice = { _type: 'audio-matrix', name: currentSection }
+        } else if (sectionLower.includes('apple tv') || sectionLower.match(/^atv\d+$/i)) {
+          currentDevice = { _type: 'streaming', name: currentSection }
+        } else if (sectionLower.match(/^blu\d+$/i)) {
+          currentDevice = { _type: 'blu-ray', name: currentSection }
+        } else if (sectionLower.includes('rachio')) {
+          currentDevice = { _type: 'irrigation', name: 'Rachio' }
+        } else if (sectionLower.includes('touch screen') || sectionLower.includes('remote')) {
+          currentDevice = { _type: 'touchpanel', name: currentSection }
+        } else if (sectionLower.includes('control processor') || sectionLower.includes('ea3') || sectionLower.includes('ea5')) {
+          currentDevice = { _type: 'processor', name: currentSection }
         }
 
+        continue
+      }
+
+      // Detect WiFi entries even without section header (look for "Wireless SSID" pattern)
+      if (trimmed.toLowerCase().startsWith('wireless ssid')) {
+        // Start a new wifi entry if not already in one
+        if (!currentDevice || currentDevice._type !== 'wifi') {
+          currentDevice = { _type: 'wifi' }
+        }
+        const wifiMatch = trimmed.match(/wireless ssid[^:]*:\s*(.+)/i)
+        if (wifiMatch) {
+          currentDevice.ssid = wifiMatch[1].trim()
+        }
+        continue
+      }
+      if (trimmed.toLowerCase().startsWith('wireless password')) {
+        if (currentDevice && currentDevice._type === 'wifi') {
+          const passMatch = trimmed.match(/wireless password[^:]*:\s*(.+)/i)
+          if (passMatch) {
+            currentDevice.password = passMatch[1].trim()
+            // Complete wifi entry
+            if (currentDevice.ssid) {
+              data.wifiNetworks.push({
+                ssid: currentDevice.ssid,
+                password: currentDevice.password
+              })
+              currentDevice = { _type: 'wifi' }
+            }
+          }
+        }
         continue
       }
 
@@ -149,26 +199,8 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
 
         if (!value) continue
 
-        // WiFi networks
-        if (currentDevice._type === 'wifi') {
-          if (key.includes('ssid')) {
-            currentDevice.ssid = value
-          } else if (key.includes('password')) {
-            currentDevice.password = value
-            // Complete wifi entry
-            if (currentDevice.ssid) {
-              data.wifiNetworks.push({
-                ssid: currentDevice.ssid,
-                password: currentDevice.password
-              })
-              currentDevice = { _type: 'wifi' }
-            }
-          }
-          continue
-        }
-
-        // Skip control4 for now
-        if (currentDevice._type === 'control4') continue
+        // Skip control4 and wifi (wifi is handled above)
+        if (currentDevice._type === 'control4' || currentDevice._type === 'wifi') continue
 
         // Device fields
         if (key.includes('location')) {
@@ -192,15 +224,35 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
         } else if (key.includes('name') && !currentDevice.name) {
           currentDevice.name = value
         }
+        
+        // Detect alarm panel type from brand field
+        if (currentDevice._type === 'alarm-panel' && key.includes('brand')) {
+          const brandLower = value.toLowerCase()
+          if (brandLower.includes('paradox')) {
+            currentDevice.panelType = 'paradox'
+          } else if (brandLower.includes('inception') || brandLower.includes('inner range')) {
+            currentDevice.panelType = 'inception'
+          } else if (brandLower.includes('bosch')) {
+            currentDevice.panelType = 'bosch'
+          } else if (brandLower.includes('honeywell')) {
+            currentDevice.panelType = 'honeywell'
+          } else if (brandLower.includes('ajax')) {
+            currentDevice.panelType = 'ajax'
+          } else if (brandLower.includes('dahua')) {
+            currentDevice.panelType = 'dahua'
+          } else if (brandLower.includes('hikvision')) {
+            currentDevice.panelType = 'hikvision'
+          }
+        }
       }
 
-      // Check for Inception alarm info
+      // Check for Inception alarm info (standalone line)
       if (trimmed.includes('ALARM Serial Number:')) {
         const serialMatch = trimmed.match(/ALARM Serial Number:\s*(\S+)/i)
         if (serialMatch) {
           let alarmDevice = data.devices.find(d => d._type === 'alarm-panel')
           if (!alarmDevice) {
-            alarmDevice = { _type: 'alarm-panel', name: 'Inception Alarm', panelType: 'inception' }
+            alarmDevice = { _type: 'alarm-panel', name: 'Alarm Panel', panelType: 'inception' }
             data.devices.push(alarmDevice)
           }
           alarmDevice.serialNumber = serialMatch[1]
@@ -265,14 +317,23 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
         'router': { category: 'network', deviceType: 'router' },
         'cloudkey': { category: 'network', deviceType: 'cloudkey' },
         'modem': { category: 'network', deviceType: 'router' },
+        'nas': { category: 'network', deviceType: 'nas' },
         'camera': { category: 'camera', deviceType: 'camera' },
         'nvr': { category: 'camera', deviceType: 'nvr' },
         'pdu': { category: 'power', deviceType: 'pdu' },
         'amplifier': { category: 'av', deviceType: 'amplifier' },
+        'audio-matrix': { category: 'av', deviceType: 'audio-matrix' },
+        'avr': { category: 'av', deviceType: 'avr' },
         'tv': { category: 'av', deviceType: 'tv' },
+        'projector': { category: 'av', deviceType: 'projector' },
+        'streaming': { category: 'av', deviceType: 'streaming' },
+        'blu-ray': { category: 'av', deviceType: 'blu-ray' },
         'hvac-controller': { category: 'hvac', deviceType: 'hvac-controller' },
+        'irrigation': { category: 'hvac', deviceType: 'irrigation' },
         'door-station': { category: 'intercom', deviceType: 'door-station' },
-        'alarm-panel': { category: 'security', deviceType: 'alarm-panel' }
+        'alarm-panel': { category: 'security', deviceType: 'alarm-panel' },
+        'processor': { category: 'control', deviceType: 'processor' },
+        'touchpanel': { category: 'control', deviceType: 'touchpanel' }
       }
 
       // Convert devices

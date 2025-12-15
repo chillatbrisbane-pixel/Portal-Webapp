@@ -18,8 +18,8 @@ interface TechConfig {
 }
 
 const TECH_CONFIGS: TechConfig[] = [
-  { key: 'networking', label: 'Networking', icon: '🔗', deviceType: 'network', defaultBrands: ['Ubiquiti', 'Araknis', 'Netgear'], defaultVlan: 1, isComposite: true },
-  { key: 'accessPoints', label: 'Wireless Access Points', icon: '📡', deviceType: 'access-point', defaultBrands: ['Ubiquiti', 'Araknis', 'Ruckus'], defaultVlan: 1 },
+  { key: 'networking', label: 'Networking', icon: '🔗', deviceType: 'network', defaultBrands: ['Pakedge', 'Ubiquiti', 'Araknis', 'Netgear'], defaultVlan: 1, isComposite: true },
+  { key: 'accessPoints', label: 'Wireless Access Points', icon: '📡', deviceType: 'access-point', defaultBrands: ['Pakedge', 'Ubiquiti', 'Araknis', 'Ruckus'], defaultVlan: 1 },
   { key: 'cameras', label: 'Security Cameras', icon: '📹', deviceType: 'camera', defaultBrands: ['Dahua', 'Hikvision', 'Luma'], defaultVlan: 20 },
   { key: 'nvr', label: 'NVR', icon: '💾', deviceType: 'nvr', defaultBrands: ['Dahua', 'Hikvision', 'Luma'], defaultVlan: 20 },
   { key: 'security', label: 'Security Panel', icon: '🔒', deviceType: 'alarm-panel', defaultBrands: ['Inner Range (Inception)', 'Paradox', 'Bosch'], defaultVlan: 1 },
@@ -35,7 +35,7 @@ const TECH_CONFIGS: TechConfig[] = [
 ]
 
 // Router brands for networking config
-const ROUTER_BRANDS = ['Ubiquiti', 'Araknis', 'Netgear', 'Cisco', 'MikroTik']
+const ROUTER_BRANDS = ['Pakedge', 'Ubiquiti', 'Araknis', 'Netgear', 'Cisco', 'MikroTik']
 
 // Device name mappings for proper singular names
 const DEVICE_SINGULAR_NAMES: Record<string, string> = {

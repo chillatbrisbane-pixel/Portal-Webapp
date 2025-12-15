@@ -407,6 +407,8 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
       switchPorts: [],
       createdBy: req.userId,
       teamMembers: [],
+      // Additional project fields
+      skytunnelLink: sourceProject.skytunnelLink,
     };
 
     const newProject = new Project(clonedData);
@@ -419,6 +421,10 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
       
       const sourceDevices = await Device.find({ projectId: req.params.id });
       
+      // Map old device IDs to new device IDs for binding references
+      const deviceIdMap = new Map();
+      
+      // First pass: create all devices without bindings
       for (const device of sourceDevices) {
         const ipResult = await getNextAvailableIP(
           newProject._id.toString(),
@@ -427,22 +433,79 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
           Device
         );
         
+        // Convert device to plain object and remove fields that shouldn't be cloned
+        const deviceObj = device.toObject();
+        delete deviceObj._id;
+        delete deviceObj.projectId;
+        delete deviceObj.createdAt;
+        delete deviceObj.updatedAt;
+        delete deviceObj.__v;
+        // Don't clone binding references yet - we'll handle them in second pass
+        delete deviceObj.boundToSwitch;
+        delete deviceObj.boundToNVR;
+        delete deviceObj.boundToProcessor;
+        // Clear managed ports assignments (will be empty for cloned switches)
+        if (deviceObj.managedPorts) {
+          deviceObj.managedPorts = deviceObj.managedPorts.map(port => ({
+            portNumber: port.portNumber,
+            description: port.description,
+            vlan: port.vlan,
+            poeEnabled: port.poeEnabled,
+            // Don't copy assignedDevice - will be remapped
+          }));
+        }
+        
         const clonedDevice = new Device({
+          ...deviceObj,
           projectId: newProject._id,
-          name: device.name,
-          category: device.category,
-          deviceType: device.deviceType,
-          manufacturer: device.manufacturer,
-          model: device.model,
-          vlan: device.vlan,
-          location: device.location,
-          room: device.room,
-          configNotes: device.configNotes,
           ipAddress: ipResult.ip,
           status: 'not-installed',
         });
         
         await clonedDevice.save();
+        deviceIdMap.set(device._id.toString(), clonedDevice._id);
+      }
+      
+      // Second pass: update bindings with new device IDs
+      for (const device of sourceDevices) {
+        const newDeviceId = deviceIdMap.get(device._id.toString());
+        if (!newDeviceId) continue;
+        
+        const updates = {};
+        
+        if (device.boundToSwitch) {
+          const newSwitchId = deviceIdMap.get(device.boundToSwitch.toString());
+          if (newSwitchId) updates.boundToSwitch = newSwitchId;
+        }
+        
+        if (device.boundToNVR) {
+          const newNvrId = deviceIdMap.get(device.boundToNVR.toString());
+          if (newNvrId) updates.boundToNVR = newNvrId;
+        }
+        
+        if (device.boundToProcessor) {
+          const newProcessorId = deviceIdMap.get(device.boundToProcessor.toString());
+          if (newProcessorId) updates.boundToProcessor = newProcessorId;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await Device.findByIdAndUpdate(newDeviceId, updates);
+        }
+        
+        // Update switch managedPorts with new device references
+        if (device.deviceType === 'switch' && device.managedPorts?.length > 0) {
+          const newSwitch = await Device.findById(newDeviceId);
+          if (newSwitch && newSwitch.managedPorts) {
+            for (const port of newSwitch.managedPorts) {
+              const sourcePort = device.managedPorts.find(p => p.portNumber === port.portNumber);
+              if (sourcePort?.assignedDevice) {
+                const newAssignedId = deviceIdMap.get(sourcePort.assignedDevice.toString());
+                if (newAssignedId) port.assignedDevice = newAssignedId;
+              }
+            }
+            await newSwitch.save();
+          }
+        }
       }
     }
 

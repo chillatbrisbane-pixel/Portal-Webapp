@@ -451,10 +451,10 @@ export interface Device {
 // Brand options by category
 export const BRAND_OPTIONS = {
   network: {
-    router: ['Araknis', 'Ubiquiti', 'Cisco', 'Netgear', 'TP-Link', 'Custom'],
-    switch: ['Araknis', 'Ubiquiti', 'Netgear', 'Cisco', 'TP-Link', 'Custom'],
-    'access-point': ['Araknis', 'Ubiquiti', 'Ruckus', 'Cisco', 'Custom'],
-    cloudkey: ['Ubiquiti', 'Araknis', 'Custom'],
+    router: ['Araknis', 'Pakedge', 'Ubiquiti', 'Cisco', 'Netgear', 'TP-Link', 'Custom'],
+    switch: ['Araknis', 'Pakedge', 'Ubiquiti', 'Netgear', 'Cisco', 'TP-Link', 'Custom'],
+    'access-point': ['Araknis', 'Pakedge', 'Ubiquiti', 'Ruckus', 'Cisco', 'Custom'],
+    cloudkey: ['Ubiquiti', 'Pakedge', 'Araknis', 'Custom'],
   },
   camera: {
     camera: ['Dahua', 'Hikvision', 'Luma', 'Ubiquiti', 'Axis', 'Hanwha', 'Custom'],
@@ -493,7 +493,7 @@ export const BRAND_OPTIONS = {
     'media-player': ['Apple TV', 'Nvidia Shield', 'Roku', 'Amazon Fire', 'Custom'],
   },
   power: {
-    pdu: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Panamax', 'Custom'],
+    pdu: ['Pakedge', 'Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Panamax', 'Custom'],
     ups: ['Wattbox', 'APC', 'CyberPower', 'Tripp Lite', 'Custom'],
     powerboard: ['HPM', 'Clipsal', 'Belkin', 'Custom'],
   },

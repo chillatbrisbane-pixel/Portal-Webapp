@@ -6,6 +6,15 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    allowedHosts: ['localhost', 'neuronic-brain-nonmobile.ngrok-free.dev'],  // ← Add your ngrok domain
+    allowedHosts: ['localhost', 'neuronic-brain-nonmobile.ngrok-free.dev'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+        }
+      }
+    }
   }
 })
