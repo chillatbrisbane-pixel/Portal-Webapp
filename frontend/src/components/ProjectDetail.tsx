@@ -98,6 +98,7 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
   const [showSkytunnelQR, setShowSkytunnelQR] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
   const [quickLinksExpanded, setQuickLinksExpanded] = useState(true)
+  const [showAlarmPassword, setShowAlarmPassword] = useState(false)
   
   // Client Access
   const [clientAccess, setClientAccess] = useState<{
@@ -1268,124 +1269,235 @@ export const ProjectDetail: React.FC<ProjectDetailProps> = ({
             )}
 
             {/* Skytunnel Link */}
-            {project.skytunnelLink && (
+            {project.skytunnelLink && (() => {
+              // Find the Inception alarm device to get credentials
+              const inceptionDevice = devices.find(d => d.category === 'security' && d.panelType === 'inception')
+              return (
               <div 
                 className="skytunnel-bar"
                 style={{ 
                   display: 'flex', 
-                  alignItems: 'center', 
+                  flexDirection: 'column',
                   gap: '0.75rem',
                   marginBottom: '1.5rem',
                   padding: '0.75rem 1rem',
                   background: '#f5f3ff',
                   borderRadius: '8px',
                   border: '1px solid #c4b5fd',
-                  flexWrap: 'wrap',
                 }}
               >
-                <span style={{ fontSize: '1.25rem' }}>🔗</span>
-                <a 
-                  href={project.skytunnelLink} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ 
-                    flex: 1,
-                    minWidth: '150px',
-                    color: '#6d28d9', 
-                    fontWeight: 600,
-                    fontSize: '1rem',
-                    textDecoration: 'none',
-                  }}
-                >
-                  {project.name} - Skytunnel Link
-                </a>
-                <div className="skytunnel-buttons" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={async (e) => {
-                      e.preventDefault()
-                      try {
-                        await navigator.clipboard.writeText(project.skytunnelLink)
-                        setCopyFeedback('skytunnel')
-                        setTimeout(() => setCopyFeedback(null), 2000)
-                      } catch (err) {
-                        const textarea = document.createElement('textarea')
-                        textarea.value = project.skytunnelLink
-                        document.body.appendChild(textarea)
-                        textarea.select()
-                        document.execCommand('copy')
-                        document.body.removeChild(textarea)
-                        setCopyFeedback('skytunnel')
-                        setTimeout(() => setCopyFeedback(null), 2000)
-                      }
-                    }}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      background: copyFeedback === 'skytunnel' ? '#10b981' : '#e5e7eb',
-                      color: copyFeedback === 'skytunnel' ? 'white' : '#374151',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.25rem',
-                      transition: 'all 0.2s',
-                      flex: 1,
-                      minWidth: '70px',
-                    }}
-                    title="Copy link"
-                  >
-                    {copyFeedback === 'skytunnel' ? '✓ Copied!' : '📋 Copy'}
-                  </button>
-                  <button
-                    onClick={() => setShowSkytunnelQR(true)}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      background: '#7c3aed',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.25rem',
-                      flex: 1,
-                      minWidth: '60px',
-                    }}
-                    title="Show QR code"
-                  >
-                    📱 QR
-                  </button>
-                  <a
-                    href={project.skytunnelLink}
-                    target="_blank"
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '1.25rem' }}>🔗</span>
+                  <a 
+                    href={project.skytunnelLink} 
+                    target="_blank" 
                     rel="noopener noreferrer"
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      background: '#6d28d9',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      textDecoration: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.25rem',
+                    style={{ 
                       flex: 1,
-                      minWidth: '60px',
+                      minWidth: '150px',
+                      color: '#6d28d9', 
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      textDecoration: 'none',
                     }}
-                    title="Open in new tab"
                   >
-                    🔗 Open
+                    {project.name} - Skytunnel Link
                   </a>
+                  <div className="skytunnel-buttons" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        try {
+                          await navigator.clipboard.writeText(project.skytunnelLink)
+                          setCopyFeedback('skytunnel')
+                          setTimeout(() => setCopyFeedback(null), 2000)
+                        } catch (err) {
+                          const textarea = document.createElement('textarea')
+                          textarea.value = project.skytunnelLink
+                          document.body.appendChild(textarea)
+                          textarea.select()
+                          document.execCommand('copy')
+                          document.body.removeChild(textarea)
+                          setCopyFeedback('skytunnel')
+                          setTimeout(() => setCopyFeedback(null), 2000)
+                        }
+                      }}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        background: copyFeedback === 'skytunnel' ? '#10b981' : '#e5e7eb',
+                        color: copyFeedback === 'skytunnel' ? 'white' : '#374151',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.2s',
+                        flex: 1,
+                        minWidth: '70px',
+                      }}
+                      title="Copy link"
+                    >
+                      {copyFeedback === 'skytunnel' ? '✓ Copied!' : '📋 Copy'}
+                    </button>
+                    <button
+                      onClick={() => setShowSkytunnelQR(true)}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        background: '#7c3aed',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        flex: 1,
+                        minWidth: '60px',
+                      }}
+                      title="Show QR code"
+                    >
+                      📱 QR
+                    </button>
+                    <a
+                      href={project.skytunnelLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        background: '#6d28d9',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        textDecoration: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.25rem',
+                        flex: 1,
+                        minWidth: '60px',
+                      }}
+                      title="Open in new tab"
+                    >
+                      🔗 Open
+                    </a>
+                  </div>
                 </div>
+                
+                {/* Alarm Credentials Section */}
+                {inceptionDevice && (inceptionDevice.username || inceptionDevice.password) && (
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '1rem', 
+                    flexWrap: 'wrap',
+                    paddingTop: '0.75rem',
+                    borderTop: '1px solid #c4b5fd'
+                  }}>
+                    {/* Username */}
+                    {inceptionDevice.username && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '200px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#6b7280', whiteSpace: 'nowrap' }}>👤 User:</span>
+                        <code style={{ 
+                          flex: 1,
+                          padding: '0.35rem 0.5rem', 
+                          background: 'white', 
+                          borderRadius: '4px',
+                          fontSize: '0.85rem',
+                          border: '1px solid #ddd6fe'
+                        }}>
+                          {inceptionDevice.username}
+                        </code>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(inceptionDevice.username || '')
+                              setCopyFeedback('alarm-user')
+                              setTimeout(() => setCopyFeedback(null), 2000)
+                            } catch (err) {
+                              console.error('Copy failed:', err)
+                            }
+                          }}
+                          style={{
+                            padding: '0.35rem 0.5rem',
+                            background: copyFeedback === 'alarm-user' ? '#10b981' : '#e5e7eb',
+                            color: copyFeedback === 'alarm-user' ? 'white' : '#374151',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                          }}
+                          title="Copy username"
+                        >
+                          {copyFeedback === 'alarm-user' ? '✓' : '📋'}
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Password */}
+                    {inceptionDevice.password && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '200px' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#6b7280', whiteSpace: 'nowrap' }}>🔑 Pass:</span>
+                        <code style={{ 
+                          flex: 1,
+                          padding: '0.35rem 0.5rem', 
+                          background: 'white', 
+                          borderRadius: '4px',
+                          fontSize: '0.85rem',
+                          border: '1px solid #ddd6fe'
+                        }}>
+                          {showAlarmPassword ? inceptionDevice.password : '••••••••'}
+                        </code>
+                        <button
+                          onClick={() => setShowAlarmPassword(!showAlarmPassword)}
+                          style={{
+                            padding: '0.35rem 0.5rem',
+                            background: '#e5e7eb',
+                            color: '#374151',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                          }}
+                          title={showAlarmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showAlarmPassword ? '🙈' : '👁️'}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(inceptionDevice.password || '')
+                              setCopyFeedback('alarm-pass')
+                              setTimeout(() => setCopyFeedback(null), 2000)
+                            } catch (err) {
+                              console.error('Copy failed:', err)
+                            }
+                          }}
+                          style={{
+                            padding: '0.35rem 0.5rem',
+                            background: copyFeedback === 'alarm-pass' ? '#10b981' : '#e5e7eb',
+                            color: copyFeedback === 'alarm-pass' ? 'white' : '#374151',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                          }}
+                          title="Copy password"
+                        >
+                          {copyFeedback === 'alarm-pass' ? '✓' : '📋'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
+              )
+            })()}
 
                     {/* Client Access Link */}
                     {currentUser?.role === 'admin' && (

@@ -2584,6 +2584,145 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                         >
                           ➕ Add User
                         </button>
+                        
+                        {/* Import Inception Button - only show for Inception panels */}
+                        {formData.panelType === 'inception' && (
+                          <>
+                            <input
+                              type="file"
+                              id="inception-import-file"
+                              accept=".html"
+                              style={{ display: 'none' }}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                
+                                const reader = new FileReader()
+                                reader.onload = (event) => {
+                                  try {
+                                    const html = event.target?.result as string
+                                    const parser = new DOMParser()
+                                    const doc = parser.parseFromString(html, 'text/html')
+                                    
+                                    const users: any[] = []
+                                    const h2s = doc.querySelectorAll('h2')
+                                    
+                                    h2s.forEach((h2) => {
+                                      const userMatch = h2.textContent?.match(/User:\s*(.+)/)
+                                      if (!userMatch) return
+                                      
+                                      const userName = userMatch[1].trim()
+                                      const table = h2.nextElementSibling as HTMLTableElement
+                                      if (!table || table.tagName !== 'TABLE') return
+                                      
+                                      const userData: any = { name: userName }
+                                      const rows = table.querySelectorAll('tr')
+                                      
+                                      rows.forEach((row) => {
+                                        const cells = row.querySelectorAll('td')
+                                        if (cells.length < 2) return
+                                        
+                                        const key = cells[0].textContent?.trim()
+                                        const value = cells[1].textContent?.trim()
+                                        
+                                        if (key === 'Notes') {
+                                          // Extract digits for code - look for 4-digit codes
+                                          const codeMatch = value?.match(/(\d{4,6})/)
+                                          if (codeMatch) {
+                                            userData.code = codeMatch[1]
+                                          }
+                                          // Store full notes for reference
+                                          userData.notes = value
+                                        } else if (key === 'Fobs') {
+                                          // Extract fob serial
+                                          const serialMatch = value?.match(/Serial #:\s*(\d+)/)
+                                          if (serialMatch) {
+                                            userData.fobSerial = serialMatch[1]
+                                          }
+                                        } else if (key === 'Permissions') {
+                                          // Extract permission group
+                                          const groupMatch = value?.match(/Allow access to (.+) \(Permission Group\)/)
+                                          if (groupMatch) {
+                                            userData.accessAreas = [groupMatch[1].trim()]
+                                          }
+                                        } else if (key === 'Web Username') {
+                                          userData.webUsername = value
+                                        } else if (key === 'LCD Terminal Profile') {
+                                          userData.userGroup = value
+                                          userData.isAdmin = value === 'Installer'
+                                        } else if (key === 'Web Page Profile') {
+                                          userData.isRestApiUser = value === 'REST Web API User'
+                                        }
+                                      })
+                                      
+                                      // Only add if we have a name and either a code or fob
+                                      if (userData.name && (userData.code || userData.fobSerial)) {
+                                        users.push({
+                                          name: userData.name,
+                                          code: userData.code || '',
+                                          accessAreas: userData.accessAreas || [],
+                                          canArm: true,
+                                          canDisarm: true,
+                                          isAdmin: userData.isAdmin || false,
+                                          webUsername: userData.webUsername || '',
+                                          webPassword: '',
+                                          userGroup: userData.userGroup || '',
+                                          isRestApiUser: userData.isRestApiUser || false,
+                                        })
+                                      }
+                                    })
+                                    
+                                    if (users.length === 0) {
+                                      alert('No users found in the file. Make sure you exported as HTML from Inception.')
+                                      return
+                                    }
+                                    
+                                    // Show confirmation
+                                    const existingCount = (formData.alarmUsers || []).length
+                                    const action = existingCount > 0 
+                                      ? confirm(`Found ${users.length} users. Replace existing ${existingCount} users or add to them?\n\nOK = Replace all\nCancel = Add to existing`)
+                                      : true
+                                    
+                                    if (action) {
+                                      // Replace all
+                                      setFormData({ ...formData, alarmUsers: users })
+                                    } else {
+                                      // Merge (add new, skip existing by name)
+                                      const existingNames = new Set((formData.alarmUsers || []).map(u => u.name?.toLowerCase()))
+                                      const newUsers = users.filter(u => !existingNames.has(u.name?.toLowerCase()))
+                                      setFormData({ ...formData, alarmUsers: [...(formData.alarmUsers || []), ...newUsers] })
+                                    }
+                                    
+                                    alert(`Successfully imported ${action ? users.length : users.filter(u => !(formData.alarmUsers || []).some(eu => eu.name?.toLowerCase() === u.name?.toLowerCase())).length} users!`)
+                                  } catch (err) {
+                                    console.error('Import error:', err)
+                                    alert('Failed to parse file. Make sure it\'s a valid Inception HTML export.')
+                                  }
+                                  
+                                  // Reset file input
+                                  e.target.value = ''
+                                }
+                                reader.readAsText(file)
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById('inception-import-file')?.click()}
+                              disabled={viewOnly}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                background: '#6366f1',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: viewOnly ? 'not-allowed' : 'pointer',
+                                opacity: viewOnly ? 0.5 : 1,
+                              }}
+                            >
+                              📥 Import Inception
+                            </button>
+                          </>
+                        )}
                     </div>
 
                     {/* ============ ACCESS CONTROL TOGGLES ============ */}
