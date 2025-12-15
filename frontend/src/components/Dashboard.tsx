@@ -3,6 +3,7 @@ import { User, Project } from '../types'
 import { projectsAPI, reportsAPI, tasksAPI } from '../services/apiService'
 import { SetupWizardModal } from './SetupWizardModal'
 import { ProjectDetail } from './ProjectDetail'
+import { LegacyImportModal } from './LegacyImportModal'
 
 interface DashboardProps {
   user: User
@@ -58,6 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   // Import from JSON
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showLegacyImport, setShowLegacyImport] = useState(false)
 
   useEffect(() => {
     loadProjects()
@@ -414,6 +416,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               >
                 {importing ? '⏳ Importing...' : '📥 Import'}
               </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowLegacyImport(true)}
+                style={{ fontSize: '1rem' }}
+                title="Import from legacy text file"
+              >
+                📄 Legacy Import
+              </button>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -704,6 +714,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <SetupWizardModal
           onClose={() => setShowWizard(false)}
           onProjectCreated={handleProjectCreated}
+        />
+      )}
+
+      {/* Legacy Import Modal */}
+      {showLegacyImport && (
+        <LegacyImportModal
+          onClose={() => setShowLegacyImport(false)}
+          onSuccess={() => {
+            loadProjects()
+            alert('✅ Project imported successfully!')
+          }}
         />
       )}
 
