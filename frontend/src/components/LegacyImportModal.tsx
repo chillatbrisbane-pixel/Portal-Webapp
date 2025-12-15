@@ -317,23 +317,23 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
         'router': { category: 'network', deviceType: 'router' },
         'cloudkey': { category: 'network', deviceType: 'cloudkey' },
         'modem': { category: 'network', deviceType: 'router' },
-        'nas': { category: 'network', deviceType: 'nas' },
+        'nas': { category: 'other', deviceType: 'generic' },
         'camera': { category: 'camera', deviceType: 'camera' },
         'nvr': { category: 'camera', deviceType: 'nvr' },
         'pdu': { category: 'power', deviceType: 'pdu' },
         'amplifier': { category: 'av', deviceType: 'amplifier' },
         'audio-matrix': { category: 'av', deviceType: 'audio-matrix' },
-        'avr': { category: 'av', deviceType: 'avr' },
+        'avr': { category: 'av', deviceType: 'receiver' },
         'tv': { category: 'av', deviceType: 'tv' },
         'projector': { category: 'av', deviceType: 'projector' },
-        'streaming': { category: 'av', deviceType: 'streaming' },
-        'blu-ray': { category: 'av', deviceType: 'blu-ray' },
+        'streaming': { category: 'av', deviceType: 'media-player' },
+        'blu-ray': { category: 'av', deviceType: 'media-player' },
         'hvac-controller': { category: 'hvac', deviceType: 'hvac-controller' },
-        'irrigation': { category: 'hvac', deviceType: 'irrigation' },
+        'irrigation': { category: 'other', deviceType: 'irrigation' },
         'door-station': { category: 'intercom', deviceType: 'door-station' },
         'alarm-panel': { category: 'security', deviceType: 'alarm-panel' },
-        'processor': { category: 'control', deviceType: 'processor' },
-        'touchpanel': { category: 'control', deviceType: 'touchpanel' }
+        'processor': { category: 'control-system', deviceType: 'control-processor' },
+        'touchpanel': { category: 'user-interface', deviceType: 'touch-panel' }
       }
 
       // Convert devices
