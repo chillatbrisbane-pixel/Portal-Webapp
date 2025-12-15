@@ -2000,8 +2000,27 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
             {/* SECURITY - ALARM PANEL */}
             {formData.category === 'security' && formData.deviceType === 'alarm-panel' && (
               <>
+                {/* Panel Type Selection */}
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label>🏢 Panel Type</label>
+                  <select
+                    name="panelType"
+                    value={formData.panelType || ''}
+                    onChange={handleInputChange}
+                    disabled={viewOnly}
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">Select panel type...</option>
+                    <option value="inception">Inner Range Inception</option>
+                    <option value="paradox">Paradox</option>
+                    <option value="bosch">Bosch</option>
+                    <option value="honeywell">Honeywell</option>
+                    <option value="custom">Other / Custom</option>
+                  </select>
+                </div>
+
                 {/* SkyTunnel link for Inception panels */}
-                {formData.serialNumber && (
+                {formData.panelType === 'inception' && formData.serialNumber && (
                   <div className="form-group" style={{ marginTop: '1rem' }}>
                     <label>🌐 SkyTunnel Link</label>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
