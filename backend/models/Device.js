@@ -92,6 +92,15 @@ const deviceSchema = new mongoose.Schema(
     userCodeCount: { type: Number, default: 0 },    // Number of user codes (legacy)
     sirenCount: { type: Number, default: 0 },       // Internal/external sirens
     
+    // Alarm panel backup file
+    alarmBackupFile: {
+      filename: String,           // Original filename
+      data: String,               // Base64 encoded file data
+      uploadedAt: Date,           // When the backup was uploaded
+      uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      fileSize: Number,           // Size in bytes
+    },
+    
     // Alarm dialler fields
     diallerInstalled: { type: Boolean, default: false },
     diallerType: String,         // T4000, Permaconn, Custom

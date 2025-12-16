@@ -71,6 +71,8 @@ const INITIAL_FORM_DATA: Partial<Device> = {
   hasFobs: false,
   hasProxTags: false,
   hasAirkeys: false,
+  // Alarm backup file
+  alarmBackupFile: undefined as { filename: string; data: string; uploadedAt: string; fileSize: number } | undefined,
   // Users arrays
   nvrUsers: [],
   alarmUsers: [],
@@ -2753,6 +2755,146 @@ export const DeviceModal: React.FC<DeviceModalProps> = ({
                           </>
                         )}
                     </div>
+
+                    {/* ============ ALARM PANEL BACKUP ============ */}
+                    <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>
+                      💾 Panel Backup
+                    </h4>
+                    <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                      Store a backup file from the alarm panel. Uploading a new backup will replace any existing one.
+                    </p>
+                    
+                    {/* Show existing backup info */}
+                    {formData.alarmBackupFile?.filename && (
+                      <div style={{ 
+                        padding: '0.75rem 1rem', 
+                        background: '#ecfdf5', 
+                        borderRadius: '6px', 
+                        marginBottom: '1rem',
+                        border: '1px solid #a7f3d0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.5rem'
+                      }}>
+                        <div>
+                          <span style={{ fontWeight: 600, color: '#047857' }}>📁 {formData.alarmBackupFile.filename}</span>
+                          <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
+                            ({(formData.alarmBackupFile.fileSize / 1024).toFixed(1)} KB)
+                          </span>
+                          {formData.alarmBackupFile.uploadedAt && (
+                            <span style={{ color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
+                              Uploaded: {new Date(formData.alarmBackupFile.uploadedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Download the backup file
+                              const data = formData.alarmBackupFile?.data;
+                              const filename = formData.alarmBackupFile?.filename;
+                              if (data && filename) {
+                                const byteCharacters = atob(data);
+                                const byteNumbers = new Array(byteCharacters.length);
+                                for (let i = 0; i < byteCharacters.length; i++) {
+                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                }
+                                const byteArray = new Uint8Array(byteNumbers);
+                                const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = filename;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                              }
+                            }}
+                            style={{
+                              padding: '0.375rem 0.75rem',
+                              background: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                            }}
+                          >
+                            ⬇️ Download
+                          </button>
+                          {!viewOnly && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Remove this backup file?')) {
+                                  setFormData({ ...formData, alarmBackupFile: undefined });
+                                }
+                              }}
+                              style={{
+                                padding: '0.375rem 0.75rem',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              🗑️ Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Upload new backup */}
+                    {!viewOnly && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="file"
+                          accept=".inceptionbackup,.backup,.bak,.zip"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            
+                            // Check file size (limit to 10MB)
+                            if (file.size > 10 * 1024 * 1024) {
+                              alert('File too large. Maximum size is 10MB.');
+                              e.target.value = '';
+                              return;
+                            }
+                            
+                            // Confirm if replacing existing
+                            if (formData.alarmBackupFile?.filename) {
+                              if (!confirm(`Replace existing backup "${formData.alarmBackupFile.filename}" with "${file.name}"?`)) {
+                                e.target.value = '';
+                                return;
+                              }
+                            }
+                            
+                            // Read file as base64
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              const base64 = (reader.result as string).split(',')[1];
+                              setFormData({
+                                ...formData,
+                                alarmBackupFile: {
+                                  filename: file.name,
+                                  data: base64,
+                                  uploadedAt: new Date().toISOString(),
+                                  fileSize: file.size,
+                                }
+                              });
+                            };
+                            reader.readAsDataURL(file);
+                            e.target.value = '';
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    )}
 
                     {/* ============ ACCESS CONTROL TOGGLES ============ */}
                     <h4 style={{ color: '#333', margin: '1.5rem 0 1rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.5rem' }}>

@@ -139,38 +139,32 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
         continue
       }
 
-      // Detect WiFi entries even without section header (look for "Wireless SSID" pattern)
-      if (trimmed.toLowerCase().startsWith('wireless ssid')) {
-        // Start a new wifi entry if not already in one
-        if (!currentDevice || currentDevice._type !== 'wifi') {
+      // Detect WiFi entries even without section header (look for "Wireless SSID" or "SSID" pattern)
+      const wifiSsidMatch = trimmed.match(/^(?:wireless\s+)?ssid[^:]*[:\t]\s*(.+)/i)
+      if (wifiSsidMatch) {
+        // Start a new wifi entry if not already in one, or if we have a complete entry
+        if (!currentDevice || currentDevice._type !== 'wifi' || (currentDevice.ssid && currentDevice.password)) {
           currentDevice = { _type: 'wifi' }
         }
-        const wifiMatch = trimmed.match(/wireless ssid[^:]*:\s*(.+)/i)
-        if (wifiMatch) {
-          currentDevice.ssid = wifiMatch[1].trim()
-        }
+        currentDevice.ssid = wifiSsidMatch[1].trim()
         continue
       }
-      if (trimmed.toLowerCase().startsWith('wireless password')) {
-        if (currentDevice && currentDevice._type === 'wifi') {
-          const passMatch = trimmed.match(/wireless password[^:]*:\s*(.+)/i)
-          if (passMatch) {
-            currentDevice.password = passMatch[1].trim()
-            // Complete wifi entry
-            if (currentDevice.ssid) {
-              data.wifiNetworks.push({
-                ssid: currentDevice.ssid,
-                password: currentDevice.password
-              })
-              currentDevice = { _type: 'wifi' }
-            }
-          }
-        }
+      
+      // Match password - handle typos like "Wirelss" and various formats
+      const wifiPassMatch = trimmed.match(/^(?:wir?e?le?ss?\s+)?passw?o?r?d?[^:]*[:\t]\s*(.*)/i)
+      if (wifiPassMatch && currentDevice && currentDevice._type === 'wifi' && currentDevice.ssid) {
+        currentDevice.password = wifiPassMatch[1].trim() || ''
+        // Complete wifi entry - allow empty passwords
+        data.wifiNetworks.push({
+          ssid: currentDevice.ssid,
+          password: currentDevice.password
+        })
+        currentDevice = { _type: 'wifi' }
         continue
       }
 
-      // Parse switch port assignments: SWITCH01 PoE Port01: WAP01
-      const switchPortMatch = trimmed.match(/^(?:SWITCH\d+)?\s*(?:PoE)?\s*Port(\d+):\s*(.+)$/i)
+      // Parse switch port assignments: SWITCH01 PoE Port01: WAP01 or just Port01: WAP01
+      const switchPortMatch = trimmed.match(/^(?:SWITCH\d+)?\s*(?:PoE)?\s*(?:SFP\d+)?\s*Port\s*(\d+)[:\t]\s*(.+)$/i)
       if (switchPortMatch && currentDevice && currentDevice._type === 'switch') {
         const portNum = parseInt(switchPortMatch[1])
         const deviceName = switchPortMatch[2].trim()
@@ -180,8 +174,8 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
         continue
       }
 
-      // Parse PDU port assignments: PDU01 Power Port01: CLIENT MODEM
-      const pduPortMatch = trimmed.match(/^(?:PDU\d+)?\s*Power\s*Port(\d+):\s*(.+)$/i)
+      // Parse PDU port assignments: PDU01 Power Port01: MODEM or just Power Port01: MODEM
+      const pduPortMatch = trimmed.match(/^(?:PDU\d*)?\s*Power\s*Port\s*(\d+)[:\t]\s*(.+)$/i)
       if (pduPortMatch && currentDevice && currentDevice._type === 'pdu') {
         const portNum = parseInt(pduPortMatch[1])
         const deviceName = pduPortMatch[2].trim()
