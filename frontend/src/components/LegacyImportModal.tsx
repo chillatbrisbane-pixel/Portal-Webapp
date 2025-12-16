@@ -198,6 +198,17 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
 
         // Skip control4 and wifi (wifi is handled above)
         if (currentDevice._type === 'control4' || currentDevice._type === 'wifi') continue
+        
+        // For switches and PDUs, stop processing key:value if we've already collected ports
+        // This prevents random "IP:" lines later in the file from overwriting the device
+        if (currentDevice._type === 'switch' && currentSwitchPorts.length > 0) {
+          // Only process if key starts with SWITCH
+          if (!key.startsWith('switch')) continue
+        }
+        if (currentDevice._type === 'pdu' && currentPduPorts.length > 0) {
+          // Only process if key starts with PDU
+          if (!key.startsWith('pdu')) continue
+        }
 
         // Device fields
         if (key.includes('location')) {
