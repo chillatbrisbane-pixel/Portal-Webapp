@@ -164,7 +164,8 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
       }
 
       // Parse switch port assignments: SWITCH01 PoE Port01: WAP01 or just Port01: WAP01
-      const switchPortMatch = trimmed.match(/^(?:SWITCH\d+)?\s*(?:PoE)?\s*(?:SFP\d+)?\s*Port\s*(\d+)[:\t]\s*(.+)$/i)
+      // Handle various formats with tabs/spaces between elements
+      const switchPortMatch = trimmed.match(/^(?:SWITCH\d*[\s\t]*)?(?:PoE[\s\t]*)?(?:SFP\d*[\s\t]*)?Port[\s\t]*(\d+)[:\t]\s*(.+)$/i)
       if (switchPortMatch && currentDevice && currentDevice._type === 'switch') {
         const portNum = parseInt(switchPortMatch[1])
         const deviceName = switchPortMatch[2].trim()
@@ -175,7 +176,8 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
       }
 
       // Parse PDU port assignments: PDU01 Power Port01: MODEM or just Power Port01: MODEM
-      const pduPortMatch = trimmed.match(/^(?:PDU\d*)?\s*Power\s*Port\s*(\d+)[:\t]\s*(.+)$/i)
+      // Handle various formats with tabs/spaces between elements
+      const pduPortMatch = trimmed.match(/^(?:PDU\d*[\s\t]*)?Power[\s\t]*Port[\s\t]*(\d+)[:\t]\s*(.+)$/i)
       if (pduPortMatch && currentDevice && currentDevice._type === 'pdu') {
         const portNum = parseInt(pduPortMatch[1])
         const deviceName = pduPortMatch[2].trim()
@@ -297,7 +299,7 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
         name: parsedData.projectName || 'Imported Project',
         status: 'in-progress',
         wifiNetworks: parsedData.wifiNetworks.map(w => ({
-          ssid: w.ssid,
+          name: w.ssid,  // Project model uses 'name' not 'ssid'
           password: w.password,
           band: 'Dual',
           vlan: 1
