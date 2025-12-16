@@ -58,8 +58,9 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
       // Skip empty lines and dividers
       if (!trimmed || /^=+$/.test(trimmed) || /^-+$/.test(trimmed)) continue
 
-      // Detect section headers [SectionName]
-      const sectionMatch = trimmed.match(/^\[([^\]]+)\]/)
+      // Detect section headers [SectionName] - must be at start of line (after trim)
+      // and look like a device/category name (alphanumeric, spaces, dashes)
+      const sectionMatch = trimmed.match(/^\[([A-Za-z][A-Za-z0-9\s\-_]*\d*)\](?:\s|$)/)
       if (sectionMatch) {
         // Save previous device if exists
         if (currentDevice && (currentDevice.name || currentDevice._type === 'wifi')) {
@@ -165,7 +166,7 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
 
       // Parse switch port assignments: SWITCH01 PoE Port01: WAP01 or just Port01: WAP01
       // Handle various formats with tabs/spaces between elements
-      const switchPortMatch = trimmed.match(/^(?:SWITCH\d*[\s\t]*)?(?:PoE[\s\t]*)?(?:SFP\d*[\s\t]*)?Port[\s\t]*(\d+)[:\t]\s*(.+)$/i)
+      const switchPortMatch = trimmed.match(/(?:SWITCH\d*)?[\s\t]*(?:PoE)?[\s\t]*(?:SFP\d*)?[\s\t]*Port[\s\t]*(\d+)[:\t]\s*(.+)/i)
       if (switchPortMatch && currentDevice && currentDevice._type === 'switch') {
         const portNum = parseInt(switchPortMatch[1])
         const deviceName = switchPortMatch[2].trim()
@@ -177,7 +178,7 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
 
       // Parse PDU port assignments: PDU01 Power Port01: MODEM or just Power Port01: MODEM
       // Handle various formats with tabs/spaces between elements
-      const pduPortMatch = trimmed.match(/^(?:PDU\d*[\s\t]*)?Power[\s\t]*Port[\s\t]*(\d+)[:\t]\s*(.+)$/i)
+      const pduPortMatch = trimmed.match(/(?:PDU\d*)?[\s\t]*Power[\s\t]*Port[\s\t]*(\d+)[:\t]\s*(.+)/i)
       if (pduPortMatch && currentDevice && currentDevice._type === 'pdu') {
         const portNum = parseInt(pduPortMatch[1])
         const deviceName = pduPortMatch[2].trim()
@@ -365,9 +366,10 @@ export function LegacyImportModal({ onClose, onSuccess }: LegacyImportModalProps
           device.portCount = Math.max(...d.managedPorts.map((p: any) => p.portNumber), 24)
         }
 
-        // Add PDU port names
+        // Add PDU port names and count
         if (d._type === 'pdu' && d.pduPortNames) {
           device.pduPortNames = d.pduPortNames
+          device.pduPortCount = d.pduPortNames.split('\n').length
         }
 
         return device
