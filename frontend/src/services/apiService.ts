@@ -87,6 +87,23 @@ export const authAPI = {
     return response.json();
   },
 
+  refreshToken: async () => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/refresh-token`, {
+      method: 'POST',
+      headers: getHeaders(),
+    }, 10000);
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to refresh token');
+    }
+    const data = await response.json();
+    // Save the new token
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+    return data;
+  },
+
   changePassword: async (currentPassword: string, newPassword: string) => {
     const response = await fetchWithTimeout(`${API_BASE_URL}/auth/change-password`, {
       method: 'POST',

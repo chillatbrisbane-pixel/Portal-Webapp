@@ -451,7 +451,7 @@ export interface Device {
 // Brand options by category
 export const BRAND_OPTIONS = {
   network: {
-    router: ['Araknis', 'Pakedge', 'Ubiquiti', 'Cisco', 'Netgear', 'TP-Link', 'Custom'],
+    router: ['Araknis', 'Pakedge', 'Starlink', 'Ubiquiti', 'Cisco', 'Netgear', 'TP-Link', 'Custom'],
     switch: ['Araknis', 'Pakedge', 'Ubiquiti', 'Netgear', 'Cisco', 'TP-Link', 'Custom'],
     'access-point': ['Araknis', 'Pakedge', 'Ubiquiti', 'Ruckus', 'Cisco', 'Custom'],
     cloudkey: ['Ubiquiti', 'Pakedge', 'Araknis', 'Custom'],

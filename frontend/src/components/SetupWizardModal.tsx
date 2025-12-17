@@ -35,7 +35,7 @@ const TECH_CONFIGS: TechConfig[] = [
 ]
 
 // Router brands for networking config
-const ROUTER_BRANDS = ['Pakedge', 'Ubiquiti', 'Araknis', 'Netgear', 'Cisco', 'MikroTik']
+const ROUTER_BRANDS = ['Pakedge', 'Starlink', 'Ubiquiti', 'Araknis', 'Netgear', 'Cisco', 'MikroTik']
 
 // Device name mappings for proper singular names
 const DEVICE_SINGULAR_NAMES: Record<string, string> = {

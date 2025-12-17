@@ -154,11 +154,18 @@ function App() {
     setSessionTimeLeft(null)
   }
 
-  // Extend session (re-login in background)
+  // Extend session (refresh token on server)
   const extendSession = async () => {
-    setLoginTime() // Reset the timer
-    setSessionWarning(false)
-    setSessionTimeLeft(null)
+    try {
+      await authAPI.refreshToken()
+      setLoginTime() // Reset the client-side timer
+      setSessionWarning(false)
+      setSessionTimeLeft(null)
+    } catch (err) {
+      console.error('Failed to refresh session:', err)
+      // If refresh fails, log out
+      handleLogout()
+    }
   }
 
   const refreshUser = async () => {

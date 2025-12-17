@@ -368,6 +368,35 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// Refresh token - issue a new token with extended expiry
+router.post('/refresh-token', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Issue a new token with fresh 2h expiry
+    const token = jwt.sign(
+      { 
+        userId: user._id.toString(),
+        role: user.role,
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '2h' }
+    );
+
+    res.json({ 
+      token,
+      message: 'Token refreshed successfully'
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Change password
 router.post('/change-password', authenticateToken, async (req, res) => {
   try {
