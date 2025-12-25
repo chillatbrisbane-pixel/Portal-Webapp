@@ -21,7 +21,11 @@ interface ScheduleProps {
 
 // Helper functions
 const formatDate = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  // Timezone-safe: use local date components instead of toISOString() which converts to UTC
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const getWeekDates = (referenceDate: Date): Date[] => {
@@ -160,10 +164,20 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
     loadData();
   }, [loadData]);
 
+  // Helper to extract date string from various formats (ISO string, Date object, etc.)
+  const extractDateStr = (dateValue: string | Date): string => {
+    if (typeof dateValue === 'string') {
+      // If it's already a string, just take the YYYY-MM-DD part
+      return dateValue.split('T')[0];
+    }
+    // If it's a Date object, use timezone-safe formatting
+    return formatDate(dateValue);
+  };
+
   const getEntriesForCell = (techId: string, date: Date): ScheduleEntry[] => {
     const dateStr = formatDate(date);
     return entries.filter(e => {
-      const entryDate = new Date(e.date).toISOString().split('T')[0];
+      const entryDate = extractDateStr(e.date);
       const techMatch = e.technician?._id === techId || e.contractor?._id === techId;
       return entryDate === dateStr && techMatch;
     });
@@ -171,7 +185,7 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
 
   const getHoliday = (date: Date): PublicHoliday | undefined => {
     const dateStr = formatDate(date);
-    return holidays.find(h => new Date(h.date).toISOString().split('T')[0] === dateStr);
+    return holidays.find(h => extractDateStr(h.date) === dateStr);
   };
 
   const getContractor = (contractorId: string): Contractor | undefined => {

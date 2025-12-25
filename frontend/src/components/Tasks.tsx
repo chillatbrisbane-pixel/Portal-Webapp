@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { User, Project } from '../types';
 import { tasksAPI, usersAPI, projectsAPI } from '../services/apiService';
+import TaskList from './TaskList';
 
 interface Subtask {
   _id: string;
@@ -120,7 +121,6 @@ export const Tasks: React.FC<TasksProps> = ({ user }) => {
   
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [expandedTask, setExpandedTask] = useState<string | null>(null);
   
   const canEdit = ['admin', 'project-manager', 'project-coordinator'].includes(user.role);
 
@@ -198,11 +198,22 @@ export const Tasks: React.FC<TasksProps> = ({ user }) => {
 
   const tasksByStage = useMemo(() => {
     const grouped: Record<string, Task[]> = {};
+    const stageIds = new Set(DEFAULT_STAGES.map(s => s.id));
+    
+    // Initialize with default stages
     DEFAULT_STAGES.forEach(s => { grouped[s.id] = []; });
+    
+    // Group tasks and track orphaned stages
+    const orphanedStageIds = new Set<string>();
     filteredTasks.forEach(task => {
+      if (!stageIds.has(task.stage)) {
+        orphanedStageIds.add(task.stage);
+        if (!grouped[task.stage]) grouped[task.stage] = [];
+      }
       if (!grouped[task.stage]) grouped[task.stage] = [];
       grouped[task.stage].push(task);
     });
+    
     return grouped;
   }, [filteredTasks]);
 
@@ -256,17 +267,41 @@ export const Tasks: React.FC<TasksProps> = ({ user }) => {
     return { overdue, dueToday, dueThisWeek, highPriority, completedToday, total: tasks.length };
   }, [tasks]);
 
+  // When a project is selected, show the full TaskList component for that project
+  if (filterProject) {
+    const selectedProject = projects.find(p => p._id === filterProject);
+    return (
+      <div className="container" style={{ paddingTop: '1rem' }}>
+        {/* Back to All Tasks header */}
+        <div style={{ background: 'white', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button onClick={() => setFilterProject('')} style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ← Back to All Tasks
+            </button>
+            <h2 style={{ margin: 0, color: '#1f2937' }}>
+              📁 {selectedProject?.name || 'Project'} {selectedProject?.clientName && <span style={{ color: '#6b7280', fontWeight: 400 }}>- {selectedProject.clientName}</span>}
+            </h2>
+          </div>
+        </div>
+        
+        {/* Render the actual TaskList component */}
+        <TaskList projectId={filterProject} />
+      </div>
+    );
+  }
+
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}><p>Loading tasks...</p></div>;
   }
 
+  // Global tasks view (no project selected)
   return (
     <div className="container" style={{ paddingTop: '1rem' }}>
       {/* Header */}
       <div style={{ background: 'white', borderRadius: '8px', padding: '1rem', marginBottom: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h2 style={{ margin: 0, color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ Tasks</h2>
+            <h2 style={{ margin: 0, color: '#1f2937', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ All Tasks</h2>
             <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: '8px', padding: '0.25rem' }}>
               {(['list', 'board', 'calendar'] as const).map(mode => (
                 <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '0.4rem 0.75rem', background: viewMode === mode ? 'white' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: viewMode === mode ? 600 : 400, fontSize: '0.85rem', boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', textTransform: 'capitalize' }}>
@@ -280,9 +315,6 @@ export const Tasks: React.FC<TasksProps> = ({ user }) => {
               <input type="checkbox" checked={showCompleted} onChange={e => setShowCompleted(e.target.checked)} />
               Show Completed
             </label>
-            {canEdit && (
-              <button onClick={() => setShowAddModal(true)} style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, fontSize: '0.85rem' }}>+ New Task</button>
-            )}
           </div>
         </div>
       </div>
