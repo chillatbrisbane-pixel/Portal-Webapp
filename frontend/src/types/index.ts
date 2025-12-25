@@ -3,7 +3,7 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
-  role: 'admin' | 'project-manager' | 'tech' | 'sales' | 'viewer';
+  role: 'admin' | 'project-manager' | 'project-coordinator' | 'tech' | 'sales' | 'viewer';
   isActive: boolean;
   suspended?: boolean;
   suspendedAt?: string;
@@ -657,3 +657,152 @@ export interface DeviceTemplate {
   model: string;
   specifications: Record<string, any>;
 }
+
+// ===== SCHEDULING TYPES =====
+
+export type TimeSlot = 'AM1' | 'AM2' | 'PM1' | 'PM2';
+
+export type EntryType = 
+  | 'project'
+  | 'leave'
+  | 'public-holiday'
+  | 'training'
+  | 'meeting'
+  | 'office'
+  | 'wfh'
+  | 'quoting'
+  | 'service-meeting'
+  | 'unassigned'
+  | 'other';
+
+export type LeaveType = 
+  | 'annual'
+  | 'sick'
+  | 'personal'
+  | 'carers'
+  | 'compassionate'
+  | 'time-lieu';
+
+export type SimproStatus = 'planned' | 'locked' | 'conflict' | 'unlinked';
+
+export interface ScheduleEntry {
+  _id: string;
+  date: string;
+  timeSlot: TimeSlot;
+  technician?: { _id: string; name: string; email: string };
+  contractor?: Contractor;
+  entryType: EntryType;
+  project?: { _id: string; name: string; clientName?: string };
+  projectCode?: string;
+  projectName?: string;
+  task?: string;
+  leaveType?: LeaveType;
+  description: string;
+  notes?: string;
+  simpro?: {
+    scheduleId?: string;
+    status: SimproStatus;
+    startTime?: string;
+    endTime?: string;
+    lastSyncAt?: string;
+    lockedAt?: string;
+    lockedBy?: string;
+  };
+  createdBy: string;
+  updatedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Contractor {
+  _id: string;
+  name: string;
+  company?: string;
+  phone?: string;
+  email?: string;
+  category: 'contractor' | 'subcontractor';
+  isActive: boolean;
+  notes?: string;
+  displayOrder: number;
+  displayName?: string;
+  roleLabel?: string;
+}
+
+export interface TechnicianGroup {
+  _id: string;
+  name: string;
+  description?: string;
+  displayOrder: number;
+  isActive: boolean;
+  members: TechnicianGroupMember[];
+  colour?: string;
+}
+
+export interface TechnicianGroupMember {
+  _id: string;
+  memberType: 'user' | 'contractor';
+  user?: { _id: string; name: string; email: string; role?: string };
+  contractor?: Contractor;
+  displayOrder: number;
+  role?: string;
+}
+
+export interface PublicHoliday {
+  _id: string;
+  date: string;
+  name: string;
+  state?: 'QLD' | 'NSW' | 'VIC' | 'SA' | 'WA' | 'TAS' | 'NT' | 'ACT' | null;
+  isActive: boolean;
+}
+
+export interface AvailabilityInfo {
+  id: string;
+  name: string;
+  type: 'user' | 'contractor';
+  group: string;
+  role?: string;
+  bookedSlots: TimeSlot[];
+  freeSlots: TimeSlot[];
+  isFullyAvailable: boolean;
+  isPartiallyAvailable: boolean;
+  isFullyBooked: boolean;
+}
+
+// Entry type configuration
+export interface EntryTypeConfig {
+  label: string;
+  icon: string;
+  bg: string;
+  text: string;
+}
+
+export const ENTRY_TYPES: Record<EntryType, EntryTypeConfig> = {
+  project: { label: 'Project', icon: '🏗️', bg: '#3b82f6', text: '#ffffff' },
+  leave: { label: 'Leave', icon: '🏖️', bg: '#22c55e', text: '#ffffff' },
+  training: { label: 'Training', icon: '🎓', bg: '#eab308', text: '#1f2937' },
+  meeting: { label: 'Meeting', icon: '👥', bg: '#6b7280', text: '#ffffff' },
+  office: { label: 'Office', icon: '🏢', bg: '#8b5cf6', text: '#ffffff' },
+  wfh: { label: 'WFH', icon: '🏠', bg: '#06b6d4', text: '#ffffff' },
+  quoting: { label: 'Quoting', icon: '📋', bg: '#f97316', text: '#ffffff' },
+  'service-meeting': { label: 'Service Meeting', icon: '🔧', bg: '#ec4899', text: '#ffffff' },
+  unassigned: { label: 'Unassigned', icon: '❓', bg: '#fbbf24', text: '#1f2937' },
+  'public-holiday': { label: 'Public Holiday', icon: '🎉', bg: '#d1d5db', text: '#4b5563' },
+  other: { label: 'Other', icon: '📝', bg: '#94a3b8', text: '#1f2937' },
+};
+
+export interface LeaveTypeConfig {
+  label: string;
+  short: string;
+  bg: string;
+}
+
+export const LEAVE_TYPES: Record<LeaveType, LeaveTypeConfig> = {
+  annual: { label: 'Annual Leave', short: 'AL', bg: '#22c55e' },
+  sick: { label: 'Sick Leave', short: 'SL', bg: '#f97316' },
+  personal: { label: 'Personal Leave', short: 'PL', bg: '#a855f7' },
+  carers: { label: 'Carers Leave', short: 'CL', bg: '#ec4899' },
+  compassionate: { label: 'Compassionate', short: 'CMP', bg: '#6366f1' },
+  'time-lieu': { label: 'Time in Lieu', short: 'TIL', bg: '#14b8a6' },
+};
+
+export const TIME_SLOTS: TimeSlot[] = ['AM1', 'AM2', 'PM1', 'PM2'];

@@ -6,9 +6,13 @@ interface HeaderProps {
   onLogout: () => void
   onShowUsers?: () => void
   onShowSettings?: () => void
+  currentView?: 'projects' | 'schedule'
+  onNavigate?: (view: 'projects' | 'schedule') => void
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers, onShowSettings }) => {
+export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers, onShowSettings, currentView = 'projects', onNavigate }) => {
+  const canViewSchedule = ['admin', 'project-manager', 'project-coordinator', 'tech'].includes(user.role);
+  
   return (
     <header className="header">
       <div className="header-content">
@@ -26,6 +30,46 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers, onS
               </h1>
             </div>
           </div>
+          
+          {/* Navigation Tabs */}
+          {onNavigate && (
+            <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '2rem' }}>
+              <button
+                onClick={() => onNavigate('projects')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: currentView === 'projects' ? 'rgba(255,255,255,0.25)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: currentView === 'projects' ? 600 : 400,
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                📁 Projects
+              </button>
+              {canViewSchedule && (
+                <button
+                  onClick={() => onNavigate('schedule')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: currentView === 'schedule' ? 'rgba(255,255,255,0.25)' : 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: currentView === 'schedule' ? 600 : 400,
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  📅 Schedule
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right side - User Info and Actions */}

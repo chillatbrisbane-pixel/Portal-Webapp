@@ -916,6 +916,236 @@ export const settingsAPI = {
   },
 };
 
+// ============ SCHEDULE API ============
+
+export const scheduleAPI = {
+  // Get schedule grid for date range
+  getSchedule: async (startDate: Date, endDate: Date) => {
+    const params = new URLSearchParams({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
+    const response = await fetch(`${API_BASE_URL}/schedule?${params}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch schedule');
+    return response.json();
+  },
+
+  // Get technician groups
+  getGroups: async () => {
+    const response = await fetch(`${API_BASE_URL}/schedule/groups`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch groups');
+    return response.json();
+  },
+
+  // Get available technicians (not yet in groups)
+  getAvailableTechs: async () => {
+    const response = await fetch(`${API_BASE_URL}/schedule/techs`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch technicians');
+    return response.json();
+  },
+
+  // Get schedule for specific tech
+  getTechSchedule: async (techId: string, startDate?: Date, endDate?: Date) => {
+    let url = `${API_BASE_URL}/schedule/tech/${techId}`;
+    if (startDate && endDate) {
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      url += `?${params}`;
+    }
+    const response = await fetch(url, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch tech schedule');
+    return response.json();
+  },
+
+  // Get schedule for specific project
+  getProjectSchedule: async (projectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/project/${projectId}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch project schedule');
+    return response.json();
+  },
+
+  // Check availability
+  checkAvailability: async (date: Date, slots?: string[]) => {
+    let url = `${API_BASE_URL}/schedule/availability?date=${date.toISOString()}`;
+    if (slots && slots.length > 0) {
+      url += `&slots=${slots.join(',')}`;
+    }
+    const response = await fetch(url, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to check availability');
+    return response.json();
+  },
+
+  // Create single entry
+  createEntry: async (entry: any) => {
+    const response = await fetch(`${API_BASE_URL}/schedule`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(entry),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create entry');
+    }
+    return response.json();
+  },
+
+  // Update entry
+  updateEntry: async (id: string, updates: any) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update entry');
+    }
+    return response.json();
+  },
+
+  // Delete entry
+  deleteEntry: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete entry');
+    }
+    return response.json();
+  },
+
+  // Bulk update entries
+  bulkUpdate: async (entries: any[], operation: 'upsert' | 'delete' = 'upsert') => {
+    const response = await fetch(`${API_BASE_URL}/schedule/bulk`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ entries, operation }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to process bulk update');
+    }
+    return response.json();
+  },
+
+  // Copy entries
+  copyEntries: async (sourceDate: Date, targetDate: Date, technicianId: string, slots?: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/copy`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        sourceDate: sourceDate.toISOString(),
+        targetDate: targetDate.toISOString(),
+        technicianId,
+        slots,
+      }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to copy entries');
+    }
+    return response.json();
+  },
+
+  // Lock to simPRO
+  lockToSimpro: async (id: string, data: { startTime: string; endTime: string; notes?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}/lock`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to lock to simPRO');
+    }
+    return response.json();
+  },
+
+  // Unlock from simPRO
+  unlockFromSimpro: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/${id}/unlock`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to unlock from simPRO');
+    }
+    return response.json();
+  },
+
+  // Create group
+  createGroup: async (data: { name: string; description?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/groups`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create group');
+    }
+    return response.json();
+  },
+
+  // Add member to group
+  addGroupMember: async (groupId: string, data: { memberType: 'user' | 'contractor'; userId?: string; contractorId?: string; role?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/groups/${groupId}/members`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add member');
+    }
+    return response.json();
+  },
+
+  // Remove member from group
+  removeGroupMember: async (groupId: string, memberId: string, memberType: 'user' | 'contractor') => {
+    const response = await fetch(`${API_BASE_URL}/schedule/groups/${groupId}/members/${memberId}?memberType=${memberType}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to remove member');
+    }
+    return response.json();
+  },
+
+  // Seed holidays
+  seedHolidays: async (year: number) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/holidays/seed`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ year }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to seed holidays');
+    }
+    return response.json();
+  },
+};
+
 // Client Access API
 export const clientAccessAPI = {
   // Get client access status for a project
@@ -1001,6 +1231,7 @@ export default {
   deviceTemplatesAPI,
   tasksAPI,
   settingsAPI,
+  scheduleAPI,
   clientAccessAPI,
   activeUsersAPI,
   healthCheck,

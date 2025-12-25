@@ -60,7 +60,18 @@ const taskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
-  order: { type: Number, default: 0 }
+  order: { type: Number, default: 0 },
+  
+  // Schedule integration (new)
+  scheduleEntries: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ScheduleEntry'
+  }],
+  scheduledDate: Date,
+  scheduledSlots: [{
+    type: String,
+    enum: ['AM1', 'AM2', 'PM1', 'PM2']
+  }]
 }, {
   timestamps: true
 });
