@@ -13,7 +13,7 @@ import {
   TIME_SLOTS,
   Project
 } from '../types';
-import { scheduleAPI, projectsAPI } from '../services/apiService';
+import { scheduleAPI, projectsAPI, contractorsAPI } from '../services/apiService';
 
 interface ScheduleProps {
   user: User;
@@ -1021,48 +1021,135 @@ interface AddTechModalProps {
 
 const AddTechModal: React.FC<AddTechModalProps> = ({ groups, onClose, onAdded }) => {
   const [availableTechs, setAvailableTechs] = useState<{ _id: string; name: string; email: string; role: string }[]>([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTech, setSelectedTech] = useState('');
   const [selectedGroup, setSelectedGroup] = useState(groups[0]?._id || '');
   const [role, setRole] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // Tab: 'user' | 'contractor' | 'new-contractor'
+  const [activeTab, setActiveTab] = useState<'user' | 'contractor' | 'new-contractor'>('user');
+  
+  // New group creation
+  const [showNewGroup, setShowNewGroup] = useState(groups.length === 0);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  
+  // New contractor form
+  const [newContractor, setNewContractor] = useState({
+    name: '',
+    company: '',
+    phone: '',
+    email: '',
+    category: 'contractor' as 'contractor' | 'subcontractor',
+  });
 
   useEffect(() => {
-    const loadTechs = async () => {
+    const loadData = async () => {
       try {
-        const techs = await scheduleAPI.getAvailableTechs();
+        const [techs, contractorList] = await Promise.all([
+          scheduleAPI.getAvailableTechs(),
+          contractorsAPI.getAll(),
+        ]);
         
         // Filter out techs already in groups
-        const existingIds = new Set<string>();
+        const existingUserIds = new Set<string>();
+        const existingContractorIds = new Set<string>();
         groups.forEach(g => {
           g.members.forEach(m => {
-            if (m.user?._id) existingIds.add(m.user._id);
+            if (m.user?._id) existingUserIds.add(m.user._id);
+            if (m.contractor?._id) existingContractorIds.add(m.contractor._id);
           });
         });
         
-        setAvailableTechs(techs.filter((t: any) => !existingIds.has(t._id)));
+        setAvailableTechs(techs.filter((t: any) => !existingUserIds.has(t._id)));
+        setContractors(contractorList.filter((c: Contractor) => c.isActive && !existingContractorIds.has(c._id)));
       } catch (err) {
-        console.error('Failed to load techs:', err);
+        console.error('Failed to load data:', err);
       } finally {
         setLoading(false);
       }
     };
-    loadTechs();
+    loadData();
   }, [groups]);
 
-  const handleAdd = async () => {
-    if (!selectedTech || !selectedGroup) return;
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) return;
+    
+    try {
+      setCreatingGroup(true);
+      const newGroup = await scheduleAPI.createGroup({ name: newGroupName.trim() });
+      setSelectedGroup(newGroup._id);
+      setShowNewGroup(false);
+      setNewGroupName('');
+      onAdded();
+    } catch (err: any) {
+      alert(err.message || 'Failed to create group');
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
+  const handleCreateContractor = async () => {
+    if (!newContractor.name.trim()) {
+      alert('Contractor name is required');
+      return;
+    }
+    if (!selectedGroup) {
+      alert('Please select a group');
+      return;
+    }
     
     try {
       setSaving(true);
+      const created = await contractorsAPI.create(newContractor);
+      
+      // Add to the selected group
       await scheduleAPI.addGroupMember(selectedGroup, {
-        memberType: 'user',
-        userId: selectedTech,
+        memberType: 'contractor',
+        contractorId: created._id,
         role: role || undefined,
       });
+      
       onAdded();
     } catch (err: any) {
-      alert(err.message || 'Failed to add technician');
+      alert(err.message || 'Failed to create contractor');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!selectedGroup) {
+      alert('Please select a group');
+      return;
+    }
+    if (!selectedTech) {
+      alert('Please select a technician or contractor');
+      return;
+    }
+    
+    try {
+      setSaving(true);
+      
+      if (activeTab === 'user') {
+        await scheduleAPI.addGroupMember(selectedGroup, {
+          memberType: 'user',
+          userId: selectedTech,
+          role: role || undefined,
+        });
+      } else if (activeTab === 'contractor') {
+        await scheduleAPI.addGroupMember(selectedGroup, {
+          memberType: 'contractor',
+          contractorId: selectedTech,
+          role: role || undefined,
+        });
+      }
+      
+      onAdded();
+    } catch (err: any) {
+      alert(err.message || 'Failed to add');
     } finally {
       setSaving(false);
     }
@@ -1091,7 +1178,9 @@ const AddTechModal: React.FC<AddTechModalProps> = ({ groups, onClose, onAdded })
           background: 'white',
           borderRadius: '12px',
           width: '90%',
-          maxWidth: '400px',
+          maxWidth: '450px',
+          maxHeight: '90vh',
+          overflow: 'auto',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
         }}
       >
@@ -1101,59 +1190,319 @@ const AddTechModal: React.FC<AddTechModalProps> = ({ groups, onClose, onAdded })
           background: 'linear-gradient(135deg, #10b981, #059669)',
           borderRadius: '12px 12px 0 0',
         }}>
-          <h3 style={{ margin: 0, color: 'white' }}>👤 Add Technician</h3>
+          <h3 style={{ margin: 0, color: 'white' }}>
+            {showNewGroup ? '📁 Create Group' : '👤 Add to Schedule'}
+          </h3>
         </div>
 
         <div style={{ padding: '1.25rem' }}>
-          {loading ? (
+          {showNewGroup ? (
+            <>
+              <p style={{ color: '#6b7280', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                {groups.length === 0 
+                  ? 'No groups exist yet. Create a group first.'
+                  : 'Create a new group for organizing technicians.'}
+              </p>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                  Group Name
+                </label>
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g., Install Technicians, Contractors"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '0.9rem',
+                  }}
+                  autoFocus
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={handleCreateGroup}
+                  disabled={creatingGroup || !newGroupName.trim()}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem 1rem',
+                    background: creatingGroup || !newGroupName.trim() ? '#9ca3af' : '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: creatingGroup || !newGroupName.trim() ? 'not-allowed' : 'pointer',
+                    fontWeight: 500,
+                  }}
+                >
+                  {creatingGroup ? 'Creating...' : 'Create Group'}
+                </button>
+                {groups.length > 0 && (
+                  <button
+                    onClick={() => setShowNewGroup(false)}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#f3f4f6',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </>
+          ) : loading ? (
             <p>Loading...</p>
-          ) : availableTechs.length === 0 ? (
-            <p style={{ color: '#6b7280' }}>All technicians are already in groups.</p>
           ) : (
             <>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
-                  Technician
-                </label>
-                <select
-                  value={selectedTech}
-                  onChange={(e) => setSelectedTech(e.target.value)}
+              {/* Tabs */}
+              <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem', background: '#f3f4f6', padding: '0.25rem', borderRadius: '8px' }}>
+                <button
+                  onClick={() => { setActiveTab('user'); setSelectedTech(''); }}
                   style={{
-                    width: '100%',
+                    flex: 1,
                     padding: '0.5rem',
-                    border: '1px solid #d1d5db',
+                    background: activeTab === 'user' ? 'white' : 'transparent',
+                    border: 'none',
                     borderRadius: '6px',
-                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'user' ? 600 : 400,
+                    fontSize: '0.8rem',
+                    boxShadow: activeTab === 'user' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                   }}
                 >
-                  <option value="">-- Select Technician --</option>
-                  {availableTechs.map(t => (
-                    <option key={t._id} value={t._id}>{t.name} ({t.role})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
-                  Group
-                </label>
-                <select
-                  value={selectedGroup}
-                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  👤 Staff
+                </button>
+                <button
+                  onClick={() => { setActiveTab('contractor'); setSelectedTech(''); }}
                   style={{
-                    width: '100%',
+                    flex: 1,
                     padding: '0.5rem',
-                    border: '1px solid #d1d5db',
+                    background: activeTab === 'contractor' ? 'white' : 'transparent',
+                    border: 'none',
                     borderRadius: '6px',
-                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'contractor' ? 600 : 400,
+                    fontSize: '0.8rem',
+                    boxShadow: activeTab === 'contractor' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                   }}
                 >
-                  {groups.map(g => (
-                    <option key={g._id} value={g._id}>{g.name}</option>
-                  ))}
-                </select>
+                  🔧 Contractor
+                </button>
+                <button
+                  onClick={() => { setActiveTab('new-contractor'); setSelectedTech(''); }}
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    background: activeTab === 'new-contractor' ? 'white' : 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'new-contractor' ? 600 : 400,
+                    fontSize: '0.8rem',
+                    boxShadow: activeTab === 'new-contractor' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  }}
+                >
+                  ➕ New Contractor
+                </button>
               </div>
 
+              {/* Staff Tab */}
+              {activeTab === 'user' && (
+                <>
+                  {availableTechs.length === 0 ? (
+                    <p style={{ color: '#6b7280', textAlign: 'center', padding: '1rem' }}>
+                      All staff members are already in groups.
+                    </p>
+                  ) : (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                        Staff Member
+                      </label>
+                      <select
+                        value={selectedTech}
+                        onChange={(e) => setSelectedTech(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        <option value="">-- Select Staff --</option>
+                        {availableTechs.map(t => (
+                          <option key={t._id} value={t._id}>{t.name} ({t.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Existing Contractor Tab */}
+              {activeTab === 'contractor' && (
+                <>
+                  {contractors.length === 0 ? (
+                    <p style={{ color: '#6b7280', textAlign: 'center', padding: '1rem' }}>
+                      No contractors available. Use "New Contractor" tab to create one.
+                    </p>
+                  ) : (
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                        Contractor
+                      </label>
+                      <select
+                        value={selectedTech}
+                        onChange={(e) => setSelectedTech(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        <option value="">-- Select Contractor --</option>
+                        {contractors.map(c => (
+                          <option key={c._id} value={c._id}>
+                            {c.name} {c.company ? `(${c.company})` : ''} - {c.category === 'subcontractor' ? 'SUB' : 'CON'}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* New Contractor Tab */}
+              {activeTab === 'new-contractor' && (
+                <>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newContractor.name}
+                      onChange={(e) => setNewContractor({ ...newContractor, name: e.target.value })}
+                      placeholder="Contractor name"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                      Company
+                    </label>
+                    <input
+                      type="text"
+                      value={newContractor.company}
+                      onChange={(e) => setNewContractor({ ...newContractor, company: e.target.value })}
+                      placeholder="Company name (optional)"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '0.9rem',
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        value={newContractor.phone}
+                        onChange={(e) => setNewContractor({ ...newContractor, phone: e.target.value })}
+                        placeholder="Phone"
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                        Type
+                      </label>
+                      <select
+                        value={newContractor.category}
+                        onChange={(e) => setNewContractor({ ...newContractor, category: e.target.value as 'contractor' | 'subcontractor' })}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        <option value="contractor">Contractor</option>
+                        <option value="subcontractor">Subcontractor</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Group Selection */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
+                  Add to Group
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select
+                    value={selectedGroup}
+                    onChange={(e) => setSelectedGroup(e.target.value)}
+                    style={{
+                      flex: 1,
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    <option value="">-- Select Group --</option>
+                    {groups.map(g => (
+                      <option key={g._id} value={g._id}>{g.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => setShowNewGroup(true)}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: '#f3f4f6',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                    }}
+                    title="Create new group"
+                  >
+                    + New
+                  </button>
+                </div>
+              </div>
+
+              {/* Role Label */}
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.35rem', fontWeight: 500, fontSize: '0.9rem' }}>
                   Role Label (optional)
@@ -1162,7 +1511,7 @@ const AddTechModal: React.FC<AddTechModalProps> = ({ groups, onClose, onAdded })
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g., SUP, LEAD"
+                  placeholder="e.g., SUP, LEAD, ELEC"
                   style={{
                     width: '100%',
                     padding: '0.5rem',
@@ -1176,41 +1525,70 @@ const AddTechModal: React.FC<AddTechModalProps> = ({ groups, onClose, onAdded })
           )}
         </div>
 
-        <div style={{
-          padding: '1rem 1.25rem',
-          borderTop: '1px solid #e5e7eb',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '0.75rem',
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '0.5rem 1rem',
-              background: '#f3f4f6',
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleAdd}
-            disabled={saving || !selectedTech || !selectedGroup}
-            style={{
-              padding: '0.5rem 1.5rem',
-              background: saving || !selectedTech ? '#9ca3af' : '#10b981',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: saving || !selectedTech ? 'not-allowed' : 'pointer',
-              fontWeight: 500,
-            }}
-          >
-            {saving ? 'Adding...' : 'Add'}
-          </button>
-        </div>
+        {!showNewGroup && (
+          <div style={{
+            padding: '1rem 1.25rem',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '0.75rem',
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#f3f4f6',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={activeTab === 'new-contractor' ? handleCreateContractor : handleAdd}
+              disabled={saving || 
+                !selectedGroup ||
+                (activeTab === 'user' && !selectedTech) || 
+                (activeTab === 'contractor' && !selectedTech) ||
+                (activeTab === 'new-contractor' && !newContractor.name.trim())
+              }
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: saving ? '#9ca3af' : '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: 500,
+              }}
+            >
+              {saving ? 'Saving...' : activeTab === 'new-contractor' ? 'Create & Add' : 'Add'}
+            </button>
+          </div>
+        )}
+        
+        {showNewGroup && groups.length === 0 && (
+          <div style={{
+            padding: '1rem 1.25rem',
+            borderTop: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'flex-end',
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#f3f4f6',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

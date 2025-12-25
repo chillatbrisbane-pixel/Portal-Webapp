@@ -1146,6 +1146,90 @@ export const scheduleAPI = {
   },
 };
 
+// ============ CONTRACTORS API ============
+
+export const contractorsAPI = {
+  // Get all contractors
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/contractors`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch contractors');
+    return response.json();
+  },
+
+  // Get single contractor
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/contractors/${id}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch contractor');
+    return response.json();
+  },
+
+  // Create contractor
+  create: async (data: {
+    name: string;
+    company?: string;
+    phone?: string;
+    email?: string;
+    category?: 'contractor' | 'subcontractor';
+    groupId?: string;
+  }) => {
+    const response = await fetch(`${API_BASE_URL}/contractors`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create contractor');
+    }
+    return response.json();
+  },
+
+  // Update contractor
+  update: async (id: string, data: any) => {
+    const response = await fetch(`${API_BASE_URL}/contractors/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update contractor');
+    }
+    return response.json();
+  },
+
+  // Delete contractor
+  delete: async (id: string, hard = false) => {
+    const url = hard ? `${API_BASE_URL}/contractors/${id}?hard=true` : `${API_BASE_URL}/contractors/${id}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete contractor');
+    }
+    return response.json();
+  },
+
+  // Reactivate contractor
+  reactivate: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/contractors/${id}/reactivate`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to reactivate contractor');
+    }
+    return response.json();
+  },
+};
+
 // Client Access API
 export const clientAccessAPI = {
   // Get client access status for a project
@@ -1232,6 +1316,7 @@ export default {
   tasksAPI,
   settingsAPI,
   scheduleAPI,
+  contractorsAPI,
   clientAccessAPI,
   activeUsersAPI,
   healthCheck,
