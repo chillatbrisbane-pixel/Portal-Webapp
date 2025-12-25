@@ -103,6 +103,13 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
     userName: string;
     notes: string;
   } | null>(null);
+  const [editingMemberRole, setEditingMemberRole] = useState<{
+    groupId: string;
+    memberId: string;
+    memberName: string;
+    memberType: 'user' | 'contractor';
+    role: string;
+  } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     techId: string;
     techName: string;
@@ -591,7 +598,19 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
                                 {techName}
                                 {member.memberType === 'contractor' && <span style={{ marginLeft: '0.35rem', fontSize: '0.65rem', color: '#9ca3af' }}>🔧</span>}
                               </span>
-                              {member.role && <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.1rem 0.35rem', background: '#dbeafe', color: '#1e40af', borderRadius: '3px' }}>{member.role}</span>}
+                              {member.role ? (
+                                <span 
+                                  onClick={() => canEdit && setEditingMemberRole({ groupId: group._id, memberId: techId, memberName: techName, memberType: member.memberType, role: member.role || '' })}
+                                  style={{ marginLeft: '0.5rem', fontSize: '0.7rem', padding: '0.1rem 0.35rem', background: '#dbeafe', color: '#1e40af', borderRadius: '3px', cursor: canEdit ? 'pointer' : 'default' }}
+                                  title={canEdit ? 'Click to edit role' : undefined}
+                                >{member.role}</span>
+                              ) : canEdit && (
+                                <button 
+                                  onClick={() => setEditingMemberRole({ groupId: group._id, memberId: techId, memberName: techName, memberType: member.memberType, role: '' })}
+                                  style={{ marginLeft: '0.5rem', fontSize: '0.65rem', padding: '0.1rem 0.3rem', background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', borderRadius: '3px', cursor: 'pointer' }}
+                                  title="Add role"
+                                >+ role</button>
+                              )}
                               {contractorData && (contractorData.phone || contractorData.email) && (
                                 <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '2px' }}>
                                   {contractorData.phone && <span style={{ marginRight: '0.5rem' }}>📱 {contractorData.phone}</span>}
@@ -656,7 +675,19 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 500 }}>{techName}</span>
                         {member.memberType === 'contractor' && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>🔧</span>}
-                        {member.role && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', background: '#dbeafe', color: '#1e40af', borderRadius: '3px' }}>{member.role}</span>}
+                        {member.role ? (
+                          <span 
+                            onClick={() => canEdit && setEditingMemberRole({ groupId: group._id, memberId: techId, memberName: techName, memberType: member.memberType, role: member.role || '' })}
+                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', background: '#dbeafe', color: '#1e40af', borderRadius: '3px', cursor: canEdit ? 'pointer' : 'default' }}
+                            title={canEdit ? 'Click to edit role' : undefined}
+                          >{member.role}</span>
+                        ) : canEdit && (
+                          <button 
+                            onClick={() => setEditingMemberRole({ groupId: group._id, memberId: techId, memberName: techName, memberType: member.memberType, role: '' })}
+                            style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem', background: '#f3f4f6', color: '#6b7280', border: '1px dashed #d1d5db', borderRadius: '3px', cursor: 'pointer' }}
+                            title="Add role"
+                          >+ role</button>
+                        )}
                         {contractorData && (contractorData.phone || contractorData.email) && (
                           <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>
                             {contractorData.phone && <span style={{ marginRight: '0.5rem' }}>📱 {contractorData.phone}</span>}
@@ -879,6 +910,9 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
 
       {/* Edit Tech Notes Modal */}
       {editingTechNotes && <EditTechNotesModal userId={editingTechNotes.userId} userName={editingTechNotes.userName} notes={editingTechNotes.notes} onClose={() => setEditingTechNotes(null)} onSaved={() => { setEditingTechNotes(null); loadData(); }} />}
+
+      {/* Edit Member Role Modal */}
+      {editingMemberRole && <EditMemberRoleModal groupId={editingMemberRole.groupId} memberId={editingMemberRole.memberId} memberName={editingMemberRole.memberName} memberType={editingMemberRole.memberType} role={editingMemberRole.role} onClose={() => setEditingMemberRole(null)} onSaved={() => { setEditingMemberRole(null); loadData(); }} />}
     </div>
   );
 };
@@ -1230,6 +1264,70 @@ const EditTechNotesModal: React.FC<{
           <button onClick={onClose} style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{ padding: '0.5rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving...' : 'Save Notes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Edit Member Role Modal Component
+const EditMemberRoleModal: React.FC<{
+  groupId: string;
+  memberId: string;
+  memberName: string;
+  memberType: 'user' | 'contractor';
+  role: string;
+  onClose: () => void;
+  onSaved: () => void;
+}> = ({ groupId, memberId, memberName, memberType, role, onClose, onSaved }) => {
+  const [roleValue, setRoleValue] = useState(role);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await scheduleAPI.updateMemberRole(groupId, memberId, memberType, roleValue.trim());
+      onSaved();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update role');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1001 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', width: '90%', maxWidth: '350px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div style={{ padding: '1.25rem', borderBottom: '1px solid #e5e7eb', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', borderRadius: '12px 12px 0 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, color: 'white' }}>🏷️ Edit Role</h3>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.4rem 0.6rem', borderRadius: '6px', cursor: 'pointer' }}>✕</button>
+          </div>
+        </div>
+
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            Set a role/label for <strong>{memberName}</strong> that appears next to their name on the schedule.
+          </p>
+          <input
+            type="text"
+            value={roleValue}
+            onChange={e => setRoleValue(e.target.value)}
+            placeholder="e.g., SUP, Rack Builder, Lead Tech..."
+            style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '0.9rem' }}
+            autoFocus
+            onKeyDown={e => e.key === 'Enter' && handleSave()}
+          />
+          <p style={{ color: '#9ca3af', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+            Leave empty to remove the role badge.
+          </p>
+        </div>
+
+        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button onClick={onClose} style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '0.5rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving...' : 'Save Role'}
           </button>
         </div>
       </div>

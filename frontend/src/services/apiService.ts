@@ -1185,6 +1185,20 @@ export const scheduleAPI = {
     return response.json();
   },
 
+  // Update member role in group
+  updateMemberRole: async (groupId: string, memberId: string, memberType: 'user' | 'contractor', role: string) => {
+    const response = await fetch(`${API_BASE_URL}/schedule/groups/${groupId}/members/${memberId}/role`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ role, memberType }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update member role');
+    }
+    return response.json();
+  },
+
   // Seed holidays
   seedHolidays: async (year: number) => {
     const response = await fetch(`${API_BASE_URL}/schedule/holidays/seed`, {

@@ -591,6 +591,43 @@ router.delete('/groups/:id/members/:memberId', authorizeRole(['admin']), async (
   }
 });
 
+// PATCH /api/schedule/groups/:id/members/:memberId/role - Update member role
+router.patch('/groups/:id/members/:memberId/role', authorizeRole(['admin', 'project-manager', 'project-coordinator']), async (req, res) => {
+  try {
+    const { role, memberType } = req.body;
+    
+    const group = await TechnicianGroup.findById(req.params.id);
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+    
+    // Find the member and update their role
+    const member = group.members.find(m => {
+      if (memberType === 'user') {
+        return m.user && m.user.toString() === req.params.memberId;
+      } else {
+        return m.contractor && m.contractor.toString() === req.params.memberId;
+      }
+    });
+    
+    if (!member) {
+      return res.status(404).json({ error: 'Member not found in group' });
+    }
+    
+    member.role = role || '';
+    await group.save();
+    
+    const updated = await TechnicianGroup.findById(req.params.id)
+      .populate('members.user', 'name email role scheduleNotes')
+      .populate('members.contractor', 'name company category');
+    
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    res.status(500).json({ error: 'Failed to update member role' });
+  }
+});
+
 // PUT /api/schedule/groups/:id/reorder - Reorder members in group
 router.put('/groups/:id/reorder', authorizeRole(['admin']), async (req, res) => {
   try {
