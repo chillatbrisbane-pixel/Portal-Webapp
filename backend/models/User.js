@@ -102,6 +102,11 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: {
       type: Date,
     },
+    // Schedule notes (visible on schedule view)
+    scheduleNotes: {
+      type: String,
+      trim: true,
+    },
     // Security: failed login tracking
     failedLoginAttempts: {
       type: Number,

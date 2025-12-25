@@ -558,7 +558,7 @@ router.post('/groups/:id/members', authorizeRole(['admin']), async (req, res) =>
     await group.addMember(memberType, id, role);
     
     const updated = await TechnicianGroup.findById(req.params.id)
-      .populate('members.user', 'name email role')
+      .populate('members.user', 'name email role scheduleNotes')
       .populate('members.contractor', 'name company category');
     
     res.json(updated);
@@ -581,7 +581,7 @@ router.delete('/groups/:id/members/:memberId', authorizeRole(['admin']), async (
     await group.removeMember(memberType || 'user', req.params.memberId);
     
     const updated = await TechnicianGroup.findById(req.params.id)
-      .populate('members.user', 'name email role')
+      .populate('members.user', 'name email role scheduleNotes')
       .populate('members.contractor', 'name company category');
     
     res.json(updated);

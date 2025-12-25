@@ -343,4 +343,32 @@ router.get('/active/list', authenticateToken, authorizeRole(['admin']), async (r
   }
 });
 
+// Update user's schedule notes (for schedule display)
+router.patch('/:id/schedule-notes', authenticateToken, async (req, res) => {
+  try {
+    // Only admin, project-manager, project-coordinator can update schedule notes
+    const allowedRoles = ['admin', 'project-manager', 'project-coordinator'];
+    if (!allowedRoles.includes(req.userRole)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { notes } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { scheduleNotes: notes || '' },
+      { new: true }
+    ).select('_id name email role scheduleNotes');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error updating schedule notes:', error);
+    res.status(500).json({ error: 'Failed to update schedule notes' });
+  }
+});
+
 module.exports = router;

@@ -58,7 +58,7 @@ technicianGroupSchema.index({ displayOrder: 1, name: 1 });
 // Static method to get all groups with populated members
 technicianGroupSchema.statics.getGroupsWithMembers = async function() {
   const groups = await this.find({ isActive: true })
-    .populate('members.user', 'name email role isActive')
+    .populate('members.user', 'name email role isActive scheduleNotes')
     .populate('members.contractor', 'name company category isActive')
     .sort({ displayOrder: 1 });
   

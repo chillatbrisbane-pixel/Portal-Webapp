@@ -701,6 +701,19 @@ export const usersAPI = {
     if (!response.ok) throw new Error('Failed to fetch activity logs');
     return response.json();
   },
+
+  updateScheduleNotes: async (userId: string, notes: string) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/schedule-notes`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ notes }),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update schedule notes');
+    }
+    return response.json();
+  },
 };
 
 // ============ MANUFACTURERS & TEMPLATES ============

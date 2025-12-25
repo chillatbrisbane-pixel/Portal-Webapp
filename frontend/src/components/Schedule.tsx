@@ -98,6 +98,11 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
   const [addTechModal, setAddTechModal] = useState(false);
   const [contractorsModal, setContractorsModal] = useState(false);
   const [editingContractor, setEditingContractor] = useState<Contractor | null>(null);
+  const [editingTechNotes, setEditingTechNotes] = useState<{
+    userId: string;
+    userName: string;
+    notes: string;
+  } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     techId: string;
     techName: string;
@@ -574,6 +579,7 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
                     const techId = member.memberType === 'user' ? member.user?._id : member.contractor?._id;
                     const techName = member.memberType === 'user' ? member.user?.name : member.contractor?.name;
                     const contractorData = member.memberType === 'contractor' ? getContractor(techId) : null;
+                    const userNotes = member.memberType === 'user' ? (member.user as any)?.scheduleNotes : null;
                     if (!techId || !techName) return null;
                     
                     return (
@@ -592,8 +598,14 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
                                   {contractorData.email && <span>✉️ {contractorData.email}</span>}
                                 </div>
                               )}
+                              {userNotes && (
+                                <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '2px' }}>📝 {userNotes}</div>
+                              )}
                             </div>
                             <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              {canEdit && member.memberType === 'user' && (
+                                <button onClick={() => setEditingTechNotes({ userId: techId, userName: techName, notes: userNotes || '' })} style={{ padding: '0.2rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.8rem' }} title="Edit notes">📝</button>
+                              )}
                               {canEdit && contractorData && (
                                 <button onClick={() => setEditingContractor(contractorData)} style={{ padding: '0.2rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.8rem' }} title="Edit contractor">✏️</button>
                               )}
@@ -634,13 +646,14 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
                 const techId = member.memberType === 'user' ? member.user?._id : member.contractor?._id;
                 const techName = member.memberType === 'user' ? member.user?.name : member.contractor?.name;
                 const contractorData = member.memberType === 'contractor' ? getContractor(techId) : null;
+                const userNotes = member.memberType === 'user' ? (member.user as any)?.scheduleNotes : null;
                 if (!techId || !techName) return null;
                 const displayDates = showWeekends ? monthDates : monthDates.filter(d => !isWeekend(d.date));
                 
                 return (
                   <div key={techId} style={{ borderBottom: '1px solid #e5e7eb', padding: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 500 }}>{techName}</span>
                         {member.memberType === 'contractor' && <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>🔧</span>}
                         {member.role && <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.35rem', background: '#dbeafe', color: '#1e40af', borderRadius: '3px' }}>{member.role}</span>}
@@ -650,10 +663,16 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
                             {contractorData.email && <span>✉️ {contractorData.email}</span>}
                           </span>
                         )}
+                        {userNotes && <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>📝 {userNotes}</span>}
                       </div>
-                      {canEdit && contractorData && (
-                        <button onClick={() => setEditingContractor(contractorData)} style={{ padding: '0.2rem 0.4rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>Edit</button>
-                      )}
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        {canEdit && member.memberType === 'user' && (
+                          <button onClick={() => setEditingTechNotes({ userId: techId, userName: techName, notes: userNotes || '' })} style={{ padding: '0.2rem 0.4rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>📝</button>
+                        )}
+                        {canEdit && contractorData && (
+                          <button onClick={() => setEditingContractor(contractorData)} style={{ padding: '0.2rem 0.4rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}>Edit</button>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${showWeekends ? 7 : 5}, 1fr)`, gap: '2px' }}>
                       {(showWeekends ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']).map(day => (
@@ -857,6 +876,9 @@ export const Schedule: React.FC<ScheduleProps> = ({ user }) => {
       
       {/* Edit Contractor Modal */}
       {editingContractor && <EditContractorModal contractor={editingContractor} onClose={() => setEditingContractor(null)} onSaved={() => { setEditingContractor(null); loadData(); }} />}
+
+      {/* Edit Tech Notes Modal */}
+      {editingTechNotes && <EditTechNotesModal userId={editingTechNotes.userId} userName={editingTechNotes.userName} notes={editingTechNotes.notes} onClose={() => setEditingTechNotes(null)} onSaved={() => { setEditingTechNotes(null); loadData(); }} />}
     </div>
   );
 };
@@ -1151,6 +1173,63 @@ const EditContractorModal: React.FC<{
           <button onClick={onClose} style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving || !formData.name.trim()} style={{ padding: '0.5rem 1.5rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Edit Tech Notes Modal Component
+const EditTechNotesModal: React.FC<{
+  userId: string;
+  userName: string;
+  notes: string;
+  onClose: () => void;
+  onSaved: () => void;
+}> = ({ userId, userName, notes, onClose, onSaved }) => {
+  const [notesValue, setNotesValue] = useState(notes);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await usersAPI.updateScheduleNotes(userId, notesValue);
+      onSaved();
+    } catch (err: any) {
+      alert(err.message || 'Failed to update notes');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1001 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '12px', width: '90%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div style={{ padding: '1.25rem', borderBottom: '1px solid #e5e7eb', background: 'linear-gradient(135deg, #10b981, #059669)', borderRadius: '12px 12px 0 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, color: 'white' }}>📝 Notes for {userName}</h3>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '0.4rem 0.6rem', borderRadius: '6px', cursor: 'pointer' }}>✕</button>
+          </div>
+        </div>
+
+        <div style={{ padding: '1.25rem' }}>
+          <p style={{ color: '#6b7280', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            Add notes that will appear on the schedule next to this technician's name.
+          </p>
+          <textarea
+            value={notesValue}
+            onChange={e => setNotesValue(e.target.value)}
+            placeholder="e.g., On leave Mon-Wed, Working from site B, etc."
+            style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '6px', minHeight: '100px', resize: 'vertical', fontSize: '0.9rem' }}
+            autoFocus
+          />
+        </div>
+
+        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button onClick={onClose} style={{ padding: '0.5rem 1rem', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '0.5rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500, opacity: saving ? 0.6 : 1 }}>
+            {saving ? 'Saving...' : 'Save Notes'}
           </button>
         </div>
       </div>
