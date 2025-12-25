@@ -13,7 +13,7 @@ import {
   TIME_SLOTS,
   Project
 } from '../types';
-import { scheduleAPI, projectsAPI, contractorsAPI } from '../services/apiService';
+import { scheduleAPI, projectsAPI, contractorsAPI, usersAPI } from '../services/apiService';
 
 interface ScheduleProps {
   user: User;
