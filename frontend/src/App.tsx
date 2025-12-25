@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { LoginScreen } from './components/LoginScreen'
 import { Dashboard } from './components/Dashboard'
 import { Schedule } from './components/Schedule'
+import { Tasks } from './components/Tasks'
 import { Header } from './components/Header'
 import { UserManagementModal } from './components/UserManagementModal'
 import { UserSettingsModal } from './components/UserSettingsModal'
@@ -28,7 +29,7 @@ function App() {
   const [sessionWarning, setSessionWarning] = useState(false)
   const [sessionTimeLeft, setSessionTimeLeft] = useState<number | null>(null)
   const [show2FAPrompt, setShow2FAPrompt] = useState(false)
-  const [currentView, setCurrentView] = useState<'projects' | 'schedule'>('projects')
+  const [currentView, setCurrentView] = useState<'projects' | 'schedule' | 'tasks'>('projects')
 
   // Get login timestamp from localStorage
   const getLoginTime = () => {
@@ -376,11 +377,9 @@ function App() {
         onNavigate={setCurrentView}
       />
       <main className="app-main" style={{ marginTop: sessionWarning ? '50px' : 0 }}>
-        {currentView === 'projects' ? (
-          <Dashboard user={user} />
-        ) : (
-          <Schedule user={user} />
-        )}
+        {currentView === 'projects' && <Dashboard user={user} />}
+        {currentView === 'tasks' && <Tasks user={user} />}
+        {currentView === 'schedule' && <Schedule user={user} />}
       </main>
 
       {showUserManagement && (

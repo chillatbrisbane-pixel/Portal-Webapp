@@ -557,6 +557,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                       <option value="viewer">👁️ Viewer</option>
                       <option value="tech">🔧 Technician</option>
                       <option value="sales">💼 Sales</option>
+                      <option value="project-coordinator">📅 Project Coordinator</option>
                       <option value="project-manager">📋 Project Manager</option>
                       <option value="admin">👑 Admin</option>
                     </select>
@@ -585,13 +586,14 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           return true
                         })
                         .sort((a, b) => {
-                          // Sort order: viewer > tech > sales > project-manager > admin
+                          // Sort order: viewer > tech > sales > project-coordinator > project-manager > admin
                           const roleOrder: Record<string, number> = { 
                             'viewer': 1, 
                             'tech': 2,
                             'sales': 3,
-                            'project-manager': 4, 
-                            'admin': 5 
+                            'project-coordinator': 4,
+                            'project-manager': 5, 
+                            'admin': 6 
                           }
                           return (roleOrder[a.role] || 0) - (roleOrder[b.role] || 0)
                         })
@@ -648,11 +650,11 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                                     borderRadius: '12px',
                                     fontSize: '0.8rem',
                                     fontWeight: 600,
-                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'project-manager' ? '#fef3c7' : user.role === 'tech' ? '#dbeafe' : user.role === 'sales' ? '#f3e8ff' : '#e0f2fe',
-                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'project-manager' ? '#92400e' : user.role === 'tech' ? '#1e40af' : user.role === 'sales' ? '#7c3aed' : '#0369a1',
+                                    background: user.role === 'admin' ? '#fee2e2' : user.role === 'project-manager' ? '#fef3c7' : user.role === 'project-coordinator' ? '#d1fae5' : user.role === 'tech' ? '#dbeafe' : user.role === 'sales' ? '#f3e8ff' : '#e0f2fe',
+                                    color: user.role === 'admin' ? '#991b1b' : user.role === 'project-manager' ? '#92400e' : user.role === 'project-coordinator' ? '#065f46' : user.role === 'tech' ? '#1e40af' : user.role === 'sales' ? '#7c3aed' : '#0369a1',
                                   }}
                                 >
-                                  {user.role === 'admin' ? 'Admin' : user.role === 'project-manager' ? 'Project Manager' : user.role === 'tech' ? 'Tech' : user.role === 'sales' ? 'Sales' : 'Viewer'}
+                                  {user.role === 'admin' ? 'Admin' : user.role === 'project-manager' ? 'Project Manager' : user.role === 'project-coordinator' ? 'Project Coordinator' : user.role === 'tech' ? 'Tech' : user.role === 'sales' ? 'Sales' : 'Viewer'}
                                 </span>
                                 {user.lastLogin && (
                                   <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
@@ -1032,6 +1034,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           <option value="viewer">Viewer (View Only)</option>
                           <option value="sales">Sales (View + PDF Reports)</option>
                           <option value="tech">Tech (Full Access)</option>
+                          <option value="project-coordinator">Project Coordinator (Schedule + Tasks)</option>
                           <option value="project-manager">Project Manager (Full + Assign Tasks)</option>
                           <option value="admin">Admin (Full + User Management)</option>
                         </select>
@@ -1051,6 +1054,7 @@ export const UserManagementModal: React.FC<UserManagementModalProps> = ({
                           <option value="viewer">Viewer (View Only)</option>
                           <option value="sales">Sales (View + PDF Reports)</option>
                           <option value="tech">Tech (Full Access)</option>
+                          <option value="project-coordinator">Project Coordinator (Schedule + Tasks)</option>
                           <option value="project-manager">Project Manager (Full + Assign Tasks)</option>
                           <option value="admin">Admin (Full + User Management)</option>
                         </select>

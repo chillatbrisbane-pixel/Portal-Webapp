@@ -6,12 +6,13 @@ interface HeaderProps {
   onLogout: () => void
   onShowUsers?: () => void
   onShowSettings?: () => void
-  currentView?: 'projects' | 'schedule'
-  onNavigate?: (view: 'projects' | 'schedule') => void
+  currentView?: 'projects' | 'schedule' | 'tasks'
+  onNavigate?: (view: 'projects' | 'schedule' | 'tasks') => void
 }
 
 export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers, onShowSettings, currentView = 'projects', onNavigate }) => {
   const canViewSchedule = ['admin', 'project-manager', 'project-coordinator', 'tech'].includes(user.role);
+  const canViewTasks = ['admin', 'project-manager', 'project-coordinator', 'tech'].includes(user.role);
   
   return (
     <header className="header">
@@ -50,6 +51,24 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout, onShowUsers, onS
               >
                 📁 Projects
               </button>
+              {canViewTasks && (
+                <button
+                  onClick={() => onNavigate('tasks')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: currentView === 'tasks' ? 'rgba(255,255,255,0.25)' : 'transparent',
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: currentView === 'tasks' ? 600 : 400,
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  ✅ Tasks
+                </button>
+              )}
               {canViewSchedule && (
                 <button
                   onClick={() => onNavigate('schedule')}

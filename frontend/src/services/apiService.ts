@@ -747,6 +747,20 @@ export const healthCheck = async () => {
 // ============ TASKS ============
 
 export const tasksAPI = {
+  // Get all tasks with filters
+  getAll: async (filters: { projectId?: string; assignee?: string; completed?: string; priority?: string; search?: string } = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') params.append(key, value);
+    });
+    const url = `${API_BASE_URL}/tasks${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch tasks');
+    return response.json();
+  },
+
   getByProject: async (projectId: string) => {
     const response = await fetch(`${API_BASE_URL}/tasks/project/${projectId}`, {
       headers: getHeaders(),
@@ -796,6 +810,15 @@ export const tasksAPI = {
     return response.json();
   },
 
+  toggle: async (id: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}/toggle`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to toggle task');
+    return response.json();
+  },
+
   toggleComplete: async (id: string) => {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}/toggle`, {
       method: 'PATCH',
@@ -811,6 +834,16 @@ export const tasksAPI = {
       headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to toggle subtask');
+    return response.json();
+  },
+
+  updateStage: async (id: string, stage: string) => {
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}/stage`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ stage }),
+    });
+    if (!response.ok) throw new Error('Failed to move task');
     return response.json();
   },
 

@@ -8,6 +8,70 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Tasks route is working', timestamp: new Date().toISOString() });
 });
 
+// Get all tasks with filters (for Tasks page)
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const { 
+      projectId, 
+      assignee, 
+      stage, 
+      priority, 
+      completed, 
+      dueBefore, 
+      dueAfter,
+      search,
+      sort = 'dueDate'
+    } = req.query;
+    
+    const query = {};
+    
+    if (projectId) query.project = projectId;
+    if (assignee) {
+      query.$or = [
+        { assignee: assignee },
+        { assignees: assignee }
+      ];
+    }
+    if (stage) query.stage = stage;
+    if (priority) query.priority = priority;
+    if (completed !== undefined) query.completed = completed === 'true';
+    
+    if (dueBefore || dueAfter) {
+      query.dueDate = {};
+      if (dueBefore) query.dueDate.$lte = new Date(dueBefore);
+      if (dueAfter) query.dueDate.$gte = new Date(dueAfter);
+    }
+    
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    let sortOption = {};
+    switch (sort) {
+      case 'dueDate': sortOption = { dueDate: 1, priority: -1 }; break;
+      case 'priority': sortOption = { priority: -1, dueDate: 1 }; break;
+      case 'created': sortOption = { createdAt: -1 }; break;
+      case 'stage': sortOption = { stage: 1, order: 1 }; break;
+      default: sortOption = { dueDate: 1 };
+    }
+    
+    const tasks = await Task.find(query)
+      .populate('project', 'name clientName status')
+      .populate('assignee', 'name email')
+      .populate('assignees', 'name email')
+      .populate('createdBy', 'name email')
+      .populate('completedBy', 'name email')
+      .sort(sortOption);
+    
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get tasks assigned to current user (across all projects)
 router.get('/my-tasks', authenticateToken, async (req, res) => {
   try {
