@@ -18,8 +18,9 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: 'startDate and endDate are required' });
     }
     
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    // Parse dates consistently - if it's a date string like "2025-01-06", treat as UTC
+    const start = startDate.includes('T') ? new Date(startDate) : new Date(startDate + 'T00:00:00.000Z');
+    const end = endDate.includes('T') ? new Date(endDate) : new Date(endDate + 'T23:59:59.999Z');
     
     const options = {};
     if (technicianId) options.technicianId = technicianId;
@@ -72,14 +73,13 @@ router.get('/tech/:techId', async (req, res) => {
     const query = { technician: techId };
     
     if (startDate && endDate) {
-      query.date = { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      };
+      const start = startDate.includes('T') ? new Date(startDate) : new Date(startDate + 'T00:00:00.000Z');
+      const end = endDate.includes('T') ? new Date(endDate) : new Date(endDate + 'T23:59:59.999Z');
+      query.date = { $gte: start, $lte: end };
     } else {
       // Default to next 14 days
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       const twoWeeks = new Date(today);
       twoWeeks.setDate(twoWeeks.getDate() + 14);
       query.date = { $gte: today, $lte: twoWeeks };
@@ -106,14 +106,13 @@ router.get('/project/:projectId', async (req, res) => {
     const query = { project: projectId };
     
     if (startDate && endDate) {
-      query.date = { 
-        $gte: new Date(startDate), 
-        $lte: new Date(endDate) 
-      };
+      const start = startDate.includes('T') ? new Date(startDate) : new Date(startDate + 'T00:00:00.000Z');
+      const end = endDate.includes('T') ? new Date(endDate) : new Date(endDate + 'T23:59:59.999Z');
+      query.date = { $gte: start, $lte: end };
     } else {
       // Default: all future entries
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      today.setUTCHours(0, 0, 0, 0);
       query.date = { $gte: today };
     }
     
@@ -156,9 +155,12 @@ router.get('/availability', async (req, res) => {
     
     const slotsToCheck = slots ? slots.split(',') : ['AM1', 'AM2', 'PM1', 'PM2'];
     
+    // Parse date consistently
+    const parsedDate = date.includes('T') ? new Date(date) : new Date(date + 'T00:00:00.000Z');
+    
     // Get all booked entries for the date
     const booked = await ScheduleEntry.find({
-      date: new Date(date),
+      date: parsedDate,
       timeSlot: { $in: slotsToCheck }
     }).select('technician contractor timeSlot');
     
@@ -213,8 +215,14 @@ router.get('/availability', async (req, res) => {
 // POST /api/schedule - Create single entry
 router.post('/', authorizeRole(['admin', 'project-manager', 'project-coordinator']), async (req, res) => {
   try {
+    // Parse date string to Date object
+    const data = { ...req.body };
+    if (data.date && typeof data.date === 'string') {
+      data.date = new Date(data.date + 'T00:00:00.000Z');
+    }
+    
     const entry = new ScheduleEntry({
-      ...req.body,
+      ...data,
       createdBy: req.userId,
       updatedBy: req.userId
     });
@@ -244,9 +252,13 @@ router.post('/bulk', authorizeRole(['admin', 'project-manager', 'project-coordin
     const results = [];
     
     for (const entryData of entries) {
+      // Parse date string to Date object and normalize to start of day UTC
+      const dateStr = entryData.date;
+      const parsedDate = new Date(dateStr + 'T00:00:00.000Z');
+      
       if (operation === 'upsert') {
         const filter = {
-          date: entryData.date,
+          date: parsedDate,
           timeSlot: entryData.timeSlot
         };
         
@@ -258,6 +270,7 @@ router.post('/bulk', authorizeRole(['admin', 'project-manager', 'project-coordin
         
         const update = {
           ...entryData,
+          date: parsedDate,
           updatedBy: req.userId
         };
         
@@ -270,7 +283,7 @@ router.post('/bulk', authorizeRole(['admin', 'project-manager', 'project-coordin
         results.push(result);
       } else if (operation === 'delete') {
         await ScheduleEntry.deleteOne({
-          date: entryData.date,
+          date: parsedDate,
           timeSlot: entryData.timeSlot,
           technician: entryData.technician
         });
@@ -278,6 +291,7 @@ router.post('/bulk', authorizeRole(['admin', 'project-manager', 'project-coordin
       } else {
         const entry = new ScheduleEntry({
           ...entryData,
+          date: parsedDate,
           createdBy: req.userId,
           updatedBy: req.userId
         });
@@ -302,8 +316,12 @@ router.post('/copy', authorizeRole(['admin', 'project-manager', 'project-coordin
       return res.status(400).json({ error: 'sourceDate, targetDate, and technicianId are required' });
     }
     
+    // Parse dates consistently
+    const parsedSourceDate = sourceDate.includes('T') ? new Date(sourceDate) : new Date(sourceDate + 'T00:00:00.000Z');
+    const parsedTargetDate = targetDate.includes('T') ? new Date(targetDate) : new Date(targetDate + 'T00:00:00.000Z');
+    
     const query = {
-      date: new Date(sourceDate),
+      date: parsedSourceDate,
       technician: technicianId
     };
     
@@ -319,7 +337,7 @@ router.post('/copy', authorizeRole(['admin', 'project-manager', 'project-coordin
     
     // Check for existing entries on target date
     const existing = await ScheduleEntry.find({
-      date: new Date(targetDate),
+      date: parsedTargetDate,
       technician: technicianId,
       timeSlot: { $in: sourceEntries.map(e => e.timeSlot) }
     });
@@ -332,7 +350,7 @@ router.post('/copy', authorizeRole(['admin', 'project-manager', 'project-coordin
     }
     
     const newEntries = sourceEntries.map(e => ({
-      date: new Date(targetDate),
+      date: parsedTargetDate,
       timeSlot: e.timeSlot,
       technician: e.technician,
       contractor: e.contractor,

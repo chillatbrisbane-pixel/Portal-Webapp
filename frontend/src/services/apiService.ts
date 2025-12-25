@@ -918,12 +918,20 @@ export const settingsAPI = {
 
 // ============ SCHEDULE API ============
 
+// Helper to format date as YYYY-MM-DD (timezone-safe)
+const formatDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const scheduleAPI = {
   // Get schedule grid for date range
   getSchedule: async (startDate: Date, endDate: Date) => {
     const params = new URLSearchParams({
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      startDate: formatDateString(startDate),
+      endDate: formatDateString(endDate),
     });
     const response = await fetch(`${API_BASE_URL}/schedule?${params}`, {
       headers: getHeaders(),
@@ -955,8 +963,8 @@ export const scheduleAPI = {
     let url = `${API_BASE_URL}/schedule/tech/${techId}`;
     if (startDate && endDate) {
       const params = new URLSearchParams({
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: formatDateString(startDate),
+        endDate: formatDateString(endDate),
       });
       url += `?${params}`;
     }
@@ -978,7 +986,7 @@ export const scheduleAPI = {
 
   // Check availability
   checkAvailability: async (date: Date, slots?: string[]) => {
-    let url = `${API_BASE_URL}/schedule/availability?date=${date.toISOString()}`;
+    let url = `${API_BASE_URL}/schedule/availability?date=${formatDateString(date)}`;
     if (slots && slots.length > 0) {
       url += `&slots=${slots.join(',')}`;
     }
@@ -1050,8 +1058,8 @@ export const scheduleAPI = {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
-        sourceDate: sourceDate.toISOString(),
-        targetDate: targetDate.toISOString(),
+        sourceDate: formatDateString(sourceDate),
+        targetDate: formatDateString(targetDate),
         technicianId,
         slots,
       }),
